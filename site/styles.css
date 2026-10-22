@@ -828,8 +828,8 @@ td.vehicles {
 }
 .vehicle-level {
   position: absolute;
-  top: 2px;
-  right: 8%;
+  bottom: 2px;
+  left: 8%;
   min-width: 18px;
   padding: 1px 3px;
   border-radius: 2px;
@@ -949,7 +949,7 @@ td.vehicles {
   font-size: 13px;
 }
 .vehicle-dialog-art .vehicle-level {
-  top: 6px;
+  bottom: 6px;
   min-width: 26px;
   padding: 2px 5px;
   font-size: 14px;
@@ -984,6 +984,9 @@ td.vehicles {
   flex: 0 0 100%;
   border-top: 1px solid var(--line);
   padding-top: 20px;
+}
+.vehicle-gallery .vehicle-level {
+  bottom: 6px;
 }
 .vehicle-gallery .vehicle-button[aria-pressed='true'] .vehicle-portrait::after {
   content: '';
