@@ -1,0 +1,193 @@
+{
+  "schema": "metal-waltz.public-vehicles-evidence.v1",
+  "gamefilesCommit": "fee198aee089d57ab4184f4ab0cad5f3ccf67e35",
+  "nativeSha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+  "scope": "Read-only source/native research and one dedicated-account top-three JP pilot. No battle, claim, purchase or account mutation.",
+  "request": {
+    "opcode": 20,
+    "mask": 12,
+    "maximumBatch": 50,
+    "body": "u8 count; repeated u32 player correlation key, u8 mask"
+  },
+  "reply": {
+    "opcode": 19,
+    "failureOpcode": 18,
+    "mask4": "u8 count; repeated u32 capsule type, u8 generation, u8 faculty count; repeated u8 category, u16 trend, i32 level",
+    "mask8": "u8 count; repeated u32,u32; consumed without inferred formation semantics"
+  },
+  "fallback": "Native18 invokes16. Successful17 clears the ID transaction and reissues pending20masks (0x007f8a98). Collector performs at most one16perID across names/vehicles and one20requery after a successful vehicle warm-up; nonzero17or second18 stays unavailable. Timeouts/malformed reads never retry.",
+  "projection": {
+    "phase": "generation unchanged",
+    "level": "carried nonnegative faculty category1; omitted/negative stays null",
+    "fate": "faculty category20 equals1",
+    "order": "native public capsule list order",
+    "appearance": "Default model for actual type/generation, matching native public UI empty appearance inputs; equipped costume not established.",
+    "formation": "Public vehicle list; current Attack/PvP Defense formation and slot semantics remain unverified."
+  },
+  "nativeFunctions": [
+    {
+      "name": "operator>>",
+      "ghidraAddress": "0x007fd81c",
+      "signature": "undefined __cdecl operator>>(BufferStream * param_1, PlayerSocialInfoDesc * param_2)",
+      "decompilationSha256": "3e3383f201c4484d83842ef1b339ecf6445c51a564b536242334f00277bd0353",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "operator>>",
+      "ghidraAddress": "0x007fdb5c",
+      "signature": "undefined __cdecl operator>>(BufferStream * param_1, PlayerDetailInfoDesc * param_2)",
+      "decompilationSha256": "44e4e08e665ae208f9c32ab85cf11f12023c20ff6a0a069bcd5bc70b7a54639e",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "operator>>",
+      "ghidraAddress": "0x007fe2e0",
+      "signature": "BufferStream * __cdecl operator>>(BufferStream * param_1, PackableRefVector * param_2)",
+      "decompilationSha256": "066ff0d09fb4d69ef9f581c7952d31c71aeb9243ebf79b0bf19f74f081d3e01e",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "r_GetLoadedPlayerCardList",
+      "ghidraAddress": "0x00923c1c",
+      "signature": "undefined __cdecl r_GetLoadedPlayerCardList(lua_State * param_1, int * param_2)",
+      "decompilationSha256": "1ca3df3e37a0b60d27d17621b27281603c61bef9dae3b39f54eebdff3d49430c",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "doLoadPlayerCapsuleForTrigger",
+      "ghidraAddress": "0x007f3be8",
+      "signature": "undefined __thiscall doLoadPlayerCapsuleForTrigger(Ranking_Set * this, vector * param_1)",
+      "decompilationSha256": "51e0685c1b007edcbe9c4b71bfb9a25ad0912184c31377d2f1dd1b1827101b58",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "QueryPlayerDetailDesc_Req",
+      "ghidraAddress": "0x007f8ed0",
+      "signature": "undefined __thiscall QueryPlayerDetailDesc_Req(Social_Set * this, vector * param_1)",
+      "decompilationSha256": "1e0620f80f2f06be0fd1cd4c5055f66d76abce11bfecc5b20b77cefc1f8c378c",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "operator<<",
+      "ghidraAddress": "0x007ff640",
+      "signature": "BufferStream * __cdecl operator<<(BufferStream * param_1, PackableConstRefVector * param_2)",
+      "decompilationSha256": "49d642235289a44c17d9fc73d59f21594f43a77b38d926e0232a3339909c32a0",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "onMessage<(unsigned_short)19>",
+      "ghidraAddress": "0x007f81d4",
+      "signature": "bool __cdecl onMessage<(unsigned_short)19>(Session * param_1, Message * param_2)",
+      "decompilationSha256": "fb74539fe7f8981fdd83182d9e5ee9c8d1e89762281cef88b2fa138c20d5567a",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "onMessage<(unsigned_short)18>",
+      "ghidraAddress": "0x007f8398",
+      "signature": "bool __cdecl onMessage<(unsigned_short)18>(Session * param_1, Message * param_2)",
+      "decompilationSha256": "45d4691f34ea70ffec8a775126e6c2f83b127ef12424d8b84d9dd94d304f53e6",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "operator>>",
+      "ghidraAddress": "0x007fde80",
+      "signature": "BufferStream * __cdecl operator>>(BufferStream * param_1, PackableRefVector * param_2)",
+      "decompilationSha256": "93d5367a2ffaa4c72d2c2faa8e9dc417541290cf9fb8082c9b74999db1813995",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "LoadPlayerNicknameByID_Ack",
+      "ghidraAddress": "0x007fb21c",
+      "signature": "undefined __thiscall LoadPlayerNicknameByID_Ack(Social_Set * this, P_SC_LoadPlayerNicknameByID_Ack * param_1)",
+      "decompilationSha256": "e35a567830ab310e3024d79fd3a0f4c3e15b5f16b39ff866f65af4812379ccf0",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "LoadPlayerNicknameByID",
+      "ghidraAddress": "0x007fa2f0",
+      "signature": "undefined __thiscall LoadPlayerNicknameByID(Social_Set * this, int param_1)",
+      "decompilationSha256": "ed037c0cec88cc1806d4bb5bbc214731b1fd8d43d9c36da5d4a09a6c95e406b8",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "onMessage<(unsigned_short)17>",
+      "ghidraAddress": "0x007f7d38",
+      "signature": "bool __cdecl onMessage<(unsigned_short)17>(Session * param_1, Message * param_2)",
+      "decompilationSha256": "84fb00450b6a8b064c15406bd0820c9e2b87a536c91cff84e9d4c2bba9b77851",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "loadForDetail",
+      "ghidraAddress": "0x007fc938",
+      "signature": "undefined __cdecl loadForDetail(vector * param_1, uchar param_2, int param_3)",
+      "decompilationSha256": "5a431b97b745acce6f3074a62078c738092417f5134feb1057fd51f0f39d245d",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    },
+    {
+      "name": "clearIDQueryTransaction",
+      "ghidraAddress": "0x007f8a98",
+      "signature": "undefined __thiscall clearIDQueryTransaction(Social_Set * this, uint param_1, bool param_2)",
+      "decompilationSha256": "5d3d20738d87cb3d5d0c1368c26e8e81701fdf3e892a9364b82367c019e3b650",
+      "language": "AARCH64:LE:64:v8A",
+      "variant": "v8A"
+    }
+  ],
+  "source": {
+    "path": "com.astrogame.shermange/patch/_1.10/RanaScripts/ui/ScrambleChallengeUI.lua",
+    "sha256": "7d9e22f4fb10d1b1b249e4df5a4cc1b6f48eaf43fcd82dd746ab395d5acc610c",
+    "listLine": 1548,
+    "defaultPortraitLine": 1564,
+    "defaultMiniatureLine": 1608
+  },
+  "pilot": {
+    "serverKey": "JP",
+    "startedAtUtc": "2026-10-22T21:35:15.965547Z",
+    "completedAtUtc": "2026-10-22T21:35:20.252881Z",
+    "outcome": "complete",
+    "profiles": 3,
+    "vehicleCounts": [
+      6,
+      6,
+      6
+    ],
+    "sentOpcodes": {
+      "324": 1,
+      "396": 1,
+      "316": 1,
+      "357": 1,
+      "374": 1,
+      "137": 1,
+      "20": 1
+    },
+    "receivedOpcodes": {
+      "65532": 1,
+      "331": 1,
+      "310": 1,
+      "312": 1,
+      "362": 1,
+      "367": 1,
+      "376": 1,
+      "372": 1,
+      "368": 1,
+      "401": 8,
+      "369": 1,
+      "371": 1,
+      "131": 1,
+      "19": 1
+    }
+  }
+}

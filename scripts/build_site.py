@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 import shutil
+import struct
 from datetime import datetime
 from pathlib import Path
 
@@ -23,7 +24,9 @@ SNAPSHOT_FIELDS = {
     "schema", "serverKey", "aliases", "serverNames", "fund", "startedAtUtc", "completedAtUtc",
     "rankingEnumerationComplete", "namesComplete", "scope", "rows",
 }
-ROW_FIELDS = {"rank", "name", "grandeur", "nameStatus"}
+BASE_ROW_FIELDS = {"rank", "name", "grandeur", "nameStatus"}
+ROW_FIELDS = BASE_ROW_FIELDS | {"vehiclesStatus", "vehicles"}
+VEHICLE_FIELDS = {"capsuleTypeId", "phase", "level", "fate"}
 
 
 class ValidationError(ValueError):
@@ -122,7 +125,25 @@ def validate_data(data_dir: Path) -> list[Path]:
         resolved = 0
         previous_score: int | None = None
         for rank, row in enumerate(rows, 1):
-            fields(row, ROW_FIELDS, ROW_FIELDS, "ranking row")
+            fields(row, ROW_FIELDS, BASE_ROW_FIELDS, "ranking row")
+            if "vehiclesStatus" in row or "vehicles" in row:
+                require({"vehiclesStatus", "vehicles"} <= row.keys(), "incomplete vehicle observation")
+                vehicle_status = row["vehiclesStatus"]
+                require(isinstance(vehicle_status, str) and vehicle_status in {"resolved", "unavailable", "not_collected"}, "invalid vehicle status")
+                vehicles = row["vehicles"]
+                if vehicle_status == "resolved":
+                    require(isinstance(vehicles, list) and len(vehicles) <= 255, "invalid public vehicle list")
+                    types = set()
+                    for vehicle in vehicles:
+                        fields(vehicle, VEHICLE_FIELDS, VEHICLE_FIELDS, "public vehicle")
+                        kind = vehicle["capsuleTypeId"]
+                        require(type(kind) is int and 0 < kind <= 0xffffffff and kind not in types, "invalid public vehicle type")
+                        types.add(kind)
+                        require(type(vehicle["phase"]) is int and 0 <= vehicle["phase"] <= 255, "invalid public vehicle phase")
+                        require(vehicle["level"] is None or (type(vehicle["level"]) is int and 0 <= vehicle["level"] < 2**31), "invalid public vehicle level")
+                        require(type(vehicle["fate"]) is bool, "invalid public vehicle Fate flag")
+                else:
+                    require(vehicles is None, "unobserved vehicle list must be null")
             require(type(row["rank"]) is int and row["rank"] == rank, "noncontiguous rank")
             score = row["grandeur"]
             require(type(score) is int and -(2**31) <= score < 2**31, "invalid Grandeur")
@@ -141,17 +162,79 @@ def validate_data(data_dir: Path) -> list[Path]:
     return paths
 
 
+def validate_vehicle_art(source: Path) -> set[Path]:
+    """Allow one public reference catalog and hash-addressed static portraits."""
+    directory = source / "assets" / "vehicles"
+    if not directory.exists():
+        return set()
+    require(directory.is_dir() and not directory.is_symlink(), "invalid vehicle artwork directory")
+    catalog_path = directory / "catalog.json"
+    catalog, _ = public_json(catalog_path)
+    expected = {"schema", "dataCommit", "models", "units", "assets"}
+    fields(catalog, expected, expected, "vehicle artwork catalog")
+    require(catalog["schema"] == "metal-waltz.vehicle-art.v1", "unsupported vehicle artwork catalog")
+    require(catalog["dataCommit"] == "fee198aee089d57ab4184f4ab0cad5f3ccf67e35", "vehicle artwork data pin mismatch")
+    models, units, assets = catalog["models"], catalog["units"], catalog["assets"]
+    require(isinstance(models, dict) and 0 < len(models) <= 5000, "invalid artwork model catalog")
+    require(isinstance(units, dict) and 0 < len(units) <= 5000, "invalid vehicle reference catalog")
+    require(isinstance(assets, dict) and 0 < len(assets) <= 5000, "invalid portrait asset catalog")
+    paths, total_bytes = {catalog_path}, 0
+    for filename, asset in assets.items():
+        require(isinstance(filename, str) and re.fullmatch(r"[a-f0-9]{64}\.png", filename) is not None, "invalid portrait filename")
+        fields(asset, {"sha256", "width", "height", "bytes"}, {"sha256", "width", "height", "bytes"}, "portrait asset")
+        require(asset["sha256"] == filename[:-4], "portrait filename hash mismatch")
+        for dimension in ("width", "height"):
+            require(type(asset[dimension]) is int and 0 < asset[dimension] <= 4096, "invalid portrait dimensions")
+        require(type(asset["bytes"]) is int and 0 < asset["bytes"] <= 2 * 1024 * 1024, "invalid portrait byte count")
+        path = directory / filename
+        require(path.is_file() and not path.is_symlink(), "portrait file missing or symbolic link")
+        require(path.stat().st_size == asset["bytes"], "portrait byte count mismatch")
+        raw = path.read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == asset["sha256"], "portrait bytes do not match catalog")
+        require(len(raw) >= 33 and raw[:8] == b"\x89PNG\r\n\x1a\n" and raw[12:16] == b"IHDR", "portrait must be a PNG")
+        require(struct.unpack(">II", raw[16:24]) == (asset["width"], asset["height"]), "portrait dimensions mismatch")
+        paths.add(path)
+        total_bytes += len(raw)
+        require(total_bytes <= 128 * 1024 * 1024, "portrait collection exceeds size limit")
+    referenced = set()
+    for model_id, model in models.items():
+        require(isinstance(model_id, str) and re.fullmatch(r"[1-9][0-9]{0,9}", model_id) is not None, "invalid model reference")
+        fields(model, {"portrait", "portraitKind"}, {"portrait", "portraitKind"}, "portrait model")
+        require(isinstance(model["portraitKind"], str) and model["portraitKind"] in {"native-square", "live2d-generated", "unavailable"}, "invalid portrait source kind")
+        if model["portraitKind"] == "unavailable":
+            require(model["portrait"] is None, "unavailable portrait has a file")
+            continue
+        prefix = "./assets/vehicles/"
+        portrait = model["portrait"]
+        require(isinstance(portrait, str) and portrait.startswith(prefix) and portrait[len(prefix):] in assets, "portrait model file is not reviewed")
+        referenced.add(portrait[len(prefix):])
+    require(referenced == set(assets), "unreferenced portrait assets")
+    for type_id, unit in units.items():
+        require(isinstance(type_id, str) and re.fullmatch(r"[1-9][0-9]{0,9}", type_id) is not None and int(type_id) <= 0xffffffff, "invalid vehicle reference type")
+        fields(unit, {"phases"}, {"phases"}, "vehicle reference")
+        require(isinstance(unit["phases"], dict) and bool(unit["phases"]), "vehicle reference phases missing")
+        for phase_id, phase in unit["phases"].items():
+            require(isinstance(phase_id, str) and phase_id.isdecimal() and 0 <= int(phase_id) <= 255, "invalid reference phase")
+            fields(phase, {"name", "maidenName", "defaultModel"}, {"name", "maidenName", "defaultModel"}, "vehicle phase")
+            for label in ("name", "maidenName"):
+                require(isinstance(phase[label], str) and 0 < len(phase[label]) <= 512, "invalid vehicle reference name")
+            require(type(phase["defaultModel"]) is int and str(phase["defaultModel"]) in models, "vehicle model reference missing")
+    require(set(directory.iterdir()) == paths, "unexpected files in portrait directory")
+    return paths
+
+
 def build_site(source: Path, output: Path) -> int:
     source = source.resolve()
     output = output.resolve()
     require(source != output and source not in output.parents and output not in source.parents, "source and output must be separate")
     data_paths = validate_data(source / "data")
+    art_paths = validate_vehicle_art(source)
     require((source / "index.html").is_file(), "site index missing")
     static_paths: list[Path] = []
     for path in source.rglob("*"):
         require(not path.is_symlink(), "symbolic links are not public site assets")
         if path.is_file() and "data" not in path.relative_to(source).parts:
-            require(path.suffix.lower() in STATIC_EXTENSIONS or path.name == ".nojekyll", "unexpected static site asset")
+            require(path.suffix.lower() in STATIC_EXTENSIONS or path.name == ".nojekyll" or path in art_paths, "unexpected static site asset")
             static_paths.append(path)
     if output.exists():
         require(output.is_dir() and not output.is_symlink(), "output must be a directory")

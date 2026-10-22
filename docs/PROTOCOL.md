@@ -55,6 +55,7 @@ speculative response. Incoming heartbeat 65530 receives empty 65531.
 | 137 / 131            | Enumerate Grandeur, fund 5, using explicit offset and count           |
 | 15 / 380, 14         | Request public social names, mask 5; 14 denotes primary lookup misses |
 | 16 / 17              | Native nickname fallback for unresolved public names                  |
+| 20 / 19, 18          | Read public vehicle/capsule details and consume tactics fields, mask 12 |
 
 Account registration 141 and commander creation 313 are not allowed outgoing
 messages. No battles, purchases, tutorial advancement, claims or automatic
@@ -122,10 +123,48 @@ serverKey, aliases, serverNames, fund: 5, startedAtUtc, completedAtUtc,
 rankingEnumerationComplete: true, namesComplete, scope, rows
 ```
 
-Each row contains exactly `rank`, `name`, `grandeur` and `nameStatus`. Ranks start
+Each row contains `rank`, `name`, `grandeur` and `nameStatus`. Ranks start
 at 1, remain contiguous, and retain server order. A resolved name is a nonempty
 string; an unavailable name is null. No protocol player ID, account ID,
 credential, session value or raw response is part of this contract.
+
+New observations add the paired fields `vehiclesStatus` and `vehicles`:
+
+```text
+vehiclesStatus: resolved | unavailable | not_collected
+vehicles: null | [{capsuleTypeId, phase, level, fate}, ...]
+```
+
+`resolved` carries the ordered list actually returned by the server, including
+an empty list. The other states carry null; legacy rows without either field
+mean not collected. Capsule type is a public reference-data identifier, never
+an owned-instance ID. Phase is the native generation byte; level is a carried
+nonnegative value or null, and Fate Pin follows the observed category-20 flag.
+The complete list is retained even when the row shows only its first six images.
+No combat slot, private inventory, equipment or equipped costume is inferred.
+
+Request 20 uses at most 50 `(u32 playerID, u8 mask)` records per transaction,
+with mask 12. Keyed response 19 may split masks across records. Bit 4 carries
+capsule type, phase and a faculty vector; bit 8 carries tactics pairs, consumed
+without converting them into a guessed formation. Unknown masks, conflicting
+duplicates and incomplete transactions stop the backend rather than publishing
+a fabricated or partial list. Native evidence and read-only pilot aggregates are
+recorded in [the public-vehicle trace](research/public-vehicles-protocol.json).
+
+Response 18 is a keyed primary-detail miss. Native handling requests identity
+lookup 16, and successful 17 clears the pending identity transaction and reissues
+the queued detail mask through 20. The collector follows that bounded recovery:
+one 16 per identity across the session, then one 20 requery only after successful
+17. A repeated 18 or explicit failed 17 leaves the profile unavailable. A prior
+name-fallback 16 is never repeated. Timeouts and malformed replies are not retried;
+the backend stops and retains its previous complete snapshot.
+
+The separate `assets/vehicles/catalog.json` maps public types/phases to names and
+default presentation models, then to hash-addressed PNG portraits. Live2D entries
+use static face-focused renderings from the existing Maiden Waltz viewer; no Core,
+SDK, model, texture bundle or account data is delivered to the public browser.
+The publisher validates the data pin, exact catalog fields, paths, PNG dimensions,
+byte counts and hashes before copying the images.
 
 The publication script rejects unknown fields, path changes, links, hash/count
 mismatches, invalid names, incomplete enumerations and unexpected files. It

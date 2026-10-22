@@ -15,6 +15,10 @@ const {
   validateIndex,
   validateSnapshot,
   fetchServerSnapshot,
+  safePortraitPath,
+  validateVehicleCatalog,
+  publicVehicles,
+  vehicleDisplayData,
 } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const rows = [
   { rank: 1, name: 'Ａｌｅｘ', grandeur: 900, nameStatus: 'resolved' },
@@ -225,4 +229,113 @@ test('retry loads a fresh index and a matching snapshot without mutating the dis
     ),
   );
   assert.equal(index.servers[0], server);
+});
+
+const publicVehicle = { capsuleTypeId: 101, phase: 3, level: 80, fate: true };
+const portrait = `./assets/vehicles/${'a'.repeat(64)}.png`;
+const vehicleCatalog = {
+  schema: 'metal-waltz.vehicle-art.v1',
+  models: {
+    501: { portrait, portraitKind: 'live2d-generated' },
+    502: { portrait: null, portraitKind: 'unavailable' },
+  },
+  units: {
+    101: { phases: {
+      3: { name: 'T-34/57', maidenName: 'Larissa Korovina', defaultModel: 501 },
+      2: { name: 'T-34', maidenName: 'Larissa Korovina', defaultModel: 502 },
+    } },
+  },
+};
+
+test('public vehicle states distinguish an empty observed list from unavailable and legacy data', () => {
+  assert.deepEqual(publicVehicles(rows[0]), { status: 'not_collected', vehicles: [] });
+  assert.deepEqual(publicVehicles({ vehiclesStatus: 'unavailable', vehicles: null }), {
+    status: 'unavailable', vehicles: [],
+  });
+  assert.deepEqual(publicVehicles({ vehiclesStatus: 'not_collected', vehicles: null }), {
+    status: 'not_collected', vehicles: [],
+  });
+  assert.deepEqual(publicVehicles({ vehiclesStatus: 'resolved', vehicles: [] }), {
+    status: 'resolved', vehicles: [],
+  });
+  const vehicles = Array.from({ length: 9 }, (_, index) => ({ ...publicVehicle, level: index }));
+  assert.equal(publicVehicles({ vehiclesStatus: 'resolved', vehicles }).vehicles, vehicles);
+});
+
+test('snapshot validation requires a complete, truthful public vehicle state pair', () => {
+  const withVehicle = (change) => ({
+    ...snapshot,
+    rows: snapshot.rows.map((row, index) => index ? row : { ...row, ...change }),
+  });
+  for (const change of [
+    { vehiclesStatus: 'resolved', vehicles: [publicVehicle] },
+    { vehiclesStatus: 'resolved', vehicles: [] },
+    { vehiclesStatus: 'unavailable', vehicles: null },
+    { vehiclesStatus: 'not_collected', vehicles: null },
+  ]) assert.doesNotThrow(() => validateSnapshot(withVehicle(change), server));
+  for (const change of [
+    { vehiclesStatus: 'resolved' },
+    { vehicles: [] },
+    { vehiclesStatus: 'resolved', vehicles: null },
+    { vehiclesStatus: 'unavailable', vehicles: [] },
+    { vehiclesStatus: 'not_collected', vehicles: [publicVehicle] },
+    { vehiclesStatus: 'guessed', vehicles: [publicVehicle] },
+  ]) assert.throws(() => validateSnapshot(withVehicle(change), server));
+  for (const change of [
+    { capsuleTypeId: 0 }, { capsuleTypeId: 0x100000000 }, { capsuleTypeId: 2.5 },
+    { phase: -1 }, { phase: 256 }, { level: -1 }, { level: 1.2 },
+    { level: 0x80000000 }, { fate: 1 },
+  ]) assert.throws(() => validateSnapshot(withVehicle({
+    vehiclesStatus: 'resolved', vehicles: [{ ...publicVehicle, ...change }],
+  }), server));
+  assert.doesNotThrow(() => validateSnapshot(withVehicle({
+    vehiclesStatus: 'resolved', vehicles: [{ ...publicVehicle, phase: 0, level: null }],
+  }), server));
+  assert.throws(() => validateSnapshot(withVehicle({
+    vehiclesStatus: 'resolved', vehicles: [publicVehicle, { ...publicVehicle, phase: 2 }],
+  }), server));
+  const allVehicles = Array.from({ length: 255 }, (_, i) => ({
+    ...publicVehicle, capsuleTypeId: i + 1,
+  }));
+  assert.doesNotThrow(() => validateSnapshot(withVehicle({
+    vehiclesStatus: 'resolved', vehicles: allVehicles,
+  }), server));
+  assert.throws(() => validateSnapshot(withVehicle({
+    vehiclesStatus: 'resolved', vehicles: [...allVehicles, { ...publicVehicle, capsuleTypeId: 256 }],
+  }), server));
+});
+
+test('vehicle artwork stays local and supports generated Live2D portraits without guessing an appearance', () => {
+  assert.equal(safePortraitPath(portrait), portrait);
+  for (const path of [
+    'https://example.com/avatar.png', '//example.com/avatar.png',
+    './assets/vehicles/../secret.png', './assets/vehicles/avatar.svg',
+    `./assets/vehicles/${'a'.repeat(64)}.png?x=1`,
+    `./assets/vehicles/${'a'.repeat(64)}.png#x`, null,
+  ]) assert.throws(() => safePortraitPath(path));
+  assert.equal(validateVehicleCatalog(vehicleCatalog), vehicleCatalog);
+  assert.deepEqual(vehicleDisplayData(publicVehicle, vehicleCatalog), {
+    name: 'T-34/57', maidenName: 'Larissa Korovina', portrait,
+    portraitKind: 'live2d-generated', level: 80, fate: true,
+  });
+  assert.equal(vehicleDisplayData({ ...publicVehicle, phase: 2 }, vehicleCatalog).portrait, null);
+  const unknownPhase = vehicleDisplayData({ ...publicVehicle, phase: 0 }, vehicleCatalog);
+  assert.equal(unknownPhase.name, 'Unidentified vehicle');
+  assert.equal(unknownPhase.portrait, null);
+  assert.equal(vehicleDisplayData(publicVehicle, null).portrait, null);
+  for (const change of [
+    { models: { 501: { portrait: 'https://example.com/a.png', portraitKind: 'native-square' } } },
+    { models: { 501: { portrait: null, portraitKind: 'live2d-generated' } } },
+    { models: { 501: { portrait, portraitKind: 'guessed' } } },
+    { units: { 101: { phases: { 256: { name: 'Unknown', maidenName: '', defaultModel: 501 } } } } },
+  ]) assert.throws(() => validateVehicleCatalog({ ...vehicleCatalog, ...change }));
+});
+
+test('name search, rank paging and CSV keep their behavior when public vehicle details are present', () => {
+  const enriched = rows.map((row) => ({
+    ...row, vehiclesStatus: 'resolved', vehicles: [publicVehicle],
+  }));
+  assert.deepEqual(filterRows(enriched, 'alex'), [enriched[0]]);
+  assert.equal(pageForRank(enriched, 4), 0);
+  assert.equal(rowsToCsv(enriched), rowsToCsv(rows));
 });

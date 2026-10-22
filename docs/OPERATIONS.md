@@ -18,6 +18,17 @@ A fresh manifest time does not make a retained snapshot fresh. An unavailable
 name is also distinct from a failed scan: a complete ranking may have explicit
 nickname failures from the game server.
 
+Each fresh backend scan also loads public vehicle profiles for every ranking
+entry. A completed profile may be empty or explicitly unavailable. A profile
+timeout or malformed response stops that backend and retains its last complete
+snapshot. The website distinguishes missing profile data from an observed empty
+list, and JSON exports preserve the full returned public list.
+
+Portrait assets are generated once from the pinned Maiden Waltz reference data
+and committed with their catalog and hashes. Daily GitHub collection uses those
+static assets and needs no desktop renderer or Live2D SDK. Regenerate and review
+the assets separately when updating game data or presentation sources.
+
 The workflow passes `--max-duration-seconds 9000`: one **150-minute collection
 budget** shared across all requested backends, starting before snapshot loading.
 It is not a separate allowance for every server. After expiry, the current and

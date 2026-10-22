@@ -5,6 +5,88 @@ const SNAPSHOT_SCHEMAS = new Set([
 ]);
 const PAGE_SIZES = new Set([25, 50, 100, 200]);
 const numberFormat = new Intl.NumberFormat('en-US');
+const VEHICLE_STATUS = new Set(['resolved', 'unavailable', 'not_collected']);
+
+function unsignedInteger(value, maximum = 0xffffffff) {
+  return Number.isSafeInteger(value) && value >= 0 && value <= maximum;
+}
+
+export function safePortraitPath(path) {
+  if (typeof path !== 'string' || !/^\.\/assets\/vehicles\/[a-f0-9]{64}\.png$/.test(path))
+    throw new Error('Invalid vehicle portrait path.');
+  return path;
+}
+
+export function validateVehicleCatalog(data) {
+  if (
+    data?.schema !== 'metal-waltz.vehicle-art.v1' ||
+    !data.models || Array.isArray(data.models) || typeof data.models !== 'object' ||
+    !data.units || Array.isArray(data.units) || typeof data.units !== 'object'
+  ) throw new Error('The vehicle artwork catalog has an unsupported format.');
+  for (const [id, model] of Object.entries(data.models)) {
+    if (!/^[1-9]\d*$/.test(id) || !unsignedInteger(Number(id)) || !model ||
+        !['native-square', 'live2d-generated', 'unavailable'].includes(model.portraitKind) ||
+        (model.portrait !== null && typeof model.portrait !== 'string') ||
+        (model.portraitKind === 'unavailable') !== (model.portrait === null))
+      throw new Error('The vehicle artwork catalog contains an invalid model.');
+    if (model.portrait !== null) safePortraitPath(model.portrait);
+  }
+  for (const [id, unit] of Object.entries(data.units)) {
+    if (!/^[1-9]\d*$/.test(id) || !unsignedInteger(Number(id)) || !unit?.phases ||
+        typeof unit.phases !== 'object' || Array.isArray(unit.phases))
+      throw new Error('The vehicle artwork catalog contains an invalid vehicle.');
+    for (const [phase, detail] of Object.entries(unit.phases)) {
+      if (!/^[0-9]+$/.test(phase) || !unsignedInteger(Number(phase), 255) ||
+          typeof detail?.name !== 'string' || !detail.name.trim() ||
+          typeof detail.maidenName !== 'string' ||
+          !(detail.defaultModel === null || unsignedInteger(detail.defaultModel)))
+        throw new Error('The vehicle artwork catalog contains an invalid vehicle phase.');
+    }
+  }
+  return data;
+}
+
+export function publicVehicles(row) {
+  const status = row?.vehiclesStatus ?? 'not_collected';
+  return { status, vehicles: status === 'resolved' ? row.vehicles : [] };
+}
+
+export function vehicleDisplayData(vehicle, catalog) {
+  // Public vehicle details do not include the selected costume. The native public
+  // view uses the phase's default model; never infer a cosmetic from ownership.
+  const phase = catalog?.units?.[String(vehicle.capsuleTypeId)]?.phases?.[String(vehicle.phase)];
+  const model = phase ? catalog?.models?.[String(phase.defaultModel)] : null;
+  return {
+    name: phase?.name || 'Unidentified vehicle',
+    maidenName: phase?.maidenName || '',
+    portrait: model?.portrait || null,
+    portraitKind: model?.portraitKind || 'unavailable',
+    level: vehicle.level,
+    fate: vehicle.fate,
+  };
+}
+
+function validatePublicVehicles(row) {
+  const hasStatus = Object.hasOwn(row, 'vehiclesStatus');
+  const hasVehicles = Object.hasOwn(row, 'vehicles');
+  if (!hasStatus && !hasVehicles) return;
+  if (!hasStatus || !hasVehicles || !VEHICLE_STATUS.has(row.vehiclesStatus) ||
+      (row.vehiclesStatus === 'resolved' ? !Array.isArray(row.vehicles) : row.vehicles !== null))
+    throw new Error('The snapshot contains an invalid public vehicle list.');
+  if (row.vehiclesStatus !== 'resolved') return;
+  if (row.vehicles.length > 255)
+    throw new Error('The public vehicle list exceeds its supported size.');
+  const types = new Set();
+  for (const vehicle of row.vehicles) {
+    if (!vehicle || !unsignedInteger(vehicle.capsuleTypeId) || vehicle.capsuleTypeId === 0 ||
+        types.has(vehicle.capsuleTypeId) ||
+        !unsignedInteger(vehicle.phase, 255) ||
+        !(vehicle.level === null || unsignedInteger(vehicle.level, 0x7fffffff)) ||
+        typeof vehicle.fate !== 'boolean')
+      throw new Error('The snapshot contains an invalid public vehicle.');
+    types.add(vehicle.capsuleTypeId);
+  }
+}
 
 export function rankingRouteFromHash(hash) {
   const parameters = new URLSearchParams(String(hash).replace(/^#/, ''));
@@ -148,6 +230,7 @@ export function validateSnapshot(data, server) {
     )
       throw new Error('The snapshot contains an invalid ranking row.');
     if (hasName(row)) resolved++;
+    validatePublicVehicles(row);
   }
   if (resolved !== server.namesResolved)
     throw new Error('The snapshot name count does not match its archive index.');
@@ -197,6 +280,8 @@ function browserApp() {
     sequence: 0,
     controller: null,
     searchTimer: null,
+    catalog: null,
+    tooltipButton: null,
   };
   const shortLabels = {
     Bonn: 'Europe №1',
@@ -328,6 +413,11 @@ function browserApp() {
         : '',
     );
     $('missing-note').hidden = !server.namesMissing;
+    const vehicleLists = state.snapshot.rows.filter((row) => row.vehiclesStatus === 'resolved').length;
+    const vehicleCoverage = vehicleLists
+      ? `Public vehicle lists available for ${numberFormat.format(vehicleLists)} of ${numberFormat.format(server.rows)} entries. `
+      : 'Public vehicle lists are not yet available in this snapshot. ';
+    setText('vehicle-note', `${vehicleCoverage}Vehicles follow the returned server order; this does not establish a current attack or defence formation.${vehicleLists && !state.catalog ? ' Vehicle names and artwork could not be loaded.' : ''}`);
     document.title = `${server.name} · Metal Waltz Rankings`;
     if (server.refreshStatus === 'failed') {
       showNotice(
@@ -347,7 +437,7 @@ function browserApp() {
     const tr = document.createElement('tr');
     tr.className = 'table-message';
     const td = document.createElement('td');
-    td.colSpan = 3;
+    td.colSpan = 4;
     td.textContent = title;
     if (detail) {
       const paragraph = document.createElement('p');
@@ -358,7 +448,148 @@ function browserApp() {
     return tr;
   }
 
+  function hideVehicleTooltip() {
+    $('vehicle-tooltip').hidden = true;
+    state.tooltipButton?.removeAttribute('aria-describedby');
+    state.tooltipButton = null;
+  }
+
+  function showVehicleTooltip(button, vehicle) {
+    hideVehicleTooltip();
+    const tooltip = $('vehicle-tooltip');
+    tooltip.textContent = [vehicle.name, vehicle.maidenName].filter(Boolean).join(' · ');
+    tooltip.hidden = false;
+    const anchor = button.getBoundingClientRect();
+    const bounds = tooltip.getBoundingClientRect();
+    tooltip.style.left = `${Math.max(12, Math.min(innerWidth - bounds.width - 12, anchor.left + anchor.width / 2 - bounds.width / 2))}px`;
+    tooltip.style.top = `${anchor.top > bounds.height + 16 ? anchor.top - bounds.height - 8 : anchor.bottom + 8}px`;
+    state.tooltipButton = button;
+    button.setAttribute('aria-describedby', 'vehicle-tooltip');
+  }
+
+  function vehicleArt(vehicle) {
+    const art = document.createElement('span');
+    art.className = 'vehicle-portrait';
+    const fallback = document.createElement('span');
+    fallback.className = 'vehicle-fallback';
+    fallback.textContent = vehicle.name;
+    if (vehicle.portrait) {
+      const image = document.createElement('img');
+      image.src = vehicle.portrait;
+      image.alt = '';
+      image.width = 116;
+      image.height = 108;
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      image.addEventListener('error', () => image.replaceWith(fallback), { once: true });
+      art.append(image);
+    } else art.append(fallback);
+    return art;
+  }
+
+  function openVehicleDialog(row, vehicles, selectedIndex) {
+    hideVehicleTooltip();
+    const dialog = $('vehicle-dialog');
+    dialog.querySelector('.vehicle-gallery')?.remove();
+    const commander = hasName(row) ? row.name : `Rank ${numberFormat.format(row.rank)}`;
+    const select = (index) => {
+      const detail = vehicleDisplayData(vehicles[index], state.catalog);
+      setText('vehicle-dialog-name', detail.name);
+      setText('vehicle-dialog-maiden', detail.maidenName);
+      const information = [
+        `${commander} · Public vehicle ${index + 1} of ${vehicles.length}`,
+        detail.level === null ? null : `Level ${numberFormat.format(detail.level)}`,
+        detail.fate ? 'Fate Pin' : null,
+      ].filter(Boolean);
+      setText('vehicle-dialog-context', `${information.join(' · ')}. Default vehicle artwork; the equipped costume is not supplied.`);
+      $('vehicle-dialog-art').replaceChildren(vehicleArt(detail));
+      for (const button of dialog.querySelectorAll('.vehicle-gallery button'))
+        button.setAttribute('aria-pressed', String(Number(button.dataset.index) === index));
+    };
+    if (vehicles.length > 6) {
+      const gallery = document.createElement('div');
+      gallery.className = 'vehicle-gallery';
+      gallery.setAttribute('role', 'group');
+      gallery.setAttribute('aria-label', 'All returned public vehicles');
+      vehicles.forEach((vehicle, index) => {
+        const detail = vehicleDisplayData(vehicle, state.catalog);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'vehicle-button';
+        button.dataset.index = String(index);
+        button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}`);
+        button.append(vehicleArt(detail));
+        button.addEventListener('click', () => select(index));
+        gallery.append(button);
+      });
+      dialog.append(gallery);
+    }
+    select(selectedIndex);
+    dialog.showModal();
+  }
+
+  function renderVehicles(row) {
+    const cell = document.createElement('td');
+    cell.className = 'vehicles';
+    const { status, vehicles } = publicVehicles(row);
+    if (status !== 'resolved' || vehicles.length === 0) {
+      const message = document.createElement('span');
+      message.className = 'vehicles-unavailable';
+      message.textContent = status === 'resolved' ? 'No public vehicles' :
+        status === 'unavailable' ? 'Vehicles unavailable' : 'Vehicles not collected';
+      cell.append(message);
+      return cell;
+    }
+    const list = document.createElement('div');
+    list.className = 'vehicle-list';
+    list.setAttribute('role', 'group');
+    list.setAttribute('aria-label', `${vehicles.length} public vehicles, in server order`);
+    vehicles.slice(0, 6).forEach((vehicle, index) => {
+      const detail = vehicleDisplayData(vehicle, state.catalog);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'vehicle-button';
+      button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}${detail.maidenName ? `, ${detail.maidenName}` : ''}`);
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.append(vehicleArt(detail));
+      button.addEventListener('pointerenter', (event) => {
+        if (event.pointerType !== 'touch') showVehicleTooltip(button, detail);
+      });
+      button.addEventListener('pointerleave', () => {
+        if (document.activeElement !== button) hideVehicleTooltip();
+      });
+      button.addEventListener('focus', () => showVehicleTooltip(button, detail));
+      button.addEventListener('blur', hideVehicleTooltip);
+      button.addEventListener('click', () => openVehicleDialog(row, vehicles, index));
+      list.append(button);
+    });
+    for (let index = vehicles.length; index < 6; index++) {
+      const empty = document.createElement('span');
+      empty.className = 'vehicle-empty';
+      empty.setAttribute('aria-hidden', 'true');
+      const art = document.createElement('span');
+      art.className = 'vehicle-portrait';
+      art.textContent = '–';
+      empty.append(art);
+      list.append(empty);
+    }
+    cell.append(list);
+    if (vehicles.length > 6) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'vehicles-more';
+      more.textContent = `+${numberFormat.format(vehicles.length - 6)}`;
+      more.setAttribute('aria-label', `View all ${vehicles.length} public vehicles`);
+      more.setAttribute('aria-haspopup', 'dialog');
+      more.addEventListener('click', () => openVehicleDialog(row, vehicles, 6));
+      cell.append(more);
+    }
+    return cell;
+  }
+
   function renderRows() {
+    hideVehicleTooltip();
+    if ($('vehicle-dialog').open) $('vehicle-dialog').close();
     const result = pageRows(state.filtered, state.page, state.pageSize);
     state.page = result.page;
     const fragment = document.createDocumentFragment();
@@ -385,7 +616,7 @@ function browserApp() {
       const grandeur = document.createElement('td');
       grandeur.className = 'score';
       grandeur.textContent = numberFormat.format(row.grandeur);
-      tr.append(rank, name, grandeur);
+      tr.append(rank, name, renderVehicles(row), grandeur);
       fragment.append(tr);
     }
     if (!result.rows.length)
@@ -581,6 +812,7 @@ function browserApp() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hideVehicleTooltip();
     if (
       event.key === '/' &&
       !event.ctrlKey &&
@@ -594,6 +826,16 @@ function browserApp() {
       $('commander-search').focus();
     }
   });
+  $('vehicle-dialog-close').addEventListener('click', () => $('vehicle-dialog').close());
+  $('vehicle-dialog').addEventListener('click', (event) => {
+    if (event.target !== $('vehicle-dialog')) return;
+    const bounds = $('vehicle-dialog').getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right ||
+        event.clientY < bounds.top || event.clientY > bounds.bottom)
+      $('vehicle-dialog').close();
+  });
+  window.addEventListener('scroll', hideVehicleTooltip, { capture: true, passive: true });
+  window.addEventListener('resize', hideVehicleTooltip);
   window.addEventListener('hashchange', () => {
     if (!state.index) return;
     const locationState = rankingRouteFromHash(location.hash);
@@ -604,7 +846,13 @@ function browserApp() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
     try {
-      state.index = validateIndex(await fetchJson('./data/index.json', controller.signal));
+      const [indexResult, catalogResult] = await Promise.allSettled([
+        fetchJson('./data/index.json', controller.signal).then(validateIndex),
+        fetchJson('./assets/vehicles/catalog.json', controller.signal).then(validateVehicleCatalog),
+      ]);
+      if (indexResult.status !== 'fulfilled') throw indexResult.reason;
+      state.index = indexResult.value;
+      state.catalog = catalogResult.status === 'fulfilled' ? catalogResult.value : null;
       clearTimeout(timeout);
       renderIndex();
       const locationState = rankingRouteFromHash(location.hash) || { key: null, query: '' };

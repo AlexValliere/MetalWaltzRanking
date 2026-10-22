@@ -18,6 +18,31 @@ SCOPE = "All server-exposed ranking entries; not an atomic snapshot or server po
 SNAPSHOT_KEYS = frozenset(("schema", "serverKey", "aliases", "serverNames", "fund", "startedAtUtc",
                            "completedAtUtc", "rankingEnumerationComplete", "namesComplete", "scope", "rows"))
 ROW_KEYS = frozenset(("rank", "name", "grandeur", "nameStatus"))
+VEHICLE_ROW_KEYS = ROW_KEYS | frozenset(("vehiclesStatus", "vehicles"))
+VEHICLE_KEYS = frozenset(("capsuleTypeId", "phase", "level", "fate"))
+
+
+def validate_vehicles(row):
+    """Legacy snapshots omit both fields; failed/unknown lists are never empty."""
+    if set(row) == ROW_KEYS:
+        return
+    status, vehicles = row["vehiclesStatus"], row["vehicles"]
+    if status in ("unavailable", "not_collected"):
+        if vehicles is not None:
+            raise ValueError("Invalid unavailable public vehicles")
+        return
+    if status != "resolved" or not isinstance(vehicles, list) or len(vehicles) > 255:
+        raise ValueError("Invalid public vehicles")
+    seen = set()
+    for vehicle in vehicles:
+        if (not isinstance(vehicle, dict) or set(vehicle) != VEHICLE_KEYS
+                or type(vehicle["capsuleTypeId"]) is not int or not 0 < vehicle["capsuleTypeId"] < 2**32
+                or vehicle["capsuleTypeId"] in seen or type(vehicle["phase"]) is not int
+                or not 0 <= vehicle["phase"] <= 255 or type(vehicle["fate"]) is not bool
+                or vehicle["level"] is not None and (type(vehicle["level"]) is not int
+                                                      or not 0 <= vehicle["level"] < 2**31)):
+            raise ValueError("Invalid public vehicle")
+        seen.add(vehicle["capsuleTypeId"])
 
 
 def now():
@@ -31,7 +56,7 @@ def atomic_json(path, value):
     descriptor, temporary = tempfile.mkstemp(prefix="." + path.name + ".", suffix=".tmp", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            json.dump(value, stream, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
@@ -61,7 +86,7 @@ def validate_snapshot(snapshot, server):
         raise ValueError("Invalid public snapshot rows")
     resolved, previous = 0, None
     for rank, row in enumerate(rows, 1):
-        if (set(row) != ROW_KEYS or type(row["rank"]) is not int or row["rank"] != rank
+        if (set(row) not in (ROW_KEYS, VEHICLE_ROW_KEYS) or type(row["rank"]) is not int or row["rank"] != rank
                 or type(row["grandeur"]) is not int or not -2**31 <= row["grandeur"] < 2**31
                 or previous is not None and row["grandeur"] > previous):
             raise ValueError("Invalid public ranking order")
@@ -73,6 +98,7 @@ def validate_snapshot(snapshot, server):
             resolved += 1
         elif row["nameStatus"] != "unavailable" or row["name"] is not None:
             raise ValueError("Invalid public name status")
+        validate_vehicles(row)
     if snapshot["namesComplete"] != (resolved == len(rows)):
         raise ValueError("Invalid public name completeness")
     return resolved

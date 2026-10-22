@@ -36,6 +36,9 @@ class SyntheticRanking:
     def fetch_names(self, players):
         self.named.extend(players)
 
+    def fetch_vehicles(self, players):
+        pass
+
 
 class EnumerationTests(unittest.TestCase):
     def test_clamped_pages_advance_actual_count_and_require_empty(self):

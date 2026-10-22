@@ -1,7 +1,7 @@
 # Metal Waltz Ranking
 
 A public Grandeur ranking browser for every visible Metal Waltz server. It shows
-server order, player names, Grandeur, collection time and missing-name counts.
+server order, player names, Grandeur, public vehicles, collection time and missing-name counts.
 Search and pagination run in your browser; the game login stays in GitHub Actions.
 
 [Open the rankings](https://alexvalliere.github.io/MetalWaltzRanking/) ·
@@ -36,6 +36,19 @@ status 48. Those entries retain their rank and Grandeur; names are never guessed
 
 Fresh dedicated commanders retrieved these rankings with **0 Clash wins**. The
 game client's 460-win interface unlock was not required for the verified reads.
+
+Vehicle portraits appear beside commanders on desktop and beneath their names
+on mobile. Hover, focus or select a portrait for its vehicle and Maiden names;
+selecting it also shows the returned level and Fate Pin. The collector requests
+the actual public vehicle list for every ranked commander. Empty, unavailable
+and not-yet-collected lists remain distinct, and longer lists remain accessible.
+These are public profiles in server order; a current Attack/Defense formation
+or equipped costume is not established by this response.
+
+Portraits follow the native phase's default model. Live2D models use generated,
+face-focused static portraits from Maiden Waltz's existing rendering pipeline;
+the website ships images rather than model runtimes. The reference catalog,
+source pins and portrait hashes are checked before publication.
 
 ## Deployment configuration
 
@@ -76,7 +89,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -p 'test_*.py'
 python -m unittest discover -s scripts -p 'test_*.py'
-node --test tests/site.test.mjs
+node --test tests/site.test.mjs tests/vehicle-art.test.mjs
 python scripts/build_site.py
 python -m http.server 8000 --directory _site
 ```
@@ -101,3 +114,7 @@ See [operations and recovery](docs/OPERATIONS.md), the
 This is an independent fan project and is not affiliated with Metal Waltz's
 developer or publisher. Player names and Grandeur originate from the game's
 public ranking/social responses.
+
+Maintained by [Alex Vallière](https://github.com/AlexValliere), also behind
+[Metal Maiden Depot](https://www.metalmaidendepot.ovh/).
+[Support the project on Ko-fi](https://ko-fi.com/alexvalliere).

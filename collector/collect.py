@@ -17,7 +17,7 @@ from .timing import (CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_
 
 READ_PHASES = frozenset(("not_started", "connect", "login", "commander_list", "selection", "commander_base",
                          "town_prepare", "town_entry", "achievements", "rankings", "primary_names",
-                         "nickname_fallback", "snapshot", "unknown"))
+                         "nickname_fallback", "public_vehicles", "snapshot", "unknown"))
 
 
 class CollectionStopped(Exception):
@@ -59,6 +59,7 @@ def enumerate_rankings(connection, *, progress=None):
         seen.update(player for player, _ in page)
         rows.extend(page)
         connection.fetch_names([player for player, _ in page])
+        connection.fetch_vehicles([player for player, _ in page])
         if not overlap_checked and len(rows) >= 201:
             overlap = connection.fetch_rank_page(199, 2)
             if [p for p, _ in overlap] != [p for p, _ in rows[199:201]]:
@@ -125,7 +126,9 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             for rank, (identity, score) in enumerate(rows, 1):
                 resolved = connection.name_resolved(identity)
                 public_rows.append({"rank": rank, "name": connection.names[identity] if resolved else None,
-                                    "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable"})
+                                    "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable",
+                                    "vehiclesStatus": "unavailable" if identity in connection.vehicle_failures else "resolved",
+                                    "vehicles": None if identity in connection.vehicle_failures else connection.vehicles[identity]})
             snapshot = {"schema": SNAPSHOT_SCHEMA, "serverKey": server["key"], "aliases": server["aliases"],
                         "serverNames": server["serverNames"], "fund": 5, "startedAtUtc": started,
                         "completedAtUtc": now(), "rankingEnumerationComplete": True,

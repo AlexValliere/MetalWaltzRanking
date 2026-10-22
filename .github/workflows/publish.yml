@@ -50,7 +50,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_*.py'
           python -m unittest discover -s scripts -p 'test_*.py'
-          node --test tests/site.test.mjs
+          node --test tests/site.test.mjs tests/vehicle-art.test.mjs
       - name: Restore durable last-good public snapshots
         run: python scripts/snapshot_store.py restore
       - name: Fetch rankings with the dedicated account

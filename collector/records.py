@@ -102,7 +102,47 @@ def social_records(payload):
     return rows
 
 
-def validate_outgoing(opcode, payload, *, expected_login, selected_player, requested_names, fallback_sent):
+def detail_records(payload):
+    """Native public capsules/tactics, not an owned roster or combat formation.
+
+    PlayerDetailInfoDesc 0x007fdb5c, capsule reader 0x007fde80 and tactics
+    reader 0x007fe2e0. The native ranking inspection asks mask 0x0c. Generation
+    is already the public phase; carried faculty levels need no XP conversion.
+    Tactics are consumed for framing only and never interpreted as squad slots.
+    """
+    r, rows, seen = Reader(payload), [], set()
+    for _ in range(r.u8()):
+        player, mask, vehicles = r.u32(), r.u8(), None
+        if not player or player in seen or not mask or mask & ~0x0c:
+            raise ValueError("Invalid public vehicle descriptor")
+        seen.add(player)
+        if mask & 4:
+            vehicles, types = [], set()
+            for _ in range(r.u8()):
+                capsule, phase, faculties = r.u32(), r.u8(), {}
+                if not capsule or capsule in types:
+                    raise ValueError("Duplicate or invalid public vehicle type")
+                types.add(capsule)
+                for _ in range(r.u8()):
+                    category, trend, level = r.u8(), r.u16(), r.read("i")
+                    if category in faculties:
+                        raise ValueError("Duplicate public vehicle faculty")
+                    faculties[category] = level
+                level = faculties.get(1)
+                vehicles.append({"capsuleTypeId": capsule, "phase": phase,
+                                 "level": level if level is not None and level >= 0 else None,
+                                 "fate": faculties.get(20) == 1})
+        if mask & 8:
+            for _ in range(r.u8()):
+                r.u32()
+                r.u32()
+        rows.append((player, mask, vehicles))
+    r.finish()
+    return rows
+
+
+def validate_outgoing(opcode, payload, *, expected_login, selected_player, requested_names, fallback_sent,
+                      requested_vehicles=()):
     """Narrow the opcode allowlist to verified, current-session read payloads."""
     if not isinstance(payload, bytes):
         raise ValueError("Invalid outgoing payload")
@@ -134,5 +174,17 @@ def validate_outgoing(opcode, payload, *, expected_login, selected_player, reque
         player, = struct.unpack("<I", payload)
         if player not in requested_names or player in fallback_sent:
             raise ValueError("Unexpected or repeated nickname fallback")
+    elif opcode == 20:
+        r = Reader(payload)
+        count, seen = r.u8(), set()
+        # The native public detail sender chunks at 50 (0x007f8ed0).
+        if not 1 <= count <= 50:
+            raise ValueError("Invalid public vehicle batch")
+        for _ in range(count):
+            player, mask = r.u32(), r.u8()
+            if player not in requested_vehicles or player in seen or mask != 0x0c:
+                raise ValueError("Unexpected public vehicle lookup")
+            seen.add(player)
+        r.finish()
     else:
         raise ValueError("Request outside read-only collector allowlist")

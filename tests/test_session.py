@@ -73,6 +73,22 @@ class InventedGameSocket:
                     self.reply(17, struct.pack("<HI", 0, player) + b"Invented B\0\0")
                 else:
                     self.reply(17, struct.pack("<H", 48))
+            elif opcode == 20:
+                r = Reader(payload)
+                for _ in range(r.u8()):
+                    player, mask = r.u32(), r.u8()
+                    assert mask == 0x0c
+                    if player == 101:
+                        # A carried public level, one Fate Pin and one tactic.
+                        self.reply(19, struct.pack("<BIBBIBB", 1, player, 0x0c, 1, 8311, 3, 2)
+                                   + struct.pack("<BHiBHi", 1, 1, 99, 20, 1, 1)
+                                   + struct.pack("<BII", 1, 999, 123))
+                    elif player == 102:
+                        # A real empty public list is distinct from lookup failure.
+                        self.reply(19, struct.pack("<BIBBB", 1, player, 0x0c, 0, 0))
+                    else:
+                        self.reply(18, struct.pack("<BI", 1, player))
+                r.finish()
             elif opcode != 65531:
                 raise AssertionError("Unexpected request in read-only session")
 
@@ -103,11 +119,14 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(result["rankingEnumerationComplete"])
         self.assertFalse(result["namesComplete"])
         self.assertEqual(result["rows"], [
-            {"rank": 1, "name": "Invented 名", "grandeur": 900, "nameStatus": "resolved"},
-            {"rank": 2, "name": "Invented B", "grandeur": 800, "nameStatus": "resolved"},
-            {"rank": 3, "name": None, "grandeur": 700, "nameStatus": "unavailable"}])
+            {"rank": 1, "name": "Invented 名", "grandeur": 900, "nameStatus": "resolved",
+             "vehiclesStatus": "resolved", "vehicles": [{"capsuleTypeId": 8311, "phase": 3, "level": 99, "fate": True}]},
+            {"rank": 2, "name": "Invented B", "grandeur": 800, "nameStatus": "resolved",
+             "vehiclesStatus": "resolved", "vehicles": []},
+            {"rank": 3, "name": None, "grandeur": 700, "nameStatus": "unavailable",
+             "vehiclesStatus": "unavailable", "vehicles": None}])
         self.assertEqual(peer.sent, {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
-                                     137: 2, 15: 1, 16: 2, 65531: 2})
+                                     137: 2, 15: 1, 16: 2, 20: 1, 65531: 2})
 
     def test_login_rejection_stops_before_any_followup(self):
         masks = load_masks()
