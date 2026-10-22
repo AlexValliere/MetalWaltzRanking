@@ -21,6 +21,7 @@ LIMITS = {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
 REPLY_SECONDS = 30
 PRIMARY_NAME_SECONDS = 12
 SESSION_SECONDS = 3600
+BATCH_REQUEST_GAP_SECONDS = 0.25
 NICKNAME_BATCH_SIZE = 10
 NICKNAME_BATCH_GAP_SECONDS = 0.25
 
@@ -62,7 +63,7 @@ class CollectorConnection:
         if opcode == 16:
             self.fallback_sent.add(struct.unpack("<I", payload)[0])
         if opcode in (137, 15, 20):
-            delay = 0.10 - (self.clock() - self.last_request_at)
+            delay = BATCH_REQUEST_GAP_SECONDS - (self.clock() - self.last_request_at)
             if delay > 0:
                 remaining = remaining_seconds(self.collection_deadline, self.clock)
                 self.sleeper(min(delay, remaining) if remaining is not None else delay)

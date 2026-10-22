@@ -180,6 +180,39 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual([item["refreshStatus"] for item in index["servers"]], ["failed", "ok"])
         self.assertEqual(first_path.read_bytes(), first_bytes)
 
+    def test_failed_backend_is_not_retried_until_a_new_daily_invocation(self):
+        first, second = self.servers[:2]
+        path = self.seed(first)
+        before = path.read_bytes()
+        calls = []
+
+        def scanner(server, *args, **kwargs):
+            calls.append(server["key"])
+            if server["key"] == first["key"] and calls.count(first["key"]) == 1:
+                raise TimeoutError("Invented unavailable backend")
+            return snapshot(server, ("Invented refreshed name",))
+
+        selected = {first["key"], second["key"]}
+        with patch("collector.collect.now", return_value="2026-10-23T04:17:00Z"):
+            result = run_collection(self.directory, [first, second], selected,
+                                    ("invented", "invented"), {}, scanner=scanner, emit=lambda **fields: None)
+        self.assertEqual(result, 1)
+        self.assertEqual(calls, [first["key"], second["key"]])
+        self.assertEqual(path.read_bytes(), before)
+        failed = json.loads((self.directory / "index.json").read_text())["servers"][0]
+        self.assertEqual(failed["refreshStatus"], "failed")
+        self.assertEqual(failed["lastAttemptAtUtc"], "2026-10-23T04:17:00Z")
+
+        with patch("collector.collect.now", return_value="2026-10-24T04:17:00Z"):
+            result = run_collection(self.directory, [first, second], selected,
+                                    ("invented", "invented"), {}, scanner=scanner, emit=lambda **fields: None)
+        self.assertEqual(result, 0)
+        self.assertEqual(calls, [first["key"], second["key"], first["key"], second["key"]])
+        refreshed = json.loads((self.directory / "index.json").read_text())["servers"][0]
+        self.assertEqual(refreshed["refreshStatus"], "ok")
+        self.assertNotIn("errorCode", refreshed)
+        self.assertEqual(refreshed["lastAttemptAtUtc"], "2026-10-24T04:17:00Z")
+
     def test_unselected_attempt_metadata_preserved_counts_recomputed(self):
         first, second = self.servers[:2]
         self.seed(first)

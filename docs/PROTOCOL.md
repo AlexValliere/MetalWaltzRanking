@@ -63,6 +63,13 @@ rewards are implemented. Names, account IDs and session IDs are not taken from
 local saved game logins. Request limits, row limits, time limits and a strict
 outgoing-message allowlist bound the session.
 
+Ranking (137), primary-name (15) and public-vehicle (20) batch requests share a
+minimum 250 ms start-to-start gap. Their batch ceilings remain 200 ranking rows,
+200 name lookups and 50 vehicle profiles. Keepalive replies are not delayed by
+this batch pacing. Production collection runs at most once per backend in the first
+attempt of each daily schedule; failed backends retain their last-good snapshot
+until the next daily attempt.
+
 Ranking request 137 contains `u16 fund`, `u32 offset`, `u8 count` with native
 count limit 200. Reply 131 contains `u16 status`, then `u8 count` and that many
 `u32 playerID, i32 grandeur` pairs on success. Its four trailing bytes are left

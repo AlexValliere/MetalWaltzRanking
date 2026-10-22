@@ -3,9 +3,14 @@
 ## Scheduled collection
 
 `.github/workflows/publish.yml` runs daily at **04:17 UTC**, which is **06:17
-Europe/Paris in summer** and **05:17 in winter**. It also accepts a manual run
-from `main`, with an optional single backend selection and a switch to skip
-collection. A push to `main` republishes stored data without a game login.
+Europe/Paris in summer** and **05:17 in winter**. Only the first attempt of a
+scheduled run contacts the game servers. Each backend is attempted at most once; a failure
+retains its previous snapshot and waits for the next daily scheduled run.
+Manual runs from `main`, pushes to `main` and workflow reruns publish stored data
+without a game login. The collection step checks GitHub's event and attempt
+contexts ([GitHub context reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context)).
+Use **Run workflow** on current `main` for manual publication: rerunning a
+historical run from before this policy can execute that older collection logic.
 
 GitHub runs this on its own Linux machines. Schedules use the default branch;
 they may be delayed or dropped during high load. Public repositories can have
@@ -28,6 +33,12 @@ Portrait assets are generated once from the pinned Maiden Waltz reference data
 and committed with their catalog and hashes. Daily GitHub collection uses those
 static assets and needs no desktop renderer or Live2D SDK. Regenerate and review
 the assets separately when updating game data or presentation sources.
+
+Ranking, primary-name and vehicle batch requests share a minimum **250 ms**
+start-to-start gap. Batch sizes remain 200 ranking entries, up to 200 primary
+names and up to 50 vehicle profiles. Nickname fallback remains groups of 10,
+fully drained before a 250 ms pause and the next group. Heartbeat acknowledgements
+remain immediate. This pacing reduces load; a server rate limit is not established.
 
 The workflow passes `--max-duration-seconds 9000`: one **150-minute collection
 budget** shared across all requested backends, starting before snapshot loading.
@@ -94,16 +105,16 @@ the public JSON separately; this repository does not promise a historical archiv
 
 | Symptom                                                  | Action                                                                                                                                               |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All backends report `credentials_missing`                | Add both repository Actions secrets, then manually refresh.                                                                                          |
+| All backends report `credentials_missing`                | Add both repository Actions secrets before the next scheduled collection. |
 | A backend rejects login                                  | Verify the dedicated account still works in that authentication region. This collector cannot register or repair accounts.                           |
 | A commander is missing or ambiguous                      | Check the account's server setup. This collector requires exactly one existing commander and never creates or selects a guessed account.             |
-| Connect timeout                                          | Retry the affected backend manually after checking game availability. Raw game TCP connectivity from GitHub must be confirmed by a live Actions run. |
+| Connect timeout                                          | Retain the previous snapshot and wait for the next daily attempt. Check game availability and endpoint configuration if failures persist. |
 | Offset, ordering, framing or name batch validation fails | Keep the retained snapshot and investigate protocol or moving-ranking behavior. Do not disable the validator.                                        |
-| `collection_deadline`                                    | The shared collection budget expired. Retained data remains available; manually refresh an affected backend to give it the full budget.              |
+| `collection_deadline`                                    | The shared collection budget expired. Retained data remains available; review the budget if it recurs and let the next daily run attempt collection. |
 | Some names are unavailable                               | These are explicit completed nickname failures. Rank and Grandeur remain valid; a later refresh may resolve them.                                    |
 | Snapshot storage refuses the branch                      | Check its marker/tree and whether another writer changed it. Preserve unexpected contents before any repair.                                         |
 | Pages setup/deployment fails                             | Select GitHub Actions as the Pages publishing source and check plan eligibility and the `github-pages` environment.                                  |
-| Schedule stops or becomes late                           | Check GitHub Actions status, repository workflow state and the schedule notes above; a manual dispatch is available.                                 |
+| Schedule stops or becomes late                           | Check GitHub Actions status, repository workflow state and the schedule notes above. Manual dispatch republishes stored data; collection waits for a scheduled run. |
 
 Logs intentionally contain aggregate progress and fixed error codes. They do not
 identify players or include server packet bodies. Never paste collector secrets

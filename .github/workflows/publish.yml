@@ -5,22 +5,12 @@ on:
     branches: [main]
   schedule:
     - cron: '17 4 * * *' # UTC; 06:17 Paris in summer, 05:17 in winter.
-  workflow_dispatch:
-    inputs:
-      collect:
-        description: Fetch fresh rankings before publishing
-        type: boolean
-        default: true
-      server:
-        description: Backend to refresh (the shared Japanese/Korean No. 2 server is JKMIX)
-        type: choice
-        default: all
-        options: [all, Bonn, YaleAndroid, YaleIOS, JP, KOREA, JKMIX, BANGKOK]
+  workflow_dispatch: {} # Manual runs publish stored data only.
 
 permissions:
   contents: read
 
-# One collector session at a time, including manual runs and code deployments.
+# Serialize daily collection and publication; preserve active sessions.
 concurrency:
   group: metal-waltz-rankings-publish
   cancel-in-progress: false
@@ -53,15 +43,15 @@ jobs:
           node --test tests/site.test.mjs tests/vehicle-art.test.mjs
       - name: Restore durable last-good public snapshots
         run: python scripts/snapshot_store.py restore
-      - name: Fetch rankings with the dedicated account
+      - name: Fetch daily rankings with the dedicated account
         id: collect
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.collect)
+        # A failed backend waits for the next daily run. Reruns only republish.
+        if: github.event_name == 'schedule' && github.run_attempt == '1'
         continue-on-error: true
         env:
           MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
           MW_COLLECTOR_PASSWORD: ${{ secrets.MW_COLLECTOR_PASSWORD }}
-          MW_COLLECT_SERVER: ${{ inputs.server || 'all' }}
-        run: python -m collector collect --output site/data --server "$MW_COLLECT_SERVER" --max-duration-seconds 9000
+        run: python -m collector collect --output site/data --server all --max-duration-seconds 9000
       - name: Validate and build only public files
         run: python scripts/build_site.py
       - name: Save the validated latest snapshots

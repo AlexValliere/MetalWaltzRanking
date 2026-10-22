@@ -11,9 +11,10 @@ the fallback. Use the header toggle to switch modes and remember your choice.
 
 The collector runs on a GitHub-hosted Linux runner **daily at 04:17 UTC**
 (06:17 in Paris during summer time, 05:17 during winter time). Your laptop does
-not need to be running. Manual refreshes are available under **Actions → Refresh
-rankings and publish → Run workflow**. A push to `main` deploys the latest stored
-rankings without logging in to the game.
+not need to be running. Each server gets at most one collection attempt per daily run;
+failed servers retain their previous data until the next daily attempt. Manual
+runs under **Actions → Refresh rankings and publish → Run workflow**, pushes to
+`main`, and reruns of current workflows publish stored data without a game login.
 
 ## Data coverage
 
@@ -61,9 +62,9 @@ source pins and portrait hashes are checked before publication.
    `MW_COLLECTOR_PASSWORD` to the dedicated collector credentials. The same
    credentials must already work on each regional authentication group, with
    exactly one existing commander per backend. [Creating repository secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
-3. Run **Refresh rankings and publish** from `main`. Leave **Fetch fresh rankings**
-   enabled for a live collection, or disable it to publish the seed / last stored
-   data. Review the run and each server's collection time on the site.
+3. Run **Refresh rankings and publish** from `main` to publish the seed / last
+   stored data. Fresh collection runs on the daily schedule. Review the run and
+   each server's collection time on the site.
 
 The workflow has a single concurrency group. Do not run another collector with
 these credentials at the same time. It serializes the seven backend sessions and
@@ -97,8 +98,10 @@ python -m http.server 8000 --directory _site
 ```
 
 Open `http://localhost:8000/` to view the seed. No login is needed for these checks.
-For an authorized local refresh, set the two collector environment variables in
-your shell without writing them into tracked files, then run:
+The local CLI is available for separately authorized development diagnostics;
+production refreshes use the daily workflow. For such diagnostics, set the two
+collector environment variables in your shell without writing them into tracked
+files, then run:
 
 ```sh
 python -m collector collect --output site/data --max-duration-seconds 9000
