@@ -3,6 +3,8 @@
 A public Grandeur ranking browser for every visible Metal Waltz server. It shows
 server order, player names, Grandeur, public vehicles, collection time and missing-name counts.
 Search and pagination run in your browser; the game login stays in GitHub Actions.
+The appearance follows your system's light or dark preference, with dark mode as
+the fallback. Use the header toggle to switch modes and remember your choice.
 
 [Open the rankings](https://alexvalliere.github.io/MetalWaltzRanking/) ·
 [Refresh / deployment runs](https://github.com/AlexValliere/MetalWaltzRanking/actions/workflows/publish.yml)
