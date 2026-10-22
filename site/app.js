@@ -457,7 +457,10 @@ function browserApp() {
   function showVehicleTooltip(button, vehicle) {
     hideVehicleTooltip();
     const tooltip = $('vehicle-tooltip');
-    tooltip.textContent = [vehicle.name, vehicle.maidenName].filter(Boolean).join(' · ');
+    tooltip.textContent = [
+      vehicle.name, vehicle.maidenName,
+      vehicle.level === null ? null : `Level ${numberFormat.format(vehicle.level)}`,
+    ].filter(Boolean).join(' · ');
     tooltip.hidden = false;
     const anchor = button.getBoundingClientRect();
     const bounds = tooltip.getBoundingClientRect();
@@ -484,6 +487,13 @@ function browserApp() {
       image.addEventListener('error', () => image.replaceWith(fallback), { once: true });
       art.append(image);
     } else art.append(fallback);
+    if (Number.isInteger(vehicle.level) && vehicle.level >= 1 && vehicle.level <= 99) {
+      const level = document.createElement('span');
+      level.className = 'vehicle-level';
+      level.textContent = String(vehicle.level);
+      level.setAttribute('aria-hidden', 'true');
+      art.append(level);
+    }
     return art;
   }
 
@@ -517,7 +527,7 @@ function browserApp() {
         button.type = 'button';
         button.className = 'vehicle-button';
         button.dataset.index = String(index);
-        button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}`);
+        button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}${detail.level === null ? '' : `, level ${numberFormat.format(detail.level)}`}`);
         button.append(vehicleArt(detail));
         button.addEventListener('click', () => select(index));
         gallery.append(button);
@@ -549,7 +559,7 @@ function browserApp() {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'vehicle-button';
-      button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}${detail.maidenName ? `, ${detail.maidenName}` : ''}`);
+      button.setAttribute('aria-label', `Public vehicle ${index + 1}: ${detail.name}${detail.maidenName ? `, ${detail.maidenName}` : ''}${detail.level === null ? '' : `, level ${numberFormat.format(detail.level)}`}`);
       button.setAttribute('aria-haspopup', 'dialog');
       button.append(vehicleArt(detail));
       button.addEventListener('pointerenter', (event) => {

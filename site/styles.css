@@ -826,6 +826,22 @@ td.vehicles {
   object-fit: cover;
   object-position: 50% 38%;
 }
+.vehicle-level {
+  position: absolute;
+  top: 2px;
+  right: 8%;
+  min-width: 18px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: #142332eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: none;
+}
 .vehicle-button:hover .vehicle-portrait,
 .vehicle-button:focus-visible .vehicle-portrait {
   transform: translateY(-2px);
@@ -931,6 +947,12 @@ td.vehicles {
 .vehicle-dialog-art .vehicle-fallback {
   padding: 20px;
   font-size: 13px;
+}
+.vehicle-dialog-art .vehicle-level {
+  top: 6px;
+  min-width: 26px;
+  padding: 2px 5px;
+  font-size: 14px;
 }
 .vehicle-dialog-copy {
   flex: 1 1 150px;
