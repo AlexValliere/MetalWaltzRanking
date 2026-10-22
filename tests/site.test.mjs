@@ -14,6 +14,7 @@ const {
   rowsToCsv,
   validateIndex,
   validateSnapshot,
+  fetchServerSnapshot,
 } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const rows = [
   { rank: 1, name: 'Ａｌｅｘ', grandeur: 900, nameStatus: 'resolved' },
@@ -178,4 +179,50 @@ test('only complete PvP snapshots with consistent name flags and server score or
   }
   const tied = rows.map((row, i) => (i === 1 ? { ...row, grandeur: 900 } : row));
   assert.equal(validateSnapshot({ ...snapshot, rows: tied }, server).rows, tied);
+});
+
+test('retry loads a fresh index and a matching snapshot without mutating the displayed index', async () => {
+  const freshServer = {
+    ...server,
+    startedAtUtc: '2026-10-23T19:00:00Z',
+    completedAtUtc: '2026-10-23T19:01:00Z',
+    refreshStatus: 'ok',
+  };
+  const freshIndex = { ...index, generatedAtUtc: '2026-10-23T20:00:00Z', servers: [freshServer] };
+  const freshSnapshot = {
+    ...snapshot,
+    startedAtUtc: freshServer.startedAtUtc,
+    completedAtUtc: freshServer.completedAtUtc,
+  };
+  const requests = [];
+  const controller = new AbortController();
+  const fetchData = async (path, signal) => {
+    requests.push(path);
+    assert.equal(signal, controller.signal);
+    return path === './data/index.json' ? freshIndex : freshSnapshot;
+  };
+  // A deployment changed the file after this tab had loaded the earlier index.
+  await assert.rejects(
+    fetchServerSnapshot(index, server.key, fetchData, { signal: controller.signal }),
+  );
+  requests.length = 0;
+  const result = await fetchServerSnapshot(index, server.key, fetchData, {
+    refreshIndex: true,
+    signal: controller.signal,
+  });
+  assert.deepEqual(requests, ['./data/index.json', './data/Bonn.rankings.json']);
+  assert.equal(result.index, freshIndex);
+  assert.equal(result.server, freshServer);
+  assert.equal(result.snapshot, freshSnapshot);
+  assert.equal(index.servers[0].completedAtUtc, '2026-10-22T19:01:00Z');
+
+  await assert.rejects(
+    fetchServerSnapshot(
+      index,
+      server.key,
+      async (path) => (path === './data/index.json' ? freshIndex : snapshot),
+      { refreshIndex: true },
+    ),
+  );
+  assert.equal(index.servers[0], server);
 });

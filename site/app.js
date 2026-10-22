@@ -154,6 +154,20 @@ export function validateSnapshot(data, server) {
   return data;
 }
 
+export async function fetchServerSnapshot(index, key, fetchData, options = {}) {
+  const nextIndex = options.refreshIndex
+    ? validateIndex(await fetchData('./data/index.json', options.signal))
+    : index;
+  const server = nextIndex.servers.find((entry) => entry.key === key);
+  if (!server) throw new Error('The requested server is absent from the archive index.');
+  const snapshot = validateSnapshot(
+    await fetchData(safeSnapshotPath(server.file), options.signal),
+    server,
+  );
+  // Stage the matching pair together; the caller commits it only if still current.
+  return { index: nextIndex, server, snapshot };
+}
+
 function utcDate(value, includeTime = false) {
   const options = { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' };
   if (includeTime) Object.assign(options, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -425,10 +439,10 @@ function browserApp() {
     return response.json();
   }
 
-  async function loadServer(key, query) {
-    const server = state.index.servers.find((entry) => entry.key === key);
-    if (!server) return;
-    if (state.server?.key === key && !state.loading) {
+  async function loadServer(key, query, refreshIndex = false) {
+    const requestedServer = state.index.servers.find((entry) => entry.key === key);
+    if (!requestedServer) return;
+    if (state.server?.key === key && !state.loading && !refreshIndex) {
       if (query !== undefined) {
         $('commander-search').value = query;
         applySearch();
@@ -446,20 +460,25 @@ function browserApp() {
     showNotice('error-notice', '');
     showNotice(
       'load-notice',
-      `Loading ${server.name}…${hadSnapshot ? ` The displayed standings are still ${state.server.name}.` : ''}`,
+      `Loading ${requestedServer.name}…${hadSnapshot ? ` The displayed standings are still ${state.server.name}.` : ''}`,
     );
     const timeout = setTimeout(() => controller.abort(), 45000);
     try {
-      const snapshot = validateSnapshot(
-        await fetchJson(safeSnapshotPath(server.file), controller.signal),
-        server,
-      );
+      const result = await fetchServerSnapshot(state.index, key, fetchJson, {
+        refreshIndex,
+        signal: controller.signal,
+      });
       if (sequence !== state.sequence) return;
-      state.server = server;
-      state.snapshot = snapshot;
+      if (result.index !== state.index) {
+        state.index = result.index;
+        renderIndex();
+      }
+      state.server = result.server;
+      state.snapshot = result.snapshot;
+      setServerChoice(key);
       state.query = query !== undefined ? query : $('commander-search').value.slice(0, 512);
       $('commander-search').value = state.query;
-      state.filtered = filterRows(snapshot.rows, state.query);
+      state.filtered = filterRows(result.snapshot.rows, state.query);
       state.page = 0;
       inputIds.forEach((id) => {
         $(id).disabled = false;
@@ -473,11 +492,11 @@ function browserApp() {
       const suffix = hadSnapshot
         ? ` Showing the last loaded ${state.server.name} snapshot.`
         : ' Please try again shortly.';
-      showNotice('error-notice', `Could not load ${server.name}.${suffix}`, 'error');
+      showNotice('error-notice', `Could not load ${requestedServer.name}.${suffix}`, 'error');
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.textContent = 'Retry';
-      retry.addEventListener('click', () => loadServer(key, query));
+      retry.addEventListener('click', () => loadServer(key, query, true));
       $('error-notice').append(retry);
       if (hadSnapshot) {
         setServerChoice(state.server.key);
