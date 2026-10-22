@@ -87,11 +87,18 @@ The native 14 handler at `0x007f8090` calls the nickname lookup path. Its sender
 `0x007fa2f0` sends request 16 with one `u32 playerID`. Reply 17 begins with
 `u16 status`; success adds `u32 playerID`, a name C string bounded to 48 bytes,
 and one uninterpreted byte. Failure has no player ID. The collector sends a
-bounded batch and drains exactly the same number of 17 replies before another
-ranking phase. Success identifiers must be expected and unique. Unkeyed failures
-can be assigned to remaining requests only after the batch completes. Late 380
+bounded group of at most 10 and drains exactly the same number of 17 replies
+before another nickname group or ranking phase. Success identifiers must be
+expected and unique. Unkeyed failures can be assigned to remaining requests only
+after the group completes. Late 380
 responses can still resolve a name. An incomplete/malformed fallback closes the
 connection and cannot produce a new partial snapshot.
+
+After draining a nickname group, the collector waits 250 milliseconds before
+the next group. Session and whole-run deadlines are checked before and after the
+wait, which cannot extend either budget. This reduces bursts of public database
+reads. It does not establish a server rate limit or prove a fix for observed
+timeouts and disconnects.
 
 One bounded recovery is allowed after a primary social-name timeout: identity-
 bearing late 380/14 responses remain observable while request 16 is sent at most

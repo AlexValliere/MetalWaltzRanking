@@ -21,6 +21,8 @@ LIMITS = {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
 REPLY_SECONDS = 30
 PRIMARY_NAME_SECONDS = 12
 SESSION_SECONDS = 3600
+NICKNAME_BATCH_SIZE = 10
+NICKNAME_BATCH_GAP_SECONDS = 0.25
 
 
 class CollectorConnection:
@@ -182,8 +184,22 @@ class CollectorConnection:
 
     def fetch_nickname_fallback(self, players):
         self.read_phase = "nickname_fallback"
-        if not 1 <= len(players) <= 200 or len(set(players)) != len(players):
+        if (not 1 <= len(players) <= 200 or len(set(players)) != len(players)
+                or any(player in self.fallback_sent for player in players)):
             raise ValueError("Invalid nickname fallback batch")
+        for offset in range(0, len(players), NICKNAME_BATCH_SIZE):
+            if offset:
+                # Reduce the burst of public database lookups. Each prior
+                # unkeyed17 group must be fully drained before another is sent.
+                self.check_deadlines()
+                session_remaining = SESSION_SECONDS - (self.clock() - self.started)
+                delay = max(0.0, min(NICKNAME_BATCH_GAP_SECONDS, session_remaining))
+                remaining = remaining_seconds(self.collection_deadline, self.clock)
+                self.sleeper(min(delay, remaining) if remaining is not None else delay)
+                self.check_deadlines()
+            self._fetch_nickname_batch(players[offset:offset + NICKNAME_BATCH_SIZE])
+
+    def _fetch_nickname_batch(self, players):
         expected, successful, failures = set(players), set(), 0
         for player in players:
             self.send(16, struct.pack("<I", player))
