@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import socket
 import struct
+import time
 
 from .binary import Reader
 from .cipher import GameDes
@@ -11,6 +12,12 @@ from .connection import CollectorConnection, MAX_ROWS
 from .records import login_payload, login_reply, player_list, require_zero, ServerRejection
 from .snapshots import (INDEX_SCHEMA, SNAPSHOT_SCHEMA, SCOPE, atomic_json, now,
                         previous_attempts, snapshot_entry, validate_snapshot)
+from .timing import (CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_duration,
+                     remaining_seconds)
+
+READ_PHASES = frozenset(("not_started", "connect", "login", "commander_list", "selection", "commander_base",
+                         "town_prepare", "town_entry", "achievements", "rankings", "primary_names",
+                         "nickname_fallback", "snapshot", "unknown"))
 
 
 class CollectionStopped(Exception):
@@ -19,14 +26,23 @@ class CollectionStopped(Exception):
         super().__init__("Collection stopped")
 
 
-def open_socket(server):
+def open_socket(server, *, deadline=None, clock=time.monotonic):
     # Try another reviewed port only if no connection has been established.
     # Authentication, reads and ambiguous responses are never replayed.
     for port in server["ports"]:
+        remaining = remaining_seconds(deadline, clock)
         try:
-            return socket.create_connection((server["address"], port), timeout=5)
+            sock = socket.create_connection((server["address"], port),
+                                            timeout=min(5, remaining) if remaining is not None else 5)
         except OSError:
-            pass
+            remaining_seconds(deadline, clock)
+            continue
+        try:
+            remaining_seconds(deadline, clock)
+        except CollectionDeadline:
+            sock.close()
+            raise
+        return sock
     raise ConnectionError("No reviewed endpoint could be reached")
 
 
@@ -55,63 +71,78 @@ def enumerate_rankings(connection, *, progress=None):
     return rows
 
 
-def scan_server(server, credentials, masks, *, progress=None):
-    started = now()
-    request = login_payload(*credentials)
-    with open_socket(server) as sock:
-        sock.settimeout(0.4)
-        connection = CollectorConnection(sock, masks, GameDes(), request)
-        connection.send(324, request)
-        status, account = login_reply(connection.receive(331))
-        require_zero("login", status)
-        connection.send(396)
-        status, players = player_list(connection.receive(310))
-        require_zero("player_list", status)
-        if len(players) != 1:
-            raise CollectionStopped("commander_missing" if not players else "commander_ambiguous")
-        player = players[0][0]
-        connection.selected_player = player
-        connection.send(316, struct.pack("<I", player))
-        r = Reader(connection.receive(312))
-        require_zero("selection", r.u16())
-        identity = r.u32(), r.u32()
-        r.finish()
-        if identity != (account, player):
-            raise CollectionStopped("selected_identity_mismatch")
-        r = Reader(connection.receive(362))
-        r.string(48)
-        r.u8()
-        r.u32()
-        r.u32()
-        r.finish()
-        connection.send(357)
-        connection.receive(368)
-        connection.send(374)
-        r = Reader(connection.receive(371))
-        require_zero("town_entry", r.u16())
-        r.u16()
-        r.finish()
-        connection.achievements = {}
-        connection.send(436)
-        connection.receive(438)
-        rows = enumerate_rankings(connection, progress=progress)
-        public_rows = []
-        for rank, (identity, score) in enumerate(rows, 1):
-            resolved = connection.name_resolved(identity)
-            public_rows.append({"rank": rank, "name": connection.names[identity] if resolved else None,
-                                "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable"})
-        snapshot = {"schema": SNAPSHOT_SCHEMA, "serverKey": server["key"], "aliases": server["aliases"],
-                    "serverNames": server["serverNames"], "fund": 5, "startedAtUtc": started,
-                    "completedAtUtc": now(), "rankingEnumerationComplete": True,
-                    "namesComplete": all(row["nameStatus"] == "resolved" for row in public_rows),
-                    "scope": SCOPE, "rows": public_rows}
-        validate_snapshot(snapshot, server)
-        return snapshot
+def scan_server(server, credentials, masks, *, progress=None, deadline=None, clock=time.monotonic):
+    connection = None
+    try:
+        remaining_seconds(deadline, clock)
+        started = now()
+        request = login_payload(*credentials)
+        with open_socket(server, deadline=deadline, clock=clock) as sock:
+            sock.settimeout(0.4)
+            connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock)
+            connection.read_phase = "login"
+            connection.send(324, request)
+            status, account = login_reply(connection.receive(331))
+            require_zero("login", status)
+            connection.read_phase = "commander_list"
+            connection.send(396)
+            status, players = player_list(connection.receive(310))
+            require_zero("player_list", status)
+            if len(players) != 1:
+                raise CollectionStopped("commander_missing" if not players else "commander_ambiguous")
+            player = players[0][0]
+            connection.selected_player = player
+            connection.read_phase = "selection"
+            connection.send(316, struct.pack("<I", player))
+            r = Reader(connection.receive(312))
+            require_zero("selection", r.u16())
+            identity = r.u32(), r.u32()
+            r.finish()
+            if identity != (account, player):
+                raise CollectionStopped("selected_identity_mismatch")
+            connection.read_phase = "commander_base"
+            r = Reader(connection.receive(362))
+            r.string(48)
+            r.u8()
+            r.u32()
+            r.u32()
+            r.finish()
+            connection.read_phase = "town_prepare"
+            connection.send(357)
+            connection.receive(368)
+            connection.read_phase = "town_entry"
+            connection.send(374)
+            r = Reader(connection.receive(371))
+            require_zero("town_entry", r.u16())
+            r.u16()
+            r.finish()
+            connection.achievements = {}
+            connection.read_phase = "achievements"
+            connection.send(436)
+            connection.receive(438)
+            rows = enumerate_rankings(connection, progress=progress)
+            public_rows = []
+            for rank, (identity, score) in enumerate(rows, 1):
+                resolved = connection.name_resolved(identity)
+                public_rows.append({"rank": rank, "name": connection.names[identity] if resolved else None,
+                                    "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable"})
+            snapshot = {"schema": SNAPSHOT_SCHEMA, "serverKey": server["key"], "aliases": server["aliases"],
+                        "serverNames": server["serverNames"], "fund": 5, "startedAtUtc": started,
+                        "completedAtUtc": now(), "rankingEnumerationComplete": True,
+                        "namesComplete": all(row["nameStatus"] == "resolved" for row in public_rows),
+                        "scope": SCOPE, "rows": public_rows}
+            validate_snapshot(snapshot, server)
+            return snapshot
+    except Exception as error:
+        error.collector_read_phase = connection.read_phase if connection is not None else "connect"
+        raise
 
 
 def error_code(error):
     # Do not stringify arbitrary exceptions: packet bytes, identities or secrets
     # can appear in third-party, Unicode and socket exception text.
+    if isinstance(error, CollectionDeadline):
+        return "collection_deadline"
     if isinstance(error, ServerRejection):
         if error.phase in ("login", "player_list", "selection", "town_entry", "ranking"):
             return "server_" + error.phase + "_" + str(int(error.status))
@@ -131,7 +162,9 @@ def log(**fields):
     print(json.dumps(fields, ensure_ascii=True), flush=True)
 
 
-def run_collection(directory, servers, selected, credentials, masks, *, scanner=scan_server, emit=log):
+def run_collection(directory, servers, selected, credentials, masks, *, scanner=scan_server, emit=log,
+                   max_duration_seconds=DEFAULT_MAX_DURATION_SECONDS, clock=time.monotonic):
+    deadline = clock() + positive_duration(max_duration_seconds)
     directory = Path(directory)
     old_attempts = previous_attempts(directory)
     entries, failures = [], 0
@@ -148,12 +181,17 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
             continue
         entry = entries[position]
         attempted = now()
-        emit(serverKey=key, phase="collecting")
+        read_phase, failed_read_phase = "not_started", None
         try:
+            remaining_seconds(deadline, clock)
             if credentials is None:
                 raise CollectionStopped("credentials_missing")
+            emit(serverKey=key, phase="collecting")
+            read_phase = "connect"
             snapshot = scanner(server, credentials, masks,
-                               progress=lambda count: emit(serverKey=key, phase="progress", rows=count))
+                               progress=lambda count: emit(serverKey=key, phase="progress", rows=count),
+                               deadline=deadline, clock=clock)
+            read_phase = "snapshot"
             validate_snapshot(snapshot, server)
             atomic_json(directory / (key + ".rankings.json"), snapshot)
             entry = snapshot_entry(directory, server, "ok")
@@ -162,11 +200,14 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
         except Exception as error:
             failures += 1
             entry.update(refreshStatus="failed", errorCode=error_code(error))
+            phase = getattr(error, "collector_read_phase", read_phase)
+            failed_read_phase = phase if isinstance(phase, str) and phase in READ_PHASES else "unknown"
         entry["lastAttemptAtUtc"] = attempted
         entries[position] = entry
         emit(serverKey=key, phase="finished", refreshStatus=entry["refreshStatus"],
              rows=entry["rows"], namesResolved=entry["namesResolved"],
-             **({"errorCode": entry["errorCode"]} if "errorCode" in entry else {}))
+             **({"errorCode": entry["errorCode"]} if "errorCode" in entry else {}),
+             **({"readPhase": failed_read_phase} if failed_read_phase is not None else {}))
         # Save each completed backend immediately, keeping a coherent full index
         # even if a later backend reaches the runner's outer timeout.
         atomic_json(directory / "index.json", {"schema": INDEX_SCHEMA, "generatedAtUtc": now(),

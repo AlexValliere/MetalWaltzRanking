@@ -18,6 +18,18 @@ A fresh manifest time does not make a retained snapshot fresh. An unavailable
 name is also distinct from a failed scan: a complete ranking may have explicit
 nickname failures from the game server.
 
+The workflow passes `--max-duration-seconds 9000`: one **150-minute collection
+budget** shared across all requested backends, starting before snapshot loading.
+It is not a separate allowance for every server. After expiry, the current and
+remaining unvisited backends receive `collection_deadline` failure status without
+further logins. Completed refreshes and previous good snapshots are retained, and
+the manifest is written before the collector exits with failure. Connection and
+reply waits check the same deadline, subject to a short socket polling allowance.
+Required replies allow up to 30 seconds; the initial social-name lookup keeps its
+12-second wait before the reviewed nickname fallback. No read is automatically
+replayed after a timeout. Failed collection logs include a fixed `readPhase` label
+to help distinguish connection, login and ranking/name failures.
+
 ## Credentials and permissions
 
 Only the collection step receives `MW_COLLECTOR_USERNAME` and
@@ -76,6 +88,7 @@ the public JSON separately; this repository does not promise a historical archiv
 | A commander is missing or ambiguous                      | Check the account's server setup. This collector requires exactly one existing commander and never creates or selects a guessed account.             |
 | Connect timeout                                          | Retry the affected backend manually after checking game availability. Raw game TCP connectivity from GitHub must be confirmed by a live Actions run. |
 | Offset, ordering, framing or name batch validation fails | Keep the retained snapshot and investigate protocol or moving-ranking behavior. Do not disable the validator.                                        |
+| `collection_deadline`                                    | The shared collection budget expired. Retained data remains available; manually refresh an affected backend to give it the full budget.              |
 | Some names are unavailable                               | These are explicit completed nickname failures. Rank and Grandeur remain valid; a later refresh may resolve them.                                    |
 | Snapshot storage refuses the branch                      | Check its marker/tree and whether another writer changed it. Preserve unexpected contents before any repair.                                         |
 | Pages setup/deployment fails                             | Select GitHub Actions as the Pages publishing source and check plan eligibility and the `github-pages` environment.                                  |
@@ -99,8 +112,12 @@ claiming the scheduled service is live.
 
 GitHub's current Pages site limit is 1 GB, comfortably above this seed. Hosted
 Actions have execution and account usage limits; inspect billing/usage if the
-repository's plan or visibility changes. The workflow's job timeout is 180
-minutes and publication artifacts expire after one day; durable public data is
-the `snapshots` branch, not the temporary artifact.
+repository's plan or visibility changes. The build job's timeout is 180 minutes;
+the collector's 150-minute budget leaves approximately 30 minutes for setup,
+validation, durable storage and upload. Setup time is part of that reserve, so
+this is not a guaranteed 30-minute allowance after collection finishes. Pages
+deployment runs separately with a 10-minute timeout. Publication artifacts expire
+after one day; durable public data is the `snapshots` branch, not the temporary
+artifact.
 [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),
 [Actions limits](https://docs.github.com/en/actions/reference/limits).

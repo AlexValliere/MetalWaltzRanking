@@ -61,7 +61,7 @@ jobs:
           MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
           MW_COLLECTOR_PASSWORD: ${{ secrets.MW_COLLECTOR_PASSWORD }}
           MW_COLLECT_SERVER: ${{ inputs.server || 'all' }}
-        run: python -m collector collect --output site/data --server "$MW_COLLECT_SERVER"
+        run: python -m collector collect --output site/data --server "$MW_COLLECT_SERVER" --max-duration-seconds 9000
       - name: Validate and build only public files
         run: python scripts/build_site.py
       - name: Save the validated latest snapshots

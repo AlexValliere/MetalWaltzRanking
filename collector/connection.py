@@ -12,17 +12,20 @@ import time
 
 from .binary import Reader
 from .records import ranking_records, require_zero, social_records, validate_outgoing
+from .timing import CollectionDeadline, remaining_seconds
 from .transport import TransportDecoder, TransportEncoder
 
 MAX_ROWS = 1_000_000
 LIMITS = {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
           137: 10_000, 15: 10_000, 16: MAX_ROWS + 200, 65531: 1000}
-REPLY_SECONDS = 12
+REPLY_SECONDS = 30
+PRIMARY_NAME_SECONDS = 12
 SESSION_SECONDS = 3600
 
 
 class CollectorConnection:
-    def __init__(self, sock, masks, cipher, expected_login, *, clock=time.monotonic, sleeper=time.sleep):
+    def __init__(self, sock, masks, cipher, expected_login, *, deadline=None,
+                 clock=time.monotonic, sleeper=time.sleep):
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
         self.encoder = TransportEncoder(masks["c2g"], cipher.encrypt)
         self.decoder = TransportDecoder(masks["g2c"], cipher.decrypt)
@@ -37,6 +40,13 @@ class CollectorConnection:
         self.achievements = None
         self.incoming_bytes = 0
         self.started, self.last_request_at = clock(), 0.0
+        self.collection_deadline = deadline
+        self.read_phase = "connect"
+
+    def check_deadlines(self):
+        remaining_seconds(self.collection_deadline, self.clock)
+        if self.clock() - self.started >= SESSION_SECONDS:
+            raise TimeoutError("Collector session deadline")
 
     def send(self, opcode, payload=b""):
         if opcode not in LIMITS or self.sent[opcode] >= LIMITS[opcode]:
@@ -44,14 +54,15 @@ class CollectorConnection:
         validate_outgoing(opcode, payload, expected_login=self.expected_login,
                           selected_player=self.selected_player, requested_names=self.name_masks,
                           fallback_sent=self.fallback_sent)
-        if self.clock() - self.started >= SESSION_SECONDS:
-            raise TimeoutError("Collector session deadline")
+        self.check_deadlines()
         if opcode == 16:
             self.fallback_sent.add(struct.unpack("<I", payload)[0])
         if opcode in (137, 15):
             delay = 0.10 - (self.clock() - self.last_request_at)
             if delay > 0:
-                self.sleeper(delay)
+                remaining = remaining_seconds(self.collection_deadline, self.clock)
+                self.sleeper(min(delay, remaining) if remaining is not None else delay)
+                self.check_deadlines()
             self.last_request_at = self.clock()
         self.sent[opcode] += 1
         self.socket.sendall(self.encoder.encode(opcode, payload))
@@ -77,11 +88,13 @@ class CollectorConnection:
             self.name_failures.update(player for player in failed if player in self.name_masks)
 
     def receive(self, target=None, until=None, timeout=REPLY_SECONDS):
+        self.check_deadlines()
         if target == 362 and self.base_notification is not None:
             payload, self.base_notification = self.base_notification, None
             return payload
         deadline = self.clock() + timeout
-        while self.clock() < deadline and self.clock() - self.started < SESSION_SECONDS:
+        while self.clock() < deadline:
+            self.check_deadlines()
             if until is not None and until():
                 return b""
             if self.messages:
@@ -113,9 +126,11 @@ class CollectorConnection:
             if self.incoming_bytes > 128 * 1024 * 1024:
                 raise ValueError("Incoming byte limit")
             self.messages.extend((opcode, payload) for _, opcode, payload in self.decoder.feed(data))
+        self.check_deadlines()
         raise TimeoutError("Expected reply missing")
 
     def fetch_rank_page(self, offset, count=200):
+        self.read_phase = "rankings"
         self.send(137, struct.pack("<HIB", 5, offset, count))
         status, rows = ranking_records(self.receive(131), count)
         require_zero("ranking", status)
@@ -125,12 +140,16 @@ class CollectorConnection:
         return bool(self.name_masks.get(player, 0) & 4) and bool(self.names.get(player))
 
     def fetch_names(self, players):
+        self.read_phase = "primary_names"
         for player in players:
             self.name_masks.setdefault(player, 0)
         self.name_failures.difference_update(players)
         self.send(15, bytes([len(players)]) + b"".join(struct.pack("<IB", player, 5) for player in players))
         try:
-            self.receive(until=lambda: all(self.name_resolved(p) or p in self.name_failures for p in players))
+            self.receive(until=lambda: all(self.name_resolved(p) or p in self.name_failures for p in players),
+                         timeout=PRIMARY_NAME_SECONDS)
+        except CollectionDeadline:
+            raise  # The whole-run budget never permits a recovery read.
         except TimeoutError:
             # Primary 380/14 are keyed. A bounded, separate native 16/17 batch
             # may recover names while observing late primary packets. No 15
@@ -143,6 +162,7 @@ class CollectorConnection:
             self.fetch_nickname_fallback(missing)
 
     def fetch_nickname_fallback(self, players):
+        self.read_phase = "nickname_fallback"
         if not 1 <= len(players) <= 200 or len(set(players)) != len(players):
             raise ValueError("Invalid nickname fallback batch")
         expected, successful, failures = set(players), set(), 0

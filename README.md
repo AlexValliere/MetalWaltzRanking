@@ -54,6 +54,12 @@ The workflow has a single concurrency group. Do not run another collector with
 these credentials at the same time. It serializes the seven backend sessions and
 never creates an account or commander, battles, claims rewards or purchases items.
 
+Each collection has a shared **9,000-second (150-minute) budget** across all
+requested backends. When that budget expires, completed refreshes are retained;
+unfinished backends keep their last-good snapshots and show a failed refresh.
+The 180-minute build job reserves its remaining time for setup, validation,
+snapshot storage and publication upload.
+
 Validated last-good snapshots live on the dedicated `snapshots` branch. It has
 one latest root commit and an ownership marker; scheduled updates replace that
 branch with `--force-with-lease`. Source history stays on `main`. Failed server
@@ -80,7 +86,7 @@ For an authorized local refresh, set the two collector environment variables in
 your shell without writing them into tracked files, then run:
 
 ```sh
-python -m collector collect --output site/data
+python -m collector collect --output site/data --max-duration-seconds 9000
 python scripts/build_site.py
 ```
 
