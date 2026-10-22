@@ -1,0 +1,112 @@
+{
+  "schema": "metal-waltz.rankings-index.v1",
+  "generatedAtUtc": "2026-10-22T20:09:23.007307Z",
+  "servers": [
+    {
+      "key": "Bonn",
+      "name": "Europe №1",
+      "aliases": [
+        "Bonn"
+      ],
+      "file": "Bonn.rankings.json",
+      "rows": 76797,
+      "namesResolved": 76797,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T19:53:46.585513Z",
+      "completedAtUtc": "2026-10-22T19:55:14.288556Z",
+      "refreshStatus": "seed",
+      "sha256": "7d4674484ed0e61466ea999cc1782d9a2bab4d751fea23346329dcb2dfd27561"
+    },
+    {
+      "key": "YaleAndroid",
+      "name": "Harrisburg · Android",
+      "aliases": [
+        "YaleAndroid"
+      ],
+      "file": "YaleAndroid.rankings.json",
+      "rows": 14061,
+      "namesResolved": 14061,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T19:55:14.644704Z",
+      "completedAtUtc": "2026-10-22T19:59:14.422709Z",
+      "refreshStatus": "seed",
+      "sha256": "f87d4eef112682a105ebc9a1c2af99b1387593b99d08465599abc33c5c7da9da"
+    },
+    {
+      "key": "YaleIOS",
+      "name": "Columbus · iOS",
+      "aliases": [
+        "YaleIOS"
+      ],
+      "file": "YaleIOS.rankings.json",
+      "rows": 3529,
+      "namesResolved": 2076,
+      "namesMissing": 1453,
+      "startedAtUtc": "2026-10-22T19:59:14.473824Z",
+      "completedAtUtc": "2026-10-22T20:00:12.446077Z",
+      "refreshStatus": "seed",
+      "sha256": "b65cc43a50ef564e32a236dcd941f7411ab75df52ddaef5761197ef77c56b13a"
+    },
+    {
+      "key": "JP",
+      "name": "Japan №1",
+      "aliases": [
+        "JP"
+      ],
+      "file": "JP.rankings.json",
+      "rows": 1065,
+      "namesResolved": 1065,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T20:00:43.861064Z",
+      "completedAtUtc": "2026-10-22T20:01:21.794822Z",
+      "refreshStatus": "seed",
+      "sha256": "6915c3f383fb8ec794a3678e6e121d46ca9b8b313ff3c75a1dc318bcea8901d3"
+    },
+    {
+      "key": "KOREA",
+      "name": "Korea",
+      "aliases": [
+        "KOREA"
+      ],
+      "file": "KOREA.rankings.json",
+      "rows": 13765,
+      "namesResolved": 13765,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T20:01:38.372698Z",
+      "completedAtUtc": "2026-10-22T20:06:08.625830Z",
+      "refreshStatus": "seed",
+      "sha256": "2fcca341abbbce51c82fd4269051d7e69c8437f2576751a0bdc7e696cb7e51b3"
+    },
+    {
+      "key": "JKMIX",
+      "name": "Japan/Korea №2",
+      "aliases": [
+        "JKMIX",
+        "MIXKJ"
+      ],
+      "file": "JKMIX.rankings.json",
+      "rows": 8324,
+      "namesResolved": 8324,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T20:07:03.578477Z",
+      "completedAtUtc": "2026-10-22T20:08:18.742276Z",
+      "refreshStatus": "seed",
+      "sha256": "a88a15eb711871fe99f489f7a3a270e7321df8caf262f935e80f38eaf450bcfd"
+    },
+    {
+      "key": "BANGKOK",
+      "name": "Thailand",
+      "aliases": [
+        "BANGKOK"
+      ],
+      "file": "BANGKOK.rankings.json",
+      "rows": 35169,
+      "namesResolved": 35169,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-22T20:03:52.736685Z",
+      "completedAtUtc": "2026-10-22T20:09:23.007307Z",
+      "refreshStatus": "seed",
+      "sha256": "9fea66f129ef6584c6289e632be8e67e79a0eea31403308c6b1c10dbac108aeb"
+    }
+  ]
+}

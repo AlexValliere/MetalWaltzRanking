@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#142332" />
+    <meta
+      name="description"
+      content="Public Metal Waltz PvP standings across Europe, the Americas, Japan, Korea and Thailand. Search commanders and compare Grandeur."
+    />
+    <title>Metal Waltz Rankings</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23142332'/%3E%3Cpath d='M14 44V28h9v16m5 0V18h9v26m5 0V33h9v11' stroke='%23d8b477' stroke-width='3' fill='none'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#standings">Skip to rankings</a>
+    <header class="masthead">
+      <div class="shell masthead-inner">
+        <a class="brand" href="./" aria-label="Metal Waltz Rankings home">
+          <svg class="brand-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M5 28V15h6v13m4 0V7h6v21m4 0V19h6v9" stroke="currentColor" stroke-width="2" />
+            <path d="M3 31h30" stroke="currentColor" />
+          </svg>
+          <span>METAL WALTZ<span class="brand-sub">RANKING ARCHIVE</span></span>
+        </a>
+        <nav class="header-links" aria-label="Project links">
+          <a href="#about">About the data</a>
+          <a
+            href="https://github.com/AlexValliere/MetalWaltzRanking"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub <span aria-hidden="true">↗</span
+            ><span class="sr-only"> (opens in a new tab)</span></a
+          >
+        </nav>
+      </div>
+      <div class="shell hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="gold-line"></span> THE COMMANDER LEDGER</div>
+          <h1>Every server.<br /><span>One ranking archive.</span></h1>
+          <p>
+            Explore the public PvP standings of Metal Waltz.<br class="desktop-break" />
+            Find a commander, follow their Grandeur, see where they stand.
+          </p>
+        </div>
+        <div class="collection-card">
+          <div class="collection-top">
+            <span class="status-dot" aria-hidden="true"></span
+            ><span id="collection-status">LOADING ARCHIVE</span>
+          </div>
+          <div class="collection-number">
+            <span id="backend-count">7</span><span>server backends</span>
+          </div>
+          <p id="index-freshness">Checking the latest available snapshots…</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell main-content" id="main-content">
+      <section class="server-section" aria-labelledby="server-label">
+        <div class="section-label">
+          <h2 id="server-label">SELECT A SERVER</h2>
+          <span>Japan &amp; Korea №2 share one leaderboard</span>
+        </div>
+        <nav class="server-tabs" id="server-tabs" aria-label="Ranking servers"></nav>
+        <div class="mobile-server-field">
+          <label for="server-select">Server</label>
+          <select id="server-select" disabled>
+            <option>Loading servers…</option>
+          </select>
+        </div>
+      </section>
+
+      <div class="notice" id="load-notice" role="status" aria-live="polite" hidden></div>
+      <div class="notice notice-error" id="error-notice" role="alert" hidden></div>
+
+      <section class="standings" id="standings" aria-labelledby="standings-title" tabindex="-1">
+        <div class="standings-heading">
+          <div>
+            <div class="eyebrow muted">PVP / GRANDEUR</div>
+            <h2 id="standings-title">Loading standings</h2>
+            <p id="server-description">Complete server-exposed ranking entries, in server order.</p>
+          </div>
+          <a class="button button-quiet download-json" id="download-json" hidden download
+            ><svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path
+                d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"
+                stroke="currentColor"
+                stroke-width="1.5"
+              /></svg
+            >Download JSON</a
+          >
+        </div>
+
+        <div class="stats-grid" aria-label="Snapshot summary">
+          <div class="stat">
+            <span class="stat-label">RANKING ENTRIES</span><strong id="entries-count">—</strong
+            ><span class="stat-detail">All returned ranking positions</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">COMMANDER NAMES</span><strong id="names-count">—</strong
+            ><span class="stat-detail" id="names-detail">Checking name coverage</span>
+          </div>
+          <div class="stat stat-snapshot">
+            <span class="stat-label">LAST SUCCESSFUL COLLECTION</span
+            ><strong id="snapshot-date">—</strong
+            ><span class="stat-detail" id="snapshot-detail">Snapshot time in UTC</span>
+          </div>
+        </div>
+
+        <div class="rankings-panel" id="rankings-panel" aria-busy="true">
+          <div class="table-toolbar">
+            <div class="search-field">
+              <label class="sr-only" for="commander-search">Search commander names</label>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5" />
+                <path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+              <input
+                type="search"
+                id="commander-search"
+                placeholder="Search commander names…"
+                autocomplete="off"
+                spellcheck="false"
+                maxlength="512"
+                disabled
+              />
+              <kbd aria-hidden="true">/</kbd>
+            </div>
+            <div class="table-options">
+              <div class="page-size-field">
+                <label for="page-size">Rows</label
+                ><select id="page-size" disabled>
+                  <option>25</option>
+                  <option>50</option>
+                  <option selected>100</option>
+                  <option>200</option>
+                </select>
+              </div>
+              <form class="rank-jump" id="rank-jump">
+                <label for="rank-number">Go to rank</label
+                ><input
+                  id="rank-number"
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="#"
+                  disabled
+                /><button type="submit" aria-label="Go to rank" disabled>↵</button>
+              </form>
+            </div>
+          </div>
+          <div class="results-bar">
+            <p id="results-label" role="status" aria-live="polite">Loading the archive…</p>
+            <button class="text-button" id="download-csv" disabled>
+              Export CSV <span aria-hidden="true">↓</span>
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <caption class="sr-only" id="table-caption">
+                Metal Waltz PvP rankings
+              </caption>
+              <thead>
+                <tr>
+                  <th class="rank-column" scope="col">RANK</th>
+                  <th scope="col">COMMANDER</th>
+                  <th class="score-column" scope="col">
+                    GRANDEUR <span aria-hidden="true">↓</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="ranking-rows">
+                <tr class="table-message">
+                  <td colspan="3">
+                    <span class="loading-spinner" aria-hidden="true"></span>Loading standings…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <p id="page-label">Page — of —</p>
+            <nav class="pagination-buttons" aria-label="Ranking pages">
+              <button class="page-button" id="first-page" aria-label="First page" disabled>«</button
+              ><button class="page-button page-button-word" id="previous-page" disabled>
+                <span aria-hidden="true">←</span> Previous</button
+              ><span class="current-page" id="current-page" aria-label="Current page">—</span
+              ><button class="page-button page-button-word" id="next-page" disabled>
+                Next <span aria-hidden="true">→</span></button
+              ><button class="page-button" id="last-page" aria-label="Last page" disabled>»</button>
+            </nav>
+          </div>
+        </div>
+        <p class="snapshot-note" id="snapshot-note">
+          Ranks are preserved as returned by the game server. A collection takes time and is not an
+          atomic snapshot.
+        </p>
+        <p class="missing-note" id="missing-note" hidden></p>
+      </section>
+
+      <section class="about-section" id="about" aria-labelledby="about-title">
+        <div>
+          <div class="eyebrow muted">FIELD NOTES</div>
+          <h2 id="about-title">A record of the standings.</h2>
+          <p>
+            An independent archive of public Metal Waltz PvP rankings, collected with dedicated
+            accounts. Grandeur and ranking order come from the game servers.
+          </p>
+        </div>
+        <div class="about-notes">
+          <details>
+            <summary>What does “complete” mean?</summary>
+            <p>
+              Each collection follows the ranking pages until the server returns an empty page. This
+              includes every server-exposed ranking entry; it does not establish the total
+              registered population. Positions may change while a collection is running.
+            </p>
+          </details>
+          <details>
+            <summary>Why are some names unavailable?</summary>
+            <p>
+              A ranking position and its Grandeur can be available even when a name lookup fails.
+              Those rows remain visible as “Name unavailable.” In the initial Columbus iOS
+              collection, both tested name queries returned server code 48 for 1,453 rows. The cause
+              of that response is unknown.
+            </p>
+          </details>
+          <details>
+            <summary>When is the archive updated?</summary>
+            <p>
+              The collection schedule and run history are published in the
+              <a
+                href="https://github.com/AlexValliere/MetalWaltzRanking/actions"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub Actions log<span class="sr-only"> (opens in a new tab)</span></a
+              >. Each server shows the time of its last successful snapshot. If a refresh fails, the
+              last available snapshot is retained and marked.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer class="shell footer">
+      <span
+        >METAL WALTZ RANKINGS <span class="footer-divider">/</span> INDEPENDENT COMMUNITY
+        ARCHIVE</span
+      ><span>Public standings. No account or player IDs.</span>
+    </footer>
+    <noscript
+      ><div class="noscript-note">
+        JavaScript is needed to browse the ranking snapshots. You can also
+        <a href="./data/index.json">download the data index</a>.
+      </div></noscript
+    >
+  </body>
+</html>

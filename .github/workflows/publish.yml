@@ -1,0 +1,103 @@
+name: Refresh rankings and publish
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * *' # UTC; 06:17 Paris in summer, 05:17 in winter.
+  workflow_dispatch:
+    inputs:
+      collect:
+        description: Fetch fresh rankings before publishing
+        type: boolean
+        default: true
+      server:
+        description: Backend to refresh (the shared Japanese/Korean No. 2 server is JKMIX)
+        type: choice
+        default: all
+        options: [all, Bonn, YaleAndroid, YaleIOS, JP, KOREA, JKMIX, BANGKOK]
+
+permissions:
+  contents: read
+
+# One collector session at a time, including manual runs and code deployments.
+concurrency:
+  group: metal-waltz-rankings-publish
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'AlexValliere/MetalWaltzRanking' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write # Only the validated, latest-only snapshots branch is updated.
+      pages: read
+    outputs:
+      collection_failed: ${{ steps.collect.outcome == 'failure' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install the pinned collector dependency
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Run offline checks before using the collector account
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py'
+          python -m unittest discover -s scripts -p 'test_*.py'
+          node --test tests/site.test.mjs
+      - name: Restore durable last-good public snapshots
+        run: python scripts/snapshot_store.py restore
+      - name: Fetch rankings with the dedicated account
+        id: collect
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.collect)
+        continue-on-error: true
+        env:
+          MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
+          MW_COLLECTOR_PASSWORD: ${{ secrets.MW_COLLECTOR_PASSWORD }}
+          MW_COLLECT_SERVER: ${{ inputs.server || 'all' }}
+        run: python -m collector collect --output site/data --server "$MW_COLLECT_SERVER"
+      - name: Validate and build only public files
+        run: python scripts/build_site.py
+      - name: Save the validated latest snapshots
+        run: python scripts/snapshot_store.py save
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Upload the public site
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  collection-status:
+    needs: [build, deploy]
+    if: always() && needs.build.outputs.collection_failed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Report any failed refresh after publishing available snapshots
+        run: |
+          echo '::error::At least one ranking refresh failed. Validated last-good snapshots were retained. Check the per-server status on the site and the sanitized collector log.'
+          exit 1

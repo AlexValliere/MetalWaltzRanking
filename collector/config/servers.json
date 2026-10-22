@@ -1,0 +1,92 @@
+{
+  "reviewedAt": "2026-10-16",
+  "servers": [
+    {
+      "key": "Bonn",
+      "name": "Europe №1",
+      "address": "52.59.230.137",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "EU"
+    },
+    {
+      "key": "YaleAndroid",
+      "name": "Harrisburg[Android]",
+      "address": "54.237.228.43",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "AND"
+    },
+    {
+      "key": "YaleIOS",
+      "name": "Columbus[IOS]",
+      "address": "18.207.119.189",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "iOS"
+    },
+    {
+      "key": "JP",
+      "name": "N°1 イジェフスク",
+      "address": "35.77.95.127",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "JP"
+    },
+    {
+      "key": "KOREA",
+      "name": "N°1 솜 강",
+      "address": "18.182.9.101",
+      "ports": [
+        37001,
+        37000
+      ],
+      "description": "hotdouble",
+      "label": "KR"
+    },
+    {
+      "key": "JKMIX",
+      "name": "N°2 ノヴォシビルスク",
+      "address": "18.181.176.142",
+      "ports": [
+        37000
+      ],
+      "description": "hotdouble",
+      "label": "JP"
+    },
+    {
+      "key": "MIXKJ",
+      "name": "N°2 노보시비르스크",
+      "address": "18.181.176.142",
+      "ports": [
+        37000
+      ],
+      "description": "hotdouble",
+      "label": "KR"
+    },
+    {
+      "key": "BANGKOK",
+      "name": "NEW THAI",
+      "address": "18.139.160.89",
+      "ports": [
+        37000
+      ],
+      "description": "hotdouble",
+      "label": "TH"
+    }
+  ],
+  "sourceUrl": "http://bonnver.metalwaltz.com/sherman_ge/android/patch/2020031601/serverlist",
+  "sourceFileSha256": "571a0c3484c9e7576e0d88ce243f96b7607b7f5e96260c70bac0360aa1ebffb4"
+}

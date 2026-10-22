@@ -1,0 +1,97 @@
+# Metal Waltz Ranking
+
+A public Grandeur ranking browser for every visible Metal Waltz server. It shows
+server order, player names, Grandeur, collection time and missing-name counts.
+Search and pagination run in your browser; the game login stays in GitHub Actions.
+
+[Open the rankings](https://alexvalliere.github.io/MetalWaltzRanking/) ·
+[Refresh / deployment runs](https://github.com/AlexValliere/MetalWaltzRanking/actions/workflows/publish.yml)
+
+The collector runs on a GitHub-hosted Linux runner **daily at 04:17 UTC**
+(06:17 in Paris during summer time, 05:17 during winter time). Your laptop does
+not need to be running. Manual refreshes are available under **Actions → Refresh
+rankings and publish → Run workflow**. A push to `main` deploys the latest stored
+rankings without logging in to the game.
+
+## Data coverage
+
+The included seed was verified on **22 October 2026**. Eight server entries map to
+seven distinct backends; the Japanese and Korean №2 entries share a ranking.
+
+| Server                | Ranking entries | Names resolved |
+| --------------------- | --------------: | -------------: |
+| Europe №1             |          76,797 |         76,797 |
+| Harrisburg / Android  |          14,061 |         14,061 |
+| Columbus / iOS        |           3,529 |          2,076 |
+| Japan №1              |           1,065 |          1,065 |
+| Korea                 |          13,765 |         13,765 |
+| Japan/Korea №2 shared |           8,324 |          8,324 |
+| Thailand              |          35,169 |         35,169 |
+| **Total**             |     **152,710** |    **151,257** |
+
+These are all rows exposed by each server during its sequential scan. They are
+not an atomic snapshot or a census of every registered commander. The initial
+Columbus scan has 1,453 unavailable names: its native nickname query returned
+status 48. Those entries retain their rank and Grandeur; names are never guessed.
+
+Fresh dedicated commanders retrieved these rankings with **0 Clash wins**. The
+game client's 460-win interface unlock was not required for the verified reads.
+
+## Deployment configuration
+
+1. Keep this repository public for GitHub Pages on GitHub Free, or use a plan
+   supporting Pages for a private repository. In **Settings → Pages → Build and
+   deployment**, select **GitHub Actions**. [GitHub Pages availability and setup](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+2. Set repository Actions secrets `MW_COLLECTOR_USERNAME` and
+   `MW_COLLECTOR_PASSWORD` to the dedicated collector credentials. The same
+   credentials must already work on each regional authentication group, with
+   exactly one existing commander per backend. [Creating repository secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+3. Run **Refresh rankings and publish** from `main`. Leave **Fetch fresh rankings**
+   enabled for a live collection, or disable it to publish the seed / last stored
+   data. Review the run and each server's collection time on the site.
+
+The workflow has a single concurrency group. Do not run another collector with
+these credentials at the same time. It serializes the seven backend sessions and
+never creates an account or commander, battles, claims rewards or purchases items.
+
+Validated last-good snapshots live on the dedicated `snapshots` branch. It has
+one latest root commit and an ownership marker; scheduled updates replace that
+branch with `--force-with-lease`. Source history stays on `main`. Failed server
+refreshes retain their previous complete data and show a failure status. A run
+with any failed refresh is marked failed after publishing the available data.
+
+## Local preview and checks
+
+Python 3.11 or later and Node.js 24 are sufficient. GitHub Actions uses Python 3.13.
+
+```sh
+python -m venv .venv
+# Activate the virtual environment for your shell.
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -p 'test_*.py'
+python -m unittest discover -s scripts -p 'test_*.py'
+node --test tests/site.test.mjs
+python scripts/build_site.py
+python -m http.server 8000 --directory _site
+```
+
+Open `http://localhost:8000/` to view the seed. No login is needed for these checks.
+For an authorized local refresh, set the two collector environment variables in
+your shell without writing them into tracked files, then run:
+
+```sh
+python -m collector collect --output site/data
+python scripts/build_site.py
+```
+
+`--server Bonn` (or another backend key) limits a refresh to one server. The
+collector uses the reviewed game protocol directly; it needs no Android emulator,
+Windows DLL, game installation, Ghidra session or laptop hosting.
+
+See [operations and recovery](docs/OPERATIONS.md), the
+[protocol and public-data contract](docs/PROTOCOL.md), and the
+[initial verification record](docs/research/verification-2026-10-22.json).
+
+This is an independent fan project and is not affiliated with Metal Waltz's
+developer or publisher. Player names and Grandeur originate from the game's
+public ranking/social responses.

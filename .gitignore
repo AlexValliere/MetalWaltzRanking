@@ -1,0 +1,25 @@
+# Local credentials and captures never belong in this repository.
+.env
+.env.*
+!.env.example
+*.dpapi
+*.pcap
+*.pcapng
+local-data/
+private/
+*.log
+
+# Python and local environments.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated publication output and temporary snapshot state.
+_site/
+.snapshot-state.json
+.DS_Store
+Thumbs.db
+
+# The reviewed seed remains tracked. Live updates live on the snapshots branch.

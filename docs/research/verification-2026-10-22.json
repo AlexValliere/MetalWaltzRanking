@@ -1,0 +1,160 @@
+{
+  "reviewDate": "2026-10-22",
+  "gameDataCommit": "fee198aee089d57ab4184f4ab0cad5f3ccf67e35",
+  "nativeLibrarySha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+  "rankingFund": 5,
+  "reviewedDirectoryEntries": 8,
+  "distinctBackends": 7,
+  "totals": {
+    "rows": 152710,
+    "namesResolved": 151257,
+    "namesMissing": 1453,
+    "rankingsStructurallyVerified": true,
+    "allNamesComplete": false,
+    "nameCompleteBackends": 6,
+    "nicknameFallbackFailureStatuses": {
+      "48": 1453
+    }
+  },
+  "scope": "All server-exposed Grandeur entries on seven distinct reviewed backends/eight directory aliases; structural completeness and public-name completeness are separate.",
+  "limits": [
+    "Sequential collection is not an atomic snapshot; standings can change during or after collection.",
+    "An empty server-exposed boundary is not a population count and cannot exclude a hidden server cap.",
+    "Missing public names remain explicit; status48 is generic online-related rejection and does not establish deletion or inactivity.",
+    "Authentication groups describe observations, not a verified backend database topology.",
+    "GitHub-hosted connectivity, scheduling, Pages deployment, and publication have not been tested.",
+    "This collector test does not complete the original-client ranking comparison acceptance cases."
+  ],
+  "servers": [
+    {
+      "serverKey": "Bonn",
+      "aliases": [
+        "Bonn"
+      ],
+      "serverNames": [
+        "Europe №1"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 76797,
+      "namesResolved": 76797,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 76797,
+      "nicknameFallbackFailureStatuses": {}
+    },
+    {
+      "serverKey": "YaleAndroid",
+      "aliases": [
+        "YaleAndroid"
+      ],
+      "serverNames": [
+        "Harrisburg[Android]"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 14061,
+      "namesResolved": 14061,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 14061,
+      "nicknameFallbackFailureStatuses": {}
+    },
+    {
+      "serverKey": "YaleIOS",
+      "aliases": [
+        "YaleIOS"
+      ],
+      "serverNames": [
+        "Columbus[IOS]"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 3529,
+      "namesResolved": 2076,
+      "namesMissing": 1453,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 3529,
+      "nicknameFallbackFailureStatuses": {
+        "48": 1453
+      }
+    },
+    {
+      "serverKey": "JP",
+      "aliases": [
+        "JP"
+      ],
+      "serverNames": [
+        "N°1 イジェフスク"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 1065,
+      "namesResolved": 1065,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 1065,
+      "nicknameFallbackFailureStatuses": {}
+    },
+    {
+      "serverKey": "KOREA",
+      "aliases": [
+        "KOREA"
+      ],
+      "serverNames": [
+        "N°1 솜 강"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 13765,
+      "namesResolved": 13765,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 13765,
+      "nicknameFallbackFailureStatuses": {}
+    },
+    {
+      "serverKey": "JKMIX",
+      "aliases": [
+        "JKMIX",
+        "MIXKJ"
+      ],
+      "serverNames": [
+        "N°2 ノヴォシビルスク",
+        "N°2 노보시비르스크"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 8324,
+      "namesResolved": 8324,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 8324,
+      "nicknameFallbackFailureStatuses": {}
+    },
+    {
+      "serverKey": "BANGKOK",
+      "aliases": [
+        "BANGKOK"
+      ],
+      "serverNames": [
+        "NEW THAI"
+      ],
+      "clashWins": 0,
+      "rankingUnlockFlag": 0,
+      "rows": 35169,
+      "namesResolved": 35169,
+      "namesMissing": 0,
+      "scoreOrderNonincreasing": true,
+      "offsetOverlapVerified": true,
+      "emptyBoundaryOffset": 35169,
+      "nicknameFallbackFailureStatuses": {}
+    }
+  ]
+}

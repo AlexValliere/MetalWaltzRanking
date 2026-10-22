@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metalwaltz-ranking"
+version = "0.1.0"
+description = "Read-only Grandeur ranking collector and public static data"
+requires-python = ">=3.11"
+dependencies = ["pycryptodome==4.1.0"]
+
+[tool.setuptools]
+packages = ["collector"]
+
+[tool.setuptools.package-data]
+collector = ["config/*.json"]

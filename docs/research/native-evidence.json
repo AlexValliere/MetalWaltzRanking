@@ -1,0 +1,236 @@
+{
+  "schema": "maiden-waltz.collector-native-evidence.v1",
+  "recordedAtUtc": "2026-10-22T20:03:50.002032+00:00",
+  "scope": "Read-only static native and pinned-gamefiles inspection; no live game requests.",
+  "nativeProgram": {
+    "name": "libasgame.so",
+    "language": "AARCH64:LE:64:v8A",
+    "imageBase": "0x00100000",
+    "librarySha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+    "fingerprintVerifiedAgainstImportedBinary": true,
+    "ghidraVersion": "12.1.4",
+    "elfBuildId": "b3487757ea47660757edd867707b77edf176b5db",
+    "toolTransport": "Read-only localhost GhidraMCP GET endpoints; no import, analysis, edit, or save."
+  },
+  "gameData": {
+    "commit": "fee198aee089d57ab4184f4ab0cad5f3ccf67e35",
+    "version": "1.9.8.26",
+    "patchVersions": ["_1.10"],
+    "checksumManifestSha256": "8348b2a0e963696a032243548699216a91b818721befe8cf95c02cfb5953b761"
+  },
+  "functions": [
+    {
+      "function": "listPlayerRankingTranscation",
+      "ghidraAddress": "0x007f2d94",
+      "elfAddress": "0x6f2d94",
+      "decompilationSha256": "fc5c40a4092baa6ad0092d79965971459bb165f8d4faae8ee74875e405fe01a8",
+      "purpose": "Ranking137 sender and native200-record chunks;133 own-rank request."
+    },
+    {
+      "function": "onMessage<(unsigned_short)131>",
+      "ghidraAddress": "0x007f2778",
+      "elfAddress": "0x6f2778",
+      "decompilationSha256": "fa85ac6ae36e7ebb80da171aa4efb71805159da5f4ae079377124198d392c1ab",
+      "purpose": "Ranking131 status, rows, unused4-byte tail."
+    },
+    {
+      "function": "operator>>",
+      "ghidraAddress": "0x007f48d4",
+      "elfAddress": "0x6f48d4",
+      "decompilationSha256": "629a9d9ff4bd8875ef433988cf7fa672ba2577ebafa43ab1096018e99600f00e",
+      "purpose": "Ranking131 byte-counted player/fund pair reader."
+    },
+    {
+      "function": "onFundRankingListedForPrepare",
+      "ghidraAddress": "0x007f3294",
+      "elfAddress": "0x6f3294",
+      "decompilationSha256": "59dd3a628dd9d7d939eebb26edbef6eb8b850a0461c80b47c24b30d85f29934a",
+      "purpose": "Ranking preparation requests public names and crafts."
+    },
+    {
+      "function": "loadForNickName",
+      "ghidraAddress": "0x007fbe0c",
+      "elfAddress": "0x6fbe0c",
+      "decompilationSha256": "c30241c6f2594d3b3d3451a8d8b420a196981c370b9df0f7b9cd97b30abe0d38",
+      "purpose": "Native nickname path requests social mask5."
+    },
+    {
+      "function": "QueryPlayerSocialDesc_Req",
+      "ghidraAddress": "0x007f9640",
+      "elfAddress": "0x6f9640",
+      "decompilationSha256": "efd4db16e02d5e4690a73601f962b25adfd4851f46cf6372ae5a5fc5eb0027c3",
+      "purpose": "Generic social15 sender with200-record batching and arbitrary byte mask."
+    },
+    {
+      "function": "operator<<",
+      "ghidraAddress": "0x007fefb0",
+      "elfAddress": "0x6fefb0",
+      "decompilationSha256": "ce5d65df9b303349bc2b38768073b9d4a93d080ccff954054edbc9d03e80dde9",
+      "purpose": "Social15 byte-counted(u32 playerID,u8 mask) serializer."
+    },
+    {
+      "function": "operator>>",
+      "ghidraAddress": "0x007fd81c",
+      "elfAddress": "0x6fd81c",
+      "decompilationSha256": "3e3383f201c4484d83842ef1b339ecf6445c51a564b536242334f00277bd0353",
+      "purpose": "Social380 optional fields and mask4 bounded nickname reader."
+    },
+    {
+      "function": "onMessage<(unsigned_short)14>",
+      "ghidraAddress": "0x007f8090",
+      "elfAddress": "0x6f8090",
+      "decompilationSha256": "fd5d1096ae388bfc9fcfff88d0e573ad20b2cf18cf6b267fe3ce2753b870ad44",
+      "purpose": "Social14 failure handler invokes16 fallback for each returned ID."
+    },
+    {
+      "function": "ListPlayerFundRanking_Ack",
+      "ghidraAddress": "0x007f28b8",
+      "elfAddress": "0x6f28b8",
+      "decompilationSha256": "d574763082dfcd4a18489d422b9afaf1a2167b69a8a926bdd04b957163bf386a",
+      "purpose": "Named ranking ACK appends rows and ignores tail."
+    },
+    {
+      "function": "QuerySelfFundRanking_Ack",
+      "ghidraAddress": "0x007f2378",
+      "elfAddress": "0x6f2378",
+      "decompilationSha256": "53eda25d5ffd3972f7793a75d77fe02554ef63c498d441db402610f8a0eff2b3",
+      "purpose": "Own-rank134 completes native ranking transaction."
+    },
+    {
+      "function": "onMessage<(unsigned_short)134>",
+      "ghidraAddress": "0x007f22e0",
+      "elfAddress": "0x6f22e0",
+      "decompilationSha256": "8965d09a8ea5094e855250ede4f73daddbc83191889ea74c32866cfee1f9f0ef",
+      "purpose": "Own-rank134 status and signed rank decoder."
+    },
+    {
+      "function": "r_GetFundRankingListPlayerListOrderd",
+      "ghidraAddress": "0x009239e4",
+      "elfAddress": "0x8239e4",
+      "decompilationSha256": "645ec68aafa6ea4c4998f7bf6bcc09a9a8d76bde026b0a8d9f3db2bdc43ecc12",
+      "purpose": "Lua cache row ordering getter."
+    },
+    {
+      "function": "LoadPlayerNicknameByID",
+      "ghidraAddress": "0x007fa2f0",
+      "elfAddress": "0x6fa2f0",
+      "decompilationSha256": "ed037c0cec88cc1806d4bb5bbc214731b1fd8d43d9c36da5d4a09a6c95e406b8",
+      "purpose": "Fallback16 single-u32-ID sender and per-ID10-second throttle."
+    },
+    {
+      "function": "onMessage<(unsigned_short)17>",
+      "ghidraAddress": "0x007f7d38",
+      "elfAddress": "0x6f7d38",
+      "decompilationSha256": "84fb00450b6a8b064c15406bd0820c9e2b87a536c91cff84e9d4c2bba9b77851",
+      "purpose": "Fallback17 status; success ID, bounded name, extra byte."
+    },
+    {
+      "function": "LoadPlayerNicknameByID_Ack",
+      "ghidraAddress": "0x007fb21c",
+      "elfAddress": "0x6fb21c",
+      "decompilationSha256": "e35a567830ab310e3024d79fd3a0f4c3e15b5f16b39ff866f65af4812379ccf0",
+      "purpose": "Fallback17 ACK installs successful name; all nonzero statuses return with no further fallback."
+    },
+    {
+      "function": "onMessage<(unsigned_short)380>",
+      "ghidraAddress": "0x007f7df8",
+      "elfAddress": "0x6f7df8",
+      "decompilationSha256": "7d81fb200f952c03a79ead46f5e784572839656207096b038fe0409b060b459b",
+      "purpose": "Social380 vector handler."
+    },
+    {
+      "function": "QueryPlayerSocialDesc_Ack",
+      "ghidraAddress": "0x007fa92c",
+      "elfAddress": "0x6fa92c",
+      "decompilationSha256": "f932e46d67d3cfb681dc16a0b73c0b47e73044dc4f11165829a653df7805bc79",
+      "purpose": "Named primary14 ACK invokes16 fallback."
+    },
+    {
+      "function": "PlayerSocialInfoDesc_Ntf_Item",
+      "ghidraAddress": "0x007fb598",
+      "elfAddress": "0x6fb598",
+      "decompilationSha256": "4bc4d224a27025a053986902c5643705f9ec76ffc9dfa19c1a57001409115f37",
+      "purpose": "Social380 name cache update accepts records independently of pending-query state."
+    },
+    {
+      "function": "onMessage<(unsigned_short)139>",
+      "ghidraAddress": "0x007d1004",
+      "elfAddress": "0x6d1004",
+      "decompilationSha256": "e17ac245e930c775c0f76dd54c0100d5061f602af8b91616379a34b370484971",
+      "purpose": "Registration139 decoder: status, account string; ID only on success."
+    },
+    {
+      "function": "RegisterAccount_Ack",
+      "ghidraAddress": "0x007d2c80",
+      "elfAddress": "0x6d2c80",
+      "decompilationSha256": "5591e266a25fd5309cd1694b66d77569b0a8f51999e82e218163e053adc049f4",
+      "purpose": "Registration ACK sends nonzero status to common login error mapper."
+    },
+    {
+      "function": "setLastError",
+      "ghidraAddress": "0x007cf8dc",
+      "elfAddress": "0x6cf8dc",
+      "decompilationSha256": "73d02a6f40b10389f51ba272b53a317f9e8d59bc1ae96df3c6c688721af46935",
+      "purpose": "Common login error-code-to-key lookup."
+    },
+    {
+      "function": "_INIT_45",
+      "ghidraAddress": "0x007233ec",
+      "elfAddress": "0x6233ec",
+      "decompilationSha256": "b1569177666b6078d34638f15fbae216ecc963972e98da79d4ec9fbcfe6e56b5",
+      "purpose": "Initializes common error keys including12/33/48."
+    }
+  ],
+  "sources": {
+    "com.astrogame.shermange/patch/_1.10/config/StringTableInfo.dat": "3dbe81841b1beaf8981103a939407bbf88692d419e8d6851850b290ee63d2c0d",
+    "com.astrogame.shermange/patch/_1.10/config/ClientShowInfo.dat": "71a18238e23732a6d4bea0c4308b6a0a4b4f393d6d5bf185a87c9226ff9f2462",
+    "com.astrogame.shermange/patch/_1.10/RanaScripts/ui/ScrambleChallengeUI.lua": "7d9e22f4fb10d1b1b249e4df5a4cc1b6f48eaf43fcd82dd746ab395d5acc610c",
+    "com.astrogame.shermange/patch/_1.10/RanaScripts/loginExtra.lua": "65f3169fdb4c9958a2974174373a4815d2f518169d7bf38c77759facabb0e9fe"
+  },
+  "ranking": {
+    "request137": "u16 fund, u32 zero-based offset, u8 count; native batches at200.",
+    "reply131": "u16 status; onzero:u8 count,count*(u32 playerID,i32 fundValue),4unclassified bytes.",
+    "correlation": "131 carries no fund,offset,or requestID; keep one list request outstanding or fully drain a fixed known transaction.",
+    "endCriterion": "Native Lua marks end when fewer than requested visible rows plus lookahead exist. A successful empty boundary establishes the server-exposed list end, not a population count or absence of hidden caps."
+  },
+  "publicNames": {
+    "request15": "u8 count,count*(u32 playerID,u8 mask); native nickname mask5,batches<=200.",
+    "reply380": "u8 count,masked social records; mask4 includes NUL-terminated UTF8 name<=48bytes then one unclassified byte.",
+    "reply14": "u8 count,count*u32 playerID; primary social misses trigger native16 fallback rather than a final unavailable result.",
+    "request16": "u32 playerID, no other body fields; native per-ID10second throttle.",
+    "reply17": "u16 status; onzero:u32 playerID,NUL-terminated UTF8 name<=48bytes,u8 unclassified; onnonzero:statusonly.",
+    "fallbackFlow": "14 handler007f8090 loops missed IDs and calls007fa2f0 sending16 immediately.17 handler007f7d38 decodes;007fb21c stores names on success and returns for every nonzero status without another fallback.",
+    "late380": "007fb598 accepts name updates independently of pending transaction state, so later380 names remain valid after14.",
+    "batched16Correlation": "Native14 pipelines one16perfailedID. A controlled batch can drain expectedN17 replies, validate unique expected successfulIDs, and infer failedIDset by elimination. Server exactly-once/complete delivery is not established statically; timeout or unexpected replies make the batch incomplete.",
+    "mask4Only": "Generic15 sender and380 parser support bit4 alone structurally; ordinary native nickname flow uses5. Compatibility or benefit of a mask4-only retry requires live verification."
+  },
+  "statusMappings": [
+    {
+      "status": 12,
+      "nativeKey": "error_proto_userpass",
+      "stringId": 3100392,
+      "localizedText": "Username or password is incorrect",
+      "contextCaveat": "Combined username/password rejection; does not establish that an account is absent."
+    },
+    {
+      "status": 33,
+      "nativeKey": "error_proto_duplicate",
+      "stringId": 3100382,
+      "localizedText": "Username unavailable!",
+      "contextCaveat": "Registration rejection consistent with an unavailable or duplicate username; fresh login determines whether credentials now work."
+    },
+    {
+      "status": 48,
+      "nativeKey": "error_proto_online",
+      "stringId": 3100388,
+      "localizedText": "Player is online, cannot retaliate. Try again later.",
+      "contextCaveat": "Generic localized string concerns retaliation. A nickname17 status48 proves rejection only; its exact nickname-specific cause is not established."
+    }
+  ],
+  "limitations": [
+    "Static client analysis cannot identify hidden server ranking caps, population, or a publication interval.",
+    "Status48 must not be labeled as deleted or inactive players. The localized retaliation wording does not prove a nickname-specific cause.",
+    "Login12 alone does not prove separate account registries or missing registration. Shared authentication requires live observations.",
+    "No credentials, account IDs, player IDs, raw packets, or native decompilation text are included."
+  ]
+}

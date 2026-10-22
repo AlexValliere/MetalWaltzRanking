@@ -1,0 +1,22 @@
+{
+  "librarySha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+  "gameDataCommit": "fee198aee089d57ab4184f4ab0cad5f3ccf67e35",
+  "schema": "metal-waltz.native-transport.v1",
+  "provenance": {
+    "profile": "MaidenWaltz/baseline/independent-profile.json",
+    "profileSha256": "16431bcefa54d4c54c2f6fafcbc297745280b1f287b7b3c350a6b5525a0707ac",
+    "source": "Pinned Android arm64-v8a native client built-in directional masks, not account credentials or captures."
+  },
+  "directions": {
+    "c2g": {
+      "base64": "/Q97RzswavG2XIR2nAH2fui8mXrBMNsavdx2GNqf2GSPu874h04e4s9B3VWhvBojB1SN+XgsIsAt2u03y3gTeoqLj6OcmK/9Do1OyL280LTH0isf1R0ZlYR5bny8MvOBTsSJ2FysKTi+biLxi83kswx/UEPZReVtW6WNVwGMjnF4tWTxbRP9X5eRKoZAZJjtMaZ8ly97cV8Vj04uJRdj2H0p3Q8CbcUaMmO2HqOl7YsEtHC52QE+lbm2sELzDabKv1PjOtjHareRemzDtF8b1D7ca9bfUd1BGYJ+vVXKSNw8AdRABpCz0O3XLE3iy4KewnOEAEe21fgQrNuG15/vE/3usLfZqObg6qpYrr83p/H4YkYtzO4/uYUUCn39sK2XVOvApoaPKbziv8xzLPofs8IWPl5Vx46/MHQ8UesAglyZTGF2QRjB1qjKTVShvXz86+BmWKc8LD9xZkrno8w+RSFNbaIRF/YlRqFgK/aZEoLLMlG/JIqBx1BEVJdpl7IA2vgVLnWUF+ZC9aHs6OLdWba74gbIdQExkBA4IYbwcfe6UbPUV/U9XJ4Y/l6hr+kg4GCX8X+VR4BmPjsD/YDvkjDyncakftcm3bzVmScz1INbPAIuWO9oD3acZ3p4LfA/9Juz94AEaHDAa0gaXvaBWpz1QVSLPZ8DT9qmCxuh1cnn8PQVNmQix5H+5t67/FH9ZuyWfjE3JCoC61YM8KAxGHBXAlqvZBmhhQ3Lkhf6FnJk9rv6vtwYPblbCt2bAA==",
+      "bytes": 574,
+      "sha256": "a4f70c1650e15c4f43659e083e2f28682e8eb8197e6db30f9b02e1391a231282"
+    },
+    "g2c": {
+      "base64": "6qoegkyrCNNJ4IDr3m7Ue/ML5ZXV2bofpeAmzgqgHGAoFj8tkob2fINcoxLgGP8eFv0TtbjHuZXL9kjWCf6wASPXuBM//YPJ+xKRTt/WJ45QocfppPrTsMXkewMUMBej4ddDZMcz71wq/STMd14RgjcXg5SvEFkf59eq3EyTX8sDrVAntRMlKulAXOvJH8au64BNj21LB2/F4vLmmGyzeMWGT1LomeRuDqhakXZ3+5VFEhuMJaNEuFTM4yEBFELP/5lHTXRDDRBXgf6xO3tZ+Zdbx0yOG78XpIPsEiDA2whvu47d5BIT8P1nlgKJamlxnVZXv6jxfwX9rdATj1razuiXP5SP1v0CI7FPxPdcw0cZSFj/ps5UmMye65d65ZTHi2geuO74E9gOvKWZQ83xfO5cSsJwbOyUHMQH2KuWFaZ1Xh/mgARkhLh6YhD+bzosiN7TjYR/oCqzx4VS5m438HTzmwS6tdSKCgZ44eqe/M20MxhT9JNuQJRdMR9ItxPT6TWy+35Ta5FKy0G0Zv8jXvkLrahmLBx65ACZa/KIY5q0Z9S2q+26RMe86lbTdJz+18FbN09uxWO3pCEBU7gavH8trnaXhk9BPBfuNMAXFL4bdTxDA3PC1doaIG3O+8gMJieB7o8BCDZitTiv0Vd8ifZnLaMETLYZ4B8RYbAWaEbzsqa9ZVVvPltDK5mgvkhVN4JrMunbhhOVVJssf67to4lGpQEVEMeGFuKY/J39PKlq+akHjSWUFR4cdHW4W9w0qoVZqHoxCp2WkvoL2I5U57tzLuD9PLwwtZT5bgNSRdhf0A5OH3t5ogB6zSwSsVBlpNdJMCtowkf6xnpySGrdZ1Ipjk211EO+tACN6BTtC6pLkOHRttpr/vAlvqdzz+cTZdiBxsezGet0stcEeAX9fVR3QlhJqAA=",
+      "bytes": 695,
+      "sha256": "5b333970ec4ee1b6b77d48f0e62246eb721e3462be3d38282e8e939295952930"
+    }
+  }
+}
