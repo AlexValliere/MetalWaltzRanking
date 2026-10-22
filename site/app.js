@@ -6,6 +6,13 @@ const SNAPSHOT_SCHEMAS = new Set([
 const PAGE_SIZES = new Set([25, 50, 100, 200]);
 const numberFormat = new Intl.NumberFormat('en-US');
 
+export function rankingRouteFromHash(hash) {
+  const parameters = new URLSearchParams(String(hash).replace(/^#/, ''));
+  // Ordinary document anchors belong to the browser, not the ranking router.
+  if (!parameters.has('server')) return null;
+  return { key: parameters.get('server'), query: (parameters.get('q') || '').slice(0, 512) };
+}
+
 export function normalizeSearch(value) {
   return String(value ?? '')
     .normalize('NFKC')
@@ -104,6 +111,7 @@ export function validateIndex(data) {
       !['ok', 'failed', 'seed'].includes(server.refreshStatus) ||
       !validTime(server.startedAtUtc) ||
       !validTime(server.completedAtUtc) ||
+      Date.parse(server.startedAtUtc) > Date.parse(server.completedAtUtc) ||
       typeof server.sha256 !== 'string' ||
       !/^[a-f0-9]{64}$/i.test(server.sha256)
     )
@@ -118,6 +126,11 @@ export function validateSnapshot(data, server) {
   if (
     !SNAPSHOT_SCHEMAS.has(data?.schema) ||
     data.serverKey !== server.key ||
+    data.fund !== 5 ||
+    data.rankingEnumerationComplete !== true ||
+    data.startedAtUtc !== server.startedAtUtc ||
+    data.completedAtUtc !== server.completedAtUtc ||
+    data.namesComplete !== (server.namesMissing === 0) ||
     !Array.isArray(data.rows) ||
     data.rows.length !== server.rows
   ) {
@@ -129,8 +142,9 @@ export function validateSnapshot(data, server) {
     if (
       row?.rank !== i + 1 ||
       !Number.isSafeInteger(row.grandeur) ||
+      (i > 0 && row.grandeur > data.rows[i - 1].grandeur) ||
       !(row.name === null || typeof row.name === 'string') ||
-      typeof row.nameStatus !== 'string'
+      row.nameStatus !== (hasName(row) ? 'resolved' : 'unavailable')
     )
       throw new Error('The snapshot contains an invalid ranking row.');
     if (hasName(row)) resolved++;
@@ -190,11 +204,6 @@ function browserApp() {
     node.hidden = !text;
     node.className = kind ? `notice notice-${kind}` : 'notice';
     if (text) node.append(document.createTextNode(text));
-  }
-
-  function queryFromLocation() {
-    const parameters = new URLSearchParams(location.hash.slice(1));
-    return { key: parameters.get('server'), query: (parameters.get('q') || '').slice(0, 512) };
   }
 
   function updateLocation() {
@@ -568,8 +577,8 @@ function browserApp() {
   });
   window.addEventListener('hashchange', () => {
     if (!state.index) return;
-    const locationState = queryFromLocation();
-    loadServer(locationState.key || 'Bonn', locationState.query);
+    const locationState = rankingRouteFromHash(location.hash);
+    if (locationState) loadServer(locationState.key, locationState.query);
   });
 
   async function initialize() {
@@ -579,7 +588,7 @@ function browserApp() {
       state.index = validateIndex(await fetchJson('./data/index.json', controller.signal));
       clearTimeout(timeout);
       renderIndex();
-      const locationState = queryFromLocation();
+      const locationState = rankingRouteFromHash(location.hash) || { key: null, query: '' };
       const initial =
         state.index.servers.find((entry) => entry.key === locationState.key)?.key ||
         state.index.servers.find((entry) => entry.key === 'Bonn')?.key ||
