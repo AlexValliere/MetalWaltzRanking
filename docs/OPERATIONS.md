@@ -3,13 +3,18 @@
 ## Scheduled collection
 
 `.github/workflows/publish.yml` runs daily at **04:17 UTC**, which is **06:17
-Europe/Paris in summer** and **05:17 in winter**. Only the first attempt of a
-scheduled run contacts the game servers. Each backend is attempted at most once; a failure
-retains its previous snapshot and waits for the next daily scheduled run.
-Manual runs from `main`, pushes to `main` and workflow reruns publish stored data
-without a game login. The collection step checks GitHub's event and attempt
+Europe/Paris in summer** and **05:17 in winter**. The first attempt of a scheduled
+run contacts the game servers. To collect manually, open **Actions → Refresh
+rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
+from the game servers before publishing** (`fetch_rankings`), and start a new run.
+Each backend is attempted at most once per collection run; a failure retains its
+previous snapshot until the next scheduled or opted-in manual attempt.
+Manual runs leave this checkbox unchecked by default and publish stored data.
+Pushes to `main` and workflow reruns also publish stored data without a game login,
+even when the original run requested collection. Start a new manual run to fetch
+again. The collection step checks GitHub's event, input and attempt
 contexts ([GitHub context reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context)).
-Use **Run workflow** on current `main` for manual publication: rerunning a
+Use **Run workflow** on current `main` for manual refresh or publication: rerunning a
 historical run from before this policy can execute that older collection logic.
 
 GitHub runs this on its own Linux machines. Schedules use the default branch;
@@ -105,16 +110,16 @@ the public JSON separately; this repository does not promise a historical archiv
 
 | Symptom                                                  | Action                                                                                                                                               |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All backends report `credentials_missing`                | Add both repository Actions secrets before the next scheduled collection. |
+| All backends report `credentials_missing`                | Add both repository Actions secrets before the next scheduled or opted-in manual collection. |
 | A backend rejects login                                  | Verify the dedicated account still works in that authentication region. This collector cannot register or repair accounts.                           |
 | A commander is missing or ambiguous                      | Check the account's server setup. This collector requires exactly one existing commander and never creates or selects a guessed account.             |
-| Connect timeout                                          | Retain the previous snapshot and wait for the next daily attempt. Check game availability and endpoint configuration if failures persist. |
+| Connect timeout                                          | Retain the previous snapshot until the next scheduled or opted-in manual attempt. Check game availability and endpoint configuration if failures persist. |
 | Offset, ordering, framing or name batch validation fails | Keep the retained snapshot and investigate protocol or moving-ranking behavior. Do not disable the validator.                                        |
-| `collection_deadline`                                    | The shared collection budget expired. Retained data remains available; review the budget if it recurs and let the next daily run attempt collection. |
+| `collection_deadline`                                    | The shared collection budget expired. Retained data remains available; review the budget if it recurs before the next scheduled or opted-in manual attempt. |
 | Some names are unavailable                               | These are explicit completed nickname failures. Rank and Grandeur remain valid; a later refresh may resolve them.                                    |
 | Snapshot storage refuses the branch                      | Check its marker/tree and whether another writer changed it. Preserve unexpected contents before any repair.                                         |
 | Pages setup/deployment fails                             | Select GitHub Actions as the Pages publishing source and check plan eligibility and the `github-pages` environment.                                  |
-| Schedule stops or becomes late                           | Check GitHub Actions status, repository workflow state and the schedule notes above. Manual dispatch republishes stored data; collection waits for a scheduled run. |
+| Schedule stops or becomes late                           | Check GitHub Actions status, repository workflow state and the schedule notes above. Start a new manual run with **Fetch fresh rankings from the game servers before publishing** checked to collect now. |
 
 Logs intentionally contain aggregate progress and fixed error codes. They do not
 identify players or include server packet bodies. Never paste collector secrets

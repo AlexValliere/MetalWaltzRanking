@@ -11,10 +11,13 @@ the fallback. Use the header toggle to switch modes and remember your choice.
 
 The collector runs on a GitHub-hosted Linux runner **daily at 04:17 UTC**
 (06:17 in Paris during summer time, 05:17 during winter time). Your laptop does
-not need to be running. Each server gets at most one collection attempt per daily run;
-failed servers retain their previous data until the next daily attempt. Manual
-runs under **Actions → Refresh rankings and publish → Run workflow**, pushes to
-`main`, and reruns of current workflows publish stored data without a game login.
+not need to be running. Each server gets at most one collection attempt per run;
+failed servers retain their previous data until the next attempt.
+To refresh manually, open **Actions → Refresh rankings and publish → Run workflow**,
+select `main`, check **Fetch fresh rankings from the game servers before publishing**,
+and start a new run. Leave it unchecked to publish stored data. Pushes to `main`
+and reruns of current workflows also
+publish stored data without a game login; use a new dispatch for a fresh attempt.
 
 ## Data coverage
 
@@ -63,8 +66,10 @@ source pins and portrait hashes are checked before publication.
    credentials must already work on each regional authentication group, with
    exactly one existing commander per backend. [Creating repository secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
 3. Run **Refresh rankings and publish** from `main` to publish the seed / last
-   stored data. Fresh collection runs on the daily schedule. Review the run and
-   each server's collection time on the site.
+   stored data, or check **Fetch fresh rankings from the game servers before publishing**
+   (`fetch_rankings`) to collect fresh data first. Fresh collection also runs on
+   the daily schedule. Review the run and each server's
+   collection time on the site.
 
 The workflow has a single concurrency group. Do not run another collector with
 these credentials at the same time. It serializes the seven backend sessions and
@@ -77,7 +82,7 @@ The 180-minute build job reserves its remaining time for setup, validation,
 snapshot storage and publication upload.
 
 Validated last-good snapshots live on the dedicated `snapshots` branch. It has
-one latest root commit and an ownership marker; scheduled updates replace that
+one latest root commit and an ownership marker; collection updates replace that
 branch with `--force-with-lease`. Source history stays on `main`. Failed server
 refreshes retain their previous complete data and show a failure status. A run
 with any failed refresh is marked failed after publishing the available data.
@@ -99,9 +104,9 @@ python -m http.server 8000 --directory _site
 
 Open `http://localhost:8000/` to view the seed. No login is needed for these checks.
 The local CLI is available for separately authorized development diagnostics;
-production refreshes use the daily workflow. For such diagnostics, set the two
-collector environment variables in your shell without writing them into tracked
-files, then run:
+production refreshes use scheduled or opted-in manual workflow runs. For such
+diagnostics, set the two collector environment variables in your shell without
+writing them into tracked files, then run:
 
 ```sh
 python -m collector collect --output site/data --max-duration-seconds 9000
