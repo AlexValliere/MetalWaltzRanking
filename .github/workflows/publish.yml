@@ -5,12 +5,17 @@ on:
     branches: [main]
   schedule:
     - cron: '17 4 * * *' # UTC; 06:17 Paris in summer, 05:17 in winter.
-  workflow_dispatch: {} # Manual runs publish stored data only.
+  workflow_dispatch:
+    inputs:
+      fetch_rankings:
+        description: Fetch fresh rankings from the game servers before publishing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# Serialize daily collection and publication; preserve active sessions.
+# Serialize scheduled/manual collection and publication; preserve active sessions.
 concurrency:
   group: metal-waltz-rankings-publish
   cancel-in-progress: false
@@ -43,10 +48,13 @@ jobs:
           node --test tests/site.test.mjs tests/vehicle-art.test.mjs
       - name: Restore durable last-good public snapshots
         run: python scripts/snapshot_store.py restore
-      - name: Fetch daily rankings with the dedicated account
+      - name: Fetch fresh rankings with the dedicated account
         id: collect
-        # A failed backend waits for the next daily run. Reruns only republish.
-        if: github.event_name == 'schedule' && github.run_attempt == '1'
+        # Manual collection is opt-in. Reruns only republish stored data.
+        if: >-
+          github.run_attempt == '1' &&
+          (github.event_name == 'schedule' ||
+           (github.event_name == 'workflow_dispatch' && inputs.fetch_rankings))
         continue-on-error: true
         env:
           MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
