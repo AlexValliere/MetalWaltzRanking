@@ -87,7 +87,8 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             sock.settimeout(0.4)
             connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock,
                                              batch_request_gap_seconds=server.get("batchRequestGapSeconds", 0.25),
-                                             session_seconds=server.get("sessionSeconds", SESSION_SECONDS))
+                                             session_seconds=server.get("sessionSeconds", SESSION_SECONDS),
+                                             vehicle_zero_recovery=server.get("protocolProfile", "mobile") == "mobile")
             connection.read_phase = "login"
             connection.send(324, request)
             status, account = login_reply(connection.receive(331))

@@ -30,7 +30,17 @@ class CollectorConnection:
     def __init__(self, sock, masks, cipher, expected_login, *, deadline=None,
                  clock=time.monotonic, sleeper=time.sleep,
                  batch_request_gap_seconds=BATCH_REQUEST_GAP_SECONDS,
-                 session_seconds=SESSION_SECONDS):
+                 session_seconds=SESSION_SECONDS, vehicle_fields=0x0c, vehicle_batch_size=50,
+                 vehicle_zero_recovery=False):
+        if type(vehicle_fields) is not int or vehicle_fields not in (4, 0x0c):
+            raise ValueError("Invalid public vehicle fields")
+        if type(vehicle_batch_size) is not int or not 1 <= vehicle_batch_size <= 50:
+            raise ValueError("Invalid public vehicle batch size")
+        if type(vehicle_zero_recovery) is not bool:
+            raise ValueError("Invalid public vehicle zero recovery mode")
+        self.vehicle_fields = vehicle_fields
+        self.vehicle_batch_size = vehicle_batch_size
+        self.vehicle_zero_recovery = vehicle_zero_recovery
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
         self.batch_request_gap_seconds = positive_duration(batch_request_gap_seconds)
         self.session_seconds = positive_duration(session_seconds)
@@ -42,10 +52,12 @@ class CollectorConnection:
         self.base_notification = None
         self.name_masks, self.names, self.name_failures = {}, {}, set()
         self.fallback_sent, self.fallback_failures = set(), set()
+        self.fallback_successes = set()
         self.fallback_status_counts = Counter()
         self.primary_name_timeouts = 0
         self.vehicle_masks, self.vehicles, self.vehicle_failures = {}, {}, set()
         self.vehicle_failed_masks = {}
+        self.vehicle_zero_hints = set()
         self.vehicle_pending = set()
         self.achievements = None
         self.incoming_bytes = 0
@@ -64,7 +76,7 @@ class CollectorConnection:
         validate_outgoing(opcode, payload, expected_login=self.expected_login,
                           selected_player=self.selected_player, requested_names=self.name_masks,
                           fallback_sent=self.fallback_sent,
-                          requested_vehicles={p: 0x0c & ~self.vehicle_masks.get(p, 0)
+                          requested_vehicles={p: self.vehicle_fields & ~self.vehicle_masks.get(p, 0)
                                               for p in self.vehicle_pending})
         self.check_deadlines()
         if opcode == 16:
@@ -104,9 +116,14 @@ class CollectorConnection:
             for player, mask, vehicles in detail_records(payload):
                 if player not in self.vehicle_pending:
                     raise ValueError("Uncorrelated public vehicle reply")
+                if mask & ~self.vehicle_fields:
+                    raise ValueError("Unrequested public vehicle fields")
                 if not mask:
                     # Native19 can carry a descriptor with no field updates.
-                    # Correlation is still required; it does not complete a read.
+                    # An optional bounded recovery uses it only as a keyed hint;
+                    # it never establishes field completion or availability.
+                    if self.vehicle_zero_recovery:
+                        self.vehicle_zero_hints.add(player)
                     continue
                 if self.vehicle_masks[player] & mask:
                     raise ValueError("Repeated public vehicle reply")
@@ -119,11 +136,36 @@ class CollectorConnection:
             failed = r.vector()
             r.finish()
             if (len(set(failed)) != len(failed) or any(p not in self.vehicle_pending
-                    or self.vehicle_failed_masks.get(p, 0) or self.vehicle_masks[p] == 0x0c
+                    or self.vehicle_failed_masks.get(p, 0) or self.vehicle_masks[p] == self.vehicle_fields
                     for p in failed)):
                 raise ValueError("Uncorrelated public vehicle failure")
             for player in failed:
-                self.vehicle_failed_masks[player] = 0x0c & ~self.vehicle_masks[player]
+                self.vehicle_failed_masks[player] = self.vehicle_fields & ~self.vehicle_masks[player]
+
+    def _dispatch_message(self, opcode, payload, target=None):
+        self.received[opcode] += 1
+        if sum(self.received.values()) > MAX_ROWS * 2 + 10_000:
+            raise ValueError("Incoming message limit")
+        self.observe(opcode, payload)
+        if opcode == 362 and target != 362:
+            if self.base_notification is not None:
+                raise ValueError("Duplicate base notification")
+            self.base_notification = payload
+        if opcode == 65530:
+            self.send(65531)
+        elif opcode == 317:
+            raise ConnectionError("Session ended")
+        elif opcode in (131, 17) and opcode != target:
+            raise ValueError("Uncorrelated read reply")
+        elif opcode == target:
+            return True
+        return False
+
+    def _drain_queued_messages(self):
+        # Consume only decoded messages already in memory; never poll the socket.
+        while self.messages:
+            self.check_deadlines()
+            self._dispatch_message(*self.messages.popleft())
 
     def receive(self, target=None, until=None, timeout=REPLY_SECONDS):
         self.check_deadlines()
@@ -137,21 +179,7 @@ class CollectorConnection:
                 return b""
             if self.messages:
                 opcode, payload = self.messages.popleft()
-                self.received[opcode] += 1
-                if sum(self.received.values()) > MAX_ROWS * 2 + 10_000:
-                    raise ValueError("Incoming message limit")
-                self.observe(opcode, payload)
-                if opcode == 362 and target != 362:
-                    if self.base_notification is not None:
-                        raise ValueError("Duplicate base notification")
-                    self.base_notification = payload
-                if opcode == 65530:
-                    self.send(65531)
-                elif opcode == 317:
-                    raise ConnectionError("Session ended")
-                elif opcode in (131, 17) and opcode != target:
-                    raise ValueError("Uncorrelated read reply")
-                elif opcode == target:
+                if self._dispatch_message(opcode, payload, target):
                     return payload
                 continue
             try:
@@ -245,42 +273,66 @@ class CollectorConnection:
         if len(unresolved) != failures:
             raise ValueError("Nickname fallback response count mismatch")
         self.fallback_failures.update(unresolved)
+        self.fallback_successes.update(successful)
 
     def fetch_vehicles(self, players):
-        """Load public lists in native 50-player batches with bounded warm-up."""
+        """Load selected public fields in batches of at most 50 with bounded warm-up."""
         self.read_phase = "public_vehicles"
         if (not players or len(players) > 200 or len(set(players)) != len(players)
                 or any(not p or p in self.vehicle_masks for p in players) or self.vehicle_pending):
             raise ValueError("Invalid or repeated public vehicle transaction")
         for player in players:
             self.name_masks.setdefault(player, 0)  # Native18 may need a keyed16 warm-up.
-        for offset in range(0, len(players), 50):
-            batch = players[offset:offset + 50]
+        for offset in range(0, len(players), self.vehicle_batch_size):
+            batch = players[offset:offset + self.vehicle_batch_size]
             self.vehicle_masks.update((p, 0) for p in batch)
             self.vehicle_failed_masks.update((p, 0) for p in batch)
-            self._query_vehicles(batch)
+            self._query_vehicles(batch, allow_zero_hints=self.vehicle_zero_recovery)
+            if self.vehicle_zero_recovery:
+                self._drain_queued_messages()
             # Native18 invokes16. A successful17 calls clearIDQueryTransaction
             # (0x007f8a98), which reissues still-pending public detail masks.
             # Name lookup already performed that same warm-up for many players;
             # never repeat16 for an identity or retry a timeout/malformed reply.
-            warm = [p for p in batch if self.vehicle_failed_masks[p] and p not in self.fallback_sent]
+            candidates = [p for p in batch if self.vehicle_masks[p] != self.vehicle_fields
+                          and (self.vehicle_failed_masks[p]
+                               or self.vehicle_zero_recovery and p in self.vehicle_zero_hints)]
+            warm = [p for p in candidates if p not in self.fallback_sent]
             if warm:
                 self.fetch_nickname_fallback(warm)
-                retry = [p for p in warm if p not in self.fallback_failures and self.vehicle_masks[p] != 0x0c]
-                if retry:
-                    self.read_phase = "public_vehicles"
-                    self._query_vehicles(retry)
+            self.read_phase = "public_vehicles"
+            if self.vehicle_zero_recovery:
+                self._drain_queued_messages()
+            eligible = self.fallback_successes if self.vehicle_zero_recovery else set(warm) - self.fallback_failures
+            retry = [p for p in candidates if p in eligible and self.vehicle_masks[p] != self.vehicle_fields]
+            if retry:
+                # Each identity gets at most one extra20, shared by18/zero
+                # recovery. A zero on this requery cannot trigger a third20.
+                self._query_vehicles(retry)
+            if self.vehicle_zero_recovery:
+                # Failed/missing warm-up does not turn a zero hint into a miss.
+                # Wait for actual fields or18 under the same session/run bounds.
+                self._drain_queued_messages()
+                self.receive(until=lambda: self._vehicle_batch_complete(batch))
+                self._drain_queued_messages()
             # A terminal tactics miss does not erase actual capsule observations.
             # The public projection reports only capsule-field availability.
             self.vehicle_failures.update(p for p in batch if not self.vehicle_masks[p] & 4)
             self.vehicle_pending.clear()
 
-    def _query_vehicles(self, players):
-        self.vehicle_pending = set(players)
-        missing = {p: 0x0c & ~self.vehicle_masks[p] for p in players}
+    def _vehicle_batch_complete(self, players, *, allow_zero_hints=False):
+        return all((self.vehicle_masks[p] | self.vehicle_failed_masks[p]) == self.vehicle_fields
+                   or allow_zero_hints and p in self.vehicle_zero_hints for p in players)
+
+    def _query_vehicles(self, players, *, allow_zero_hints=False):
+        if self.vehicle_zero_recovery:
+            self.vehicle_pending.update(players)
+        else:
+            self.vehicle_pending = set(players)
+        self.vehicle_zero_hints.difference_update(players)
+        missing = {p: self.vehicle_fields & ~self.vehicle_masks[p] for p in players}
         for player, mask in missing.items():
             self.vehicle_failed_masks[player] &= ~mask
         self.send(20, bytes([len(players)]) + b"".join(struct.pack("<IB", p, missing[p]) for p in players))
-        self.receive(until=lambda: all(self.vehicle_masks[p] | self.vehicle_failed_masks[p] == 0x0c
-                                      for p in players))
+        self.receive(until=lambda: self._vehicle_batch_complete(players, allow_zero_hints=allow_zero_hints))
         # Keep correlation while native16/17 warm-up can deliver late fields.

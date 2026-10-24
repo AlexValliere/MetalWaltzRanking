@@ -1,0 +1,1208 @@
+{
+  "schema": "metal-waltz.vehicle-field-probes.v1",
+  "recordedAtUtc": "2026-10-24T12:11:02.157104Z",
+  "evidenceType": "completed bounded live aggregate findings",
+  "scope": "Read-only summary of completed sanitized local probe aggregates. The note author made no game connection, reran no test and changed no source. No credentials, account/player identity values, raw protocol packets or individual player results are published.",
+  "sourceProvenance": {
+    "directory": "private/vehicle-probes",
+    "completedAggregateFiles": 9,
+    "backendProbeObservations": 20,
+    "outcomes": {
+      "bounded_incomplete": 5,
+      "bounded_complete": 15
+    },
+    "activeSessionHandling": "Only aggregates with completedAtUtc and one terminal result per requested backend are included. An active-session marker is not a result. Process identities and cohort identity digests are omitted."
+  },
+  "productionPolicy": {
+    "initialVehicleMask": 12,
+    "mobileVehicleBatchMaximum": 50,
+    "steamVehicleCollectionEnabled": false,
+    "implementationChangedByThisNote": false,
+    "staticEvidenceReference": "docs/research/steam-vehicles-2026-10-24.json",
+    "experimentalProbeChangesProductionPolicy": false,
+    "mobileKeyedZeroAcknowledgmentRecoveryEnabled": true,
+    "mobileRecoveryActivation": "Enabled by the reviewed mobile connection constructor; initial mask 12 and batch maximum 50 are unchanged.",
+    "reviewedConnectionSourceSha256": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+    "fullBackendRefreshVerification": "pending; completed bounded probes do not establish full-scan coverage"
+  },
+  "probes": [
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T110223115766Z.json",
+      "sourceAggregateSha256": "2c6421400617cf8c1d64c2358c3caf7d8c54ccc99d9d67900a9870be6209cfad",
+      "startedAtUtc": "2026-10-24T11:02:23.115766+00:00",
+      "completedAtUtc": "2026-10-24T11:05:36.449155+00:00",
+      "aggregateWallDurationSeconds": 193.333389,
+      "requestedFields": 4,
+      "requestedFieldNames": [
+        "capsules"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 1000,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "Field absent in older aggregate; default 50 confirmed by the probe owner and 50-row query records.",
+      "proactiveWarmup": null,
+      "proactiveWarmupProvenance": "not recorded in the older aggregate",
+      "connectionSourceSha256": "217111d1e1bb32ac938a39fe19b8f48b5a9ee08e8456cf42f29c4b50c010b2b6",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_incomplete",
+          "errorCode": "reply_timeout",
+          "readPhase": "public_vehicles",
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": null,
+          "reportedDurationSeconds": 50.926,
+          "capsuleListsObserved": 191,
+          "nonemptyLists": 189,
+          "emptyLists": 2,
+          "explicitUnavailableProfiles": null,
+          "receivedDescriptorMaskCounts": {
+            "4": 191,
+            "0": 9
+          },
+          "zeroMaskDescriptors": 9,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": null,
+          "pendingMissingCapsulesByLookup": null,
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 185,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 80
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 30.037,
+            "observedFieldMaskCounts": {
+              "4": 41,
+              "0": 9
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        },
+        {
+          "key": "KOREA",
+          "outcome": "bounded_incomplete",
+          "errorCode": "reply_timeout",
+          "readPhase": "public_vehicles",
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": null,
+          "reportedDurationSeconds": 51.455,
+          "capsuleListsObserved": 98,
+          "nonemptyLists": 90,
+          "emptyLists": 8,
+          "explicitUnavailableProfiles": null,
+          "receivedDescriptorMaskCounts": {
+            "4": 98,
+            "0": 2
+          },
+          "zeroMaskDescriptors": 2,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": null,
+          "pendingMissingCapsulesByLookup": null,
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 189,
+            "20": 2
+          },
+          "incomingDetailPacketCounts": {
+            "18": 2,
+            "19": 4
+          },
+          "queryCount": 2,
+          "queryRowRecordsSent": 100,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 30.224,
+            "observedFieldMaskCounts": {
+              "4": 48,
+              "0": 2
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        },
+        {
+          "key": "BANGKOK",
+          "outcome": "bounded_incomplete",
+          "errorCode": "reply_timeout",
+          "readPhase": "public_vehicles",
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": null,
+          "reportedDurationSeconds": 59.0,
+          "capsuleListsObserved": 197,
+          "nonemptyLists": 192,
+          "emptyLists": 5,
+          "explicitUnavailableProfiles": null,
+          "receivedDescriptorMaskCounts": {
+            "4": 197,
+            "0": 3
+          },
+          "zeroMaskDescriptors": 3,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": null,
+          "pendingMissingCapsulesByLookup": null,
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 184,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 30.081,
+            "observedFieldMaskCounts": {
+              "4": 47,
+              "0": 3
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        },
+        {
+          "key": "SteamBonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": null,
+          "reportedDurationSeconds": 17.303,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 198,
+          "emptyLists": 2,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "4": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": null,
+          "pendingMissingCapsulesByLookup": null,
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 0,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 3.755,
+            "observedFieldMaskCounts": {
+              "4": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T110824475017Z.json",
+      "sourceAggregateSha256": "d4347e71eb5364ffb88891fb44cbcbc5fbe9ab318c3964259ef7e376bd9236d2",
+      "startedAtUtc": "2026-10-24T11:08:24.475017+00:00",
+      "completedAtUtc": "2026-10-24T11:09:05.845348+00:00",
+      "aggregateWallDurationSeconds": 41.370331,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 1200,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "Field absent in older aggregate; default 50 confirmed by the probe owner and 50-row query records.",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "connectionSourceSha256": "217111d1e1bb32ac938a39fe19b8f48b5a9ee08e8456cf42f29c4b50c010b2b6",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 25.934,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 197,
+          "emptyLists": 3,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 185,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 104
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 5.069,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T111021181686Z.json",
+      "sourceAggregateSha256": "496f71b0507a8f2187a227eb1b1eb31f95e98bd06453c48965a1ee3ed48f43be",
+      "startedAtUtc": "2026-10-24T11:10:21.181686+00:00",
+      "completedAtUtc": "2026-10-24T11:10:37.939730+00:00",
+      "aggregateWallDurationSeconds": 16.758044,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 1000,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "Field absent in older aggregate; default 50 confirmed by the probe owner and 50-row query records.",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "connectionSourceSha256": "217111d1e1bb32ac938a39fe19b8f48b5a9ee08e8456cf42f29c4b50c010b2b6",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 2.095,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 198,
+          "emptyLists": 2,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 0,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 104
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 0.25,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T111639879819Z.json",
+      "sourceAggregateSha256": "bb4b9982d4780b6faaacca7cba1eed49a5307aaafb849bcf76f53a06e0af06ac",
+      "startedAtUtc": "2026-10-24T11:16:39.879819+00:00",
+      "completedAtUtc": "2026-10-24T11:20:08.963913+00:00",
+      "aggregateWallDurationSeconds": 209.084094,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 2000,
+      "vehicleBatchSize": 10,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "connectionSourceSha256": "8b35aa6ec0462dbfb61ce6052ffb7ce9c6c0da3fd3816cea6c0ab882e9cba6a3",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 37.089,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 196,
+          "emptyLists": 4,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 182,
+            "20": 20
+          },
+          "incomingDetailPacketCounts": {
+            "18": 19,
+            "19": 20
+          },
+          "queryCount": 20,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 10,
+            "reportedDurationSeconds": 0.996,
+            "observedFieldMaskCounts": {
+              "12": 10
+            },
+            "failedFieldMaskCounts": {
+              "0": 10
+            }
+          }
+        },
+        {
+          "key": "KOREA",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 91.156,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 184,
+          "emptyLists": 16,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 199,
+            "20": 20
+          },
+          "incomingDetailPacketCounts": {
+            "18": 19,
+            "19": 20
+          },
+          "queryCount": 20,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 10,
+            "reportedDurationSeconds": 1.438,
+            "observedFieldMaskCounts": {
+              "12": 10
+            },
+            "failedFieldMaskCounts": {
+              "0": 10
+            }
+          }
+        },
+        {
+          "key": "BANGKOK",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 66.746,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 187,
+          "emptyLists": 13,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 199,
+            "20": 20
+          },
+          "incomingDetailPacketCounts": {
+            "18": 19,
+            "19": 20
+          },
+          "queryCount": 20,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 10,
+            "reportedDurationSeconds": 1.991,
+            "observedFieldMaskCounts": {
+              "12": 10
+            },
+            "failedFieldMaskCounts": {
+              "0": 10
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T112142121603Z.json",
+      "sourceAggregateSha256": "564ee74867a1e36688bee5e92c5064adde9afedc45d2bd67076e01d33d1b187a",
+      "startedAtUtc": "2026-10-24T11:21:42.121603+00:00",
+      "completedAtUtc": "2026-10-24T11:24:10.689955+00:00",
+      "aggregateWallDurationSeconds": 148.568352,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 3000,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": true,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "connectionSourceSha256": "8b35aa6ec0462dbfb61ce6052ffb7ce9c6c0da3fd3816cea6c0ab882e9cba6a3",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 17,
+          "reportedDurationSeconds": 26.085,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 197,
+          "emptyLists": 3,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 200,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 5.07,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        },
+        {
+          "key": "KOREA",
+          "outcome": "bounded_incomplete",
+          "errorCode": "reply_timeout",
+          "readPhase": "public_vehicles",
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 2,
+          "reportedDurationSeconds": 72.998,
+          "capsuleListsObserved": 195,
+          "nonemptyLists": 171,
+          "emptyLists": 24,
+          "explicitUnavailableProfiles": null,
+          "receivedDescriptorMaskCounts": {
+            "12": 195,
+            "0": 5
+          },
+          "zeroMaskDescriptors": 5,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {
+            "successful16": 5
+          },
+          "pendingMissingCapsulesByLookup": {
+            "successful16": 5
+          },
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 200,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 30.047,
+            "observedFieldMaskCounts": {
+              "12": 45,
+              "0": 5
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        },
+        {
+          "key": "BANGKOK",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 6,
+          "reportedDurationSeconds": 35.033,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 177,
+          "emptyLists": 23,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 200,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 5.381,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T112926784408Z.json",
+      "sourceAggregateSha256": "31817028d78ccfb8774a6f8cbc048a72415cd328ab13bcba8d77eb5a13aa3fd5",
+      "startedAtUtc": "2026-10-24T11:29:26.784408+00:00",
+      "completedAtUtc": "2026-10-24T11:30:43.733988+00:00",
+      "aggregateWallDurationSeconds": 76.94958,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 4000,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "zeroAcknowledgmentRequery": null,
+      "zeroAcknowledgmentRequeryProvenance": "not recorded; this negative probe did not perform a follow-up",
+      "connectionSourceSha256": "8b35aa6ec0462dbfb61ce6052ffb7ce9c6c0da3fd3816cea6c0ab882e9cba6a3",
+      "results": [
+        {
+          "key": "KOREA",
+          "outcome": "bounded_incomplete",
+          "errorCode": "reply_timeout",
+          "readPhase": "public_vehicles",
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 58.609,
+          "capsuleListsObserved": 145,
+          "nonemptyLists": 133,
+          "emptyLists": 12,
+          "explicitUnavailableProfiles": null,
+          "receivedDescriptorMaskCounts": {
+            "12": 145,
+            "0": 5
+          },
+          "zeroMaskDescriptors": 5,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {
+            "successful16": 5
+          },
+          "pendingMissingCapsulesByLookup": {
+            "successful16": 5
+          },
+          "zeroMaskPacketByteHistogram": {
+            "6075": 1
+          },
+          "zeroMaskQueryOrdinalHistogram": {
+            "45": 1,
+            "46": 1,
+            "47": 1,
+            "48": 1,
+            "49": 1
+          },
+          "capsuleCountHistogram": {
+            "6": 103,
+            "1": 22,
+            "0": 12,
+            "3": 2,
+            "5": 2,
+            "4": 3,
+            "2": 1
+          },
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 200,
+            "20": 3
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 6
+          },
+          "queryCount": 3,
+          "queryRowRecordsSent": 150,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 30.183,
+            "observedFieldMaskCounts": {
+              "12": 45,
+              "0": 5
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T113638635862Z.json",
+      "sourceAggregateSha256": "9e71dcbb3d6292efb9a6bf33cffa7a20868eace1d523b142ff9e869020990322",
+      "startedAtUtc": "2026-10-24T11:36:38.635862+00:00",
+      "completedAtUtc": "2026-10-24T11:37:56.179850+00:00",
+      "aggregateWallDurationSeconds": 77.543988,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 4500,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "zeroAcknowledgmentRequery": true,
+      "zeroAcknowledgmentRequeryProvenance": "recorded in aggregate",
+      "connectionSourceSha256": "8b35aa6ec0462dbfb61ce6052ffb7ce9c6c0da3fd3816cea6c0ab882e9cba6a3",
+      "results": [
+        {
+          "key": "KOREA",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 43.595,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 188,
+          "emptyLists": 12,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200,
+            "0": 8
+          },
+          "zeroMaskDescriptors": 8,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {
+            "successful16": 8
+          },
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {
+            "6686": 1
+          },
+          "zeroMaskQueryOrdinalHistogram": {
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 1,
+            "46": 1,
+            "47": 1,
+            "48": 1,
+            "49": 1
+          },
+          "capsuleCountHistogram": {
+            "6": 144,
+            "1": 36,
+            "0": 12,
+            "5": 3,
+            "2": 3,
+            "3": 1,
+            "4": 1
+          },
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 199,
+            "20": 5
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 9
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 7.431,
+            "observedFieldMaskCounts": {
+              "12": 8
+            },
+            "failedFieldMaskCounts": {
+              "0": 8
+            },
+            "scope": "The fourth base-query completion includes its keyed follow-up; its final observed mask counts describe the eight follow-up replies. The follow-up duration is not separately reported."
+          },
+          "queryCountProvenance": "Four base-query completion events; the separate follow-up added one request 20. Total profile-request packets were five.",
+          "totalProfileRequestPacketsSent": 5,
+          "additionalQueryRowRecordsSent": 8,
+          "totalProfileRequestRowRecordsSent": 208,
+          "experimentalZeroAcknowledgmentFollowup": {
+            "policy": "Private opt-in keyed zero-field follow-up experiment; this is collector policy, not established native client behavior.",
+            "sameInSessionCohort": true,
+            "cohortIdentityDigestPublished": false,
+            "initialActualMask12Descriptors": 192,
+            "initialZeroMaskDescriptors": 8,
+            "initialCapsuleListsObserved": 192,
+            "initialNonemptyLists": 180,
+            "initialEmptyLists": 12,
+            "pendingMissingCapsulesBeforeFollowup": {
+              "successful16": 8
+            },
+            "additionalRequest20Packets": 1,
+            "additionalProfileRowRecords": 8,
+            "additionalActualMask12Descriptors": 8,
+            "additionalRequest16Packets": 0,
+            "pendingMissingCapsulesAfterFollowup": {},
+            "timeoutOrMalformedReplyRetry": false,
+            "availabilityOrEmptyListsFabricated": false,
+            "scope": "Only the eight keyed zero acknowledgments were followed up in the still-open transaction; the other 192 profiles were not queried again."
+          }
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T120023213422Z.json",
+      "sourceAggregateSha256": "f45716f25e03e08b111b69da7ff0564cd6ab0621a961ccc4e3adc28400a9efaf",
+      "startedAtUtc": "2026-10-24T12:00:23.213422+00:00",
+      "completedAtUtc": "2026-10-24T12:01:37.926694+00:00",
+      "aggregateWallDurationSeconds": 74.713272,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 4500,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "zeroAcknowledgmentRequery": false,
+      "zeroAcknowledgmentRequeryProvenance": "recorded in aggregate; private helper requery was disabled",
+      "sourceZeroRecovery": true,
+      "sourceZeroRecoveryProvenance": "recorded in aggregate; opted into the source implementation rather than the private helper requery",
+      "connectionSourceSha256": "9c362ed9874ca5e7504ded8431f7248af2f22e37192e8f420f27d5d99329041f",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 22.956,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 199,
+          "emptyLists": 1,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 187,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 2.583,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled for this probe, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        },
+        {
+          "key": "KOREA",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 4.954,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 188,
+          "emptyLists": 12,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 0,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 1.312,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled for this probe, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        },
+        {
+          "key": "BANGKOK",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 29.935,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 156,
+          "emptyLists": 44,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 199,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 3,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 3.398,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled for this probe, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        }
+      ]
+    },
+    {
+      "sourceAggregateFile": "private/vehicle-probes/20261024T120803982891Z.json",
+      "sourceAggregateSha256": "ba5bab0d36155a7c3f5c4fd3af42bb37fce4afa22e514a5217414993ff012d99",
+      "startedAtUtc": "2026-10-24T12:08:03.982891+00:00",
+      "completedAtUtc": "2026-10-24T12:10:02.434274+00:00",
+      "aggregateWallDurationSeconds": 118.451383,
+      "requestedFields": 12,
+      "requestedFieldNames": [
+        "capsules",
+        "tactics"
+      ],
+      "maximumRankingRowsPerBackend": 200,
+      "offset": 5000,
+      "vehicleBatchSize": 50,
+      "vehicleBatchSizeProvenance": "recorded in aggregate",
+      "proactiveWarmup": false,
+      "proactiveWarmupProvenance": "recorded in aggregate",
+      "zeroAcknowledgmentRequery": false,
+      "zeroAcknowledgmentRequeryProvenance": "recorded in aggregate; private helper requery was disabled",
+      "sourceZeroRecovery": true,
+      "sourceZeroRecoveryProvenance": "recorded in aggregate; reviewed source implementation after the late-decoded-reply fix",
+      "connectionSourceSha256": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+      "results": [
+        {
+          "key": "Bonn",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 21.988,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 198,
+          "emptyLists": 2,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 185,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 2.765,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled in the reviewed source, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        },
+        {
+          "key": "KOREA",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 52.892,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 188,
+          "emptyLists": 12,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 200,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 6.96,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled in the reviewed source, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        },
+        {
+          "key": "BANGKOK",
+          "outcome": "bounded_complete",
+          "errorCode": null,
+          "readPhase": null,
+          "rankingRowsSelected": 200,
+          "namesResolvedBeforeVehicleRead": 200,
+          "proactiveWarmupRows": 0,
+          "reportedDurationSeconds": 28.381,
+          "capsuleListsObserved": 200,
+          "nonemptyLists": 124,
+          "emptyLists": 76,
+          "explicitUnavailableProfiles": 0,
+          "receivedDescriptorMaskCounts": {
+            "12": 200
+          },
+          "zeroMaskDescriptors": 0,
+          "recordedDetailMissRecords": 0,
+          "zeroMaskLookupHistory": {},
+          "pendingMissingCapsulesByLookup": {},
+          "zeroMaskPacketByteHistogram": {},
+          "zeroMaskQueryOrdinalHistogram": {},
+          "outgoingLookupCounts": {
+            "15": 1,
+            "16": 198,
+            "20": 4
+          },
+          "incomingDetailPacketCounts": {
+            "18": 4,
+            "19": 8
+          },
+          "queryCount": 4,
+          "queryRowRecordsSent": 200,
+          "lastQuery": {
+            "rowRecords": 50,
+            "reportedDurationSeconds": 3.817,
+            "observedFieldMaskCounts": {
+              "12": 50
+            },
+            "failedFieldMaskCounts": {
+              "0": 50
+            }
+          },
+          "sourceZeroRecoveryExercised": false,
+          "sourceZeroRecoveryObservation": "Enabled in the reviewed source, but no zero-field descriptors occurred and no recovery request was needed; this does not validate the recovery branch."
+        }
+      ]
+    }
+  ],
+  "summaryFindings": [
+    "Capsule-only mask 4, default batch 50, offset 1,000: Europe timed out after 191 observed lists and 9 zero-mask descriptors; Korea after 98 lists and 2 zero masks; Thailand after 197 lists and 3 zero masks. The selected ranking cohort was 200 rows in each case, but Korea stopped after only 100 profile-request row records. Steam Europe completed 200 observed lists with no zero masks.",
+    "Europe mask 12/default 50 completed 200 lists at offset 1,200, and a later offset 1,000 probe also completed 200. The later offset 1,000 probe sent no request 16 and was much faster; these observations do not establish that mask 12 or a particular cache state caused the difference.",
+    "Mask 12 with batch 10 at offset 2,000 completed 200 observed lists on Europe, Korea and Thailand without zero-mask descriptors in those probes.",
+    "Mask 12/default 50 with proactive identity warm-up at offset 3,000 completed Europe and Thailand. Korea still timed out after 195 observed lists, with 5 zero-mask descriptors and 5 pending capsule fields classified by the probe as successful16. Successful nickname lookup alone therefore did not establish complete profile fields in that bounded probe.",
+    "Korea mask 12/batch 50 at offset 4,000 timed out after 145 actual lists (133 nonempty, 12 empty) and five zero-mask descriptors. All five had successful request 16 history. Their parsed packet was 6,075 bytes and their query ordinals were 45 through 49; these observations do not establish a simple 16 KiB frame-size or cached-name cause.",
+    "Korea mask 12/batch 50 at offset 4,500 used the private zeroAcknowledgmentRequery experiment. The same in-session cohort initially produced 192 actual mask-12 descriptors and eight keyed zero acknowledgments, all eight with successful request 16 history. One extra request 20 for only those eight returned eight actual mask-12 descriptors, completing 200 lists (188 nonempty, 12 empty) in a reported 43.595 seconds. Total request counts were five request 20 packets and 199 request 16 packets; the follow-up added no request 16 and fabricated no availability or empty-list state.",
+    "The later sourceZeroRecovery-enabled mask-12/batch-50 offset-4,500 probe completed all 200 lists on Europe (199 nonempty, one empty; 22.956 seconds), Korea (188 nonempty, 12 empty; 4.954 seconds) and Thailand (156 nonempty, 44 empty; 29.935 seconds). Private helper requery was disabled. Each backend used four request-20 packets and observed no zero-field descriptors, so this probe did not exercise or establish successful source recovery.",
+    "The final reviewed-source mask-12/batch-50 offset-5,000 probe, after the late-decoded-reply fix, completed 200 actual lists on each backend: Europe 198 nonempty/two empty in 21.988 seconds; Korea 188/12 in 52.892 seconds; Thailand 124/76 in 28.381 seconds. Source recovery was enabled and private helper requery disabled. All 600 selected profiles returned real mask-12 fields with no zero-field descriptors, so the source recovery branch was not exercised. Full-backend refresh verification remains pending.",
+    "No probe established reliable full-backend vehicle enumeration or changed the published production snapshots. Steam vehicle collection remains disabled."
+  ],
+  "limits": [
+    "Offsets, cohorts, run windows, source versions, requested masks, batch sizes and prior query histories differ. Repeating an offset does not prove an identical commander cohort, and earlier probes may affect later observations. These are not controlled experiments and do not establish causality or a universally safe batch size.",
+    "A zero-mask descriptor contains no field update. It is neither an observed empty capsule list nor an explicit unavailable profile, and it does not complete pending fields.",
+    "Incomplete probes retain only aggregate observations here. Unobserved rows, unqueried rows and pending fields must not be relabeled empty or unavailable, and no partial profile snapshot is published by this note.",
+    "Capsule-list counts and received descriptor-mask counts have different meanings: split fields or repeated descriptors can produce multiple descriptors. Last-query field masks describe the final query only; capsule-list and received-mask counters describe the whole bounded backend probe.",
+    "reportedDurationSeconds is copied from each terminal probe event; aggregateWallDurationSeconds is independently computed from the file start/end timestamps. Neither is a future service-time or collection-completion promise.",
+    "Missing older instrumentation fields remain null rather than being inferred as zero. The older omitted batch-size field is the stated default 50 and is corroborated by recorded 50-row queries.",
+    "The static native note supports field-layout and lifecycle facts, while this note reports bounded live observations. Neither alone establishes the internal cause of the remaining timeouts or reliable full Steam vehicle collection.",
+    "The offset 4,500 follow-up is a private opt-in collector-policy experiment. It is not proof of exact native client behavior or a server-internal cause. Its before/after observations concern the same in-session cohort, while comparisons with other offsets, windows or batch sizes remain uncontrolled.",
+    "The experimental follow-up was triggered only by parsed, keyed zero-field acknowledgments for still-pending fields. It did not retry a timeout or malformed reply, query the other 192 profiles again, repeat request 16, or manufacture an available, empty or unavailable profile.",
+    "For the experimental probe, queryCount and queryRowRecordsSent count four base-query events and 200 base row records; totalProfileRequestPacketsSent and totalProfileRequestRowRecordsSent include the additional eight-row request, yielding five packets and 208 row records. Received descriptors total 208, but only 200 actual capsule lists were observed.",
+    "The recorded zero-mask packet-byte and query-ordinal histograms are aggregate instrumentation, not raw packets or identities. The 6,075-byte negative case and prior successful request 16 results leave simple frame-size and cached-name theories unproven. Steam production vehicle collection remains disabled.",
+    "Enabling sourceZeroRecovery is configuration evidence, not proof that its recovery branch ran. The source-based offset-4,500 probe observed no zero-field descriptors on any of its three backends; the later offset-5,000 probe after the late-decoded-reply fix is recorded separately and also observed no zero-field descriptors.",
+    "The reviewed mobile constructor now enables bounded keyed-zero recovery, while the initial mask-12 request, 50-row batch maximum and disabled Steam vehicle policy remain unchanged. This source activation is separate from live proof: neither source-based probe encountered a zero-field reply, and no full-backend refresh result is asserted here."
+  ]
+}

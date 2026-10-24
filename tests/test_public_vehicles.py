@@ -11,6 +11,7 @@ from test_connection import Clock, SyntheticSocket
 from collector.configuration import load_masks, load_servers
 from collector.connection import CollectorConnection
 from collector.cipher import GameDes
+from collector.transport import TransportEncoder
 from test_session import InventedGameSocket
 
 
@@ -31,10 +32,13 @@ def reply(*descriptions):
 
 
 class VehicleConnection(CollectorConnection):
-    def __init__(self, batches=(), fallback_names=None):
+    def __init__(self, batches=(), fallback_names=None, *, vehicle_fields=0x0c, vehicle_batch_size=50,
+                 vehicle_zero_recovery=False):
         self.fake_clock = Clock()
         super().__init__(SyntheticSocket(self.fake_clock), load_masks(), GameDes(), b"invented-login",
-                         clock=self.fake_clock.monotonic, sleeper=self.fake_clock.sleep)
+                         clock=self.fake_clock.monotonic, sleeper=self.fake_clock.sleep,
+                         vehicle_fields=vehicle_fields, vehicle_batch_size=vehicle_batch_size,
+                         vehicle_zero_recovery=vehicle_zero_recovery)
         self.batches = iter(batches)
         self.vehicle_requests = []
         self.fallback_names = fallback_names or {}
@@ -52,6 +56,290 @@ class VehicleConnection(CollectorConnection):
 
 
 class PublicVehicleTests(unittest.TestCase):
+    def test_zero_recovery_reuses_actual_successful_nickname_without_another16(self):
+        for fields in (4, 12):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0)),),
+                (reply(descriptor(1, fields, vehicles=[(8311, 3, [])])),),
+            ], fallback_names={1: "Invented"}, vehicle_fields=fields, vehicle_zero_recovery=True)
+            connection.name_masks[1] = 0
+            connection.fetch_nickname_fallback([1])
+            with self.subTest(fields=fields):
+                self.assertEqual(connection.fallback_successes, {1})
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.sent, {16: 1, 20: 2})
+                self.assertEqual(connection.vehicle_requests, [struct.pack("<BIB", 1, 1, fields)] * 2)
+                self.assertEqual(connection.vehicle_masks, {1: fields})
+                self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+                self.assertFalse(connection.vehicle_failures)
+
+    def test_already_queued_real_fields_and_heartbeat_prevent_an_unnecessary_requery(self):
+        connection = VehicleConnection([
+            (reply(descriptor(1, 0)), (65530, b""), reply(descriptor(1, 12))),
+        ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True)
+        connection.name_masks[1] = 0
+        connection.fetch_nickname_fallback([1])
+        connection.fetch_vehicles([1])
+        self.assertEqual(connection.sent, {16: 1, 20: 1, 65531: 1})
+        self.assertEqual(connection.vehicle_masks, {1: 12})
+        self.assertFalse(connection.messages)
+
+    def test_real_fields_queued_after_successful17_skip_or_shrink_the_requery(self):
+        for late_mask in (4, 12):
+            class LateAfterNickname(VehicleConnection):
+                def send(self, opcode, payload=b""):
+                    super().send(opcode, payload)
+                    if opcode == 16:
+                        self.messages.append(reply(descriptor(1, late_mask)))
+
+            connection = LateAfterNickname([
+                (reply(descriptor(1, 0)),), (reply(descriptor(1, 8)),),
+            ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True)
+            with self.subTest(late_mask=late_mask):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.sent, {20: 2 if late_mask == 4 else 1, 16: 1})
+                if late_mask == 4:
+                    self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIB", 1, 1, 8))
+                self.assertEqual(connection.vehicle_masks, {1: 12})
+                self.assertFalse(connection.messages)
+
+    def test_queued_uncorrelated_or_unkeyed_replies_still_stop_before_recovery(self):
+        for late in (reply(descriptor(9, 0)), (17, struct.pack("<H", 48)),
+                     (19, reply(descriptor(1, 4))[1] + b"x")):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0)), late),
+            ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True)
+            connection.name_masks[1] = 0
+            connection.fetch_nickname_fallback([1])
+            with self.subTest(opcode=late[0]), self.assertRaises(ValueError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {16: 1, 20: 1})
+
+    def test_zero_recovery_warms_once_before_its_single_extra_detail_query(self):
+        for fields in (4, 12):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0)),), (reply(descriptor(1, fields)),),
+            ], fallback_names={1: "Invented"}, vehicle_fields=fields, vehicle_zero_recovery=True)
+            with self.subTest(fields=fields):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.sent, {20: 2, 16: 1})
+                self.assertEqual(connection.fallback_successes, {1})
+                self.assertEqual(connection.vehicle_masks, {1: fields})
+                self.assertEqual(connection.vehicles, {1: []})
+                self.assertFalse(connection.vehicle_failures)
+
+    def test_zero_recovery_waits_for_every_initial_identity_before_warming_or_requerying(self):
+        connection = VehicleConnection([(
+            reply(descriptor(1, 0), descriptor(2, 4)),
+        )], fallback_names={1: "Invented"}, vehicle_zero_recovery=True)
+        with self.assertRaises(TimeoutError):
+            connection.fetch_vehicles([1, 2])
+        self.assertEqual(connection.sent, {20: 1})
+        self.assertFalse(connection.fallback_sent)
+        self.assertFalse(connection.vehicle_failures)
+
+    def test_late_queued_fields_skip_completed_and_shrink_partial_requeries_before_warmup(self):
+        for fields in (4, 12):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0), descriptor(2, 0)),
+                 reply(descriptor(1, fields), descriptor(2, 4))),
+                (reply(descriptor(2, 8)),),
+            ], fallback_names={1: "Invented one", 2: "Invented two"},
+                vehicle_fields=fields, vehicle_zero_recovery=True)
+            with self.subTest(fields=fields):
+                connection.fetch_vehicles([1, 2])
+                self.assertEqual(connection.sent, {20: 1} if fields == 4 else {20: 2, 16: 1})
+                if fields == 12:
+                    self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIB", 1, 2, 8))
+                self.assertEqual(connection.vehicle_masks, {1: fields, 2: fields})
+                self.assertEqual(connection.vehicles, {1: [], 2: []})
+
+    def test_zero_after_the_single_recovery_query_times_out_without_a_third20(self):
+        for initial in (reply(descriptor(1, 0)), (18, struct.pack("<BI", 1, 1))):
+            connection = VehicleConnection([
+                (initial,), (reply(descriptor(1, 0)),),
+            ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True)
+            with self.subTest(first_opcode=initial[0]), self.assertRaises(TimeoutError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 2, 16: 1})
+            self.assertEqual(connection.vehicle_masks, {1: 0})
+            self.assertEqual(connection.vehicle_failed_masks, {1: 0})
+            self.assertFalse(connection.vehicle_failures)
+            self.assertFalse(connection.vehicles)
+
+    def test_zero_without_successful_warmup_never_becomes_unavailable_or_empty(self):
+        for prior in ("none", "failed", "unconfirmed"):
+            connection = VehicleConnection([(reply(descriptor(1, 0)),)], vehicle_zero_recovery=True)
+            connection.name_masks[1] = 0
+            if prior == "failed":
+                connection.fetch_nickname_fallback([1])
+            elif prior == "unconfirmed":
+                connection.fallback_sent.add(1)
+            with self.subTest(prior=prior), self.assertRaises(TimeoutError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 1} if prior == "unconfirmed" else {20: 1, 16: 1})
+            self.assertFalse(connection.fallback_successes)
+            self.assertFalse(connection.vehicle_failures)
+            self.assertFalse(connection.vehicles)
+            self.assertEqual(connection.vehicle_failed_masks, {1: 0})
+
+    def test_final_wait_validates_queued_invalid_packets_after_late_real_fields(self):
+        for late in (reply(descriptor(9, 0)), (19, reply(descriptor(1, 4))[1] + b"x")):
+            connection = VehicleConnection([(reply(descriptor(1, 0)),)], vehicle_zero_recovery=True)
+            encoder = TransportEncoder(load_masks()["g2c"], GameDes().encrypt)
+            packet = encoder.encode(*reply(descriptor(1, 12))) + encoder.encode(*late)
+            # Initial zero and failed17 arrive first. The actual fields and an
+            # invalid packet are decoded together only during the final wait.
+            with self.subTest(late_length=len(late[1])), \
+                    patch.object(connection.socket, "recv", return_value=packet) as receive:
+                with self.assertRaises(ValueError):
+                    connection.fetch_vehicles([1])
+                receive.assert_called_once()
+            self.assertEqual(connection.sent, {20: 1, 16: 1})
+            self.assertEqual(connection.vehicle_masks, {1: 12})
+            self.assertEqual(connection.fallback_failures, {1})
+            self.assertEqual(connection.vehicle_pending, {1})
+            self.assertFalse(connection.vehicle_failures)
+
+    def test_mixed_zero18_and_real_fields_recover_once_and_preserve_late_identity_correlation(self):
+        for fields in (4, 12):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0), descriptor(3, fields), descriptor(4, 0)),
+                 (18, struct.pack("<BI", 1, 2))),
+                (reply(descriptor(1, fields), descriptor(2, fields)), reply(descriptor(4, fields))),
+            ], fallback_names={1: "Invented one", 2: "Invented two"},
+                vehicle_fields=fields, vehicle_zero_recovery=True)
+            connection.name_masks[1] = 0
+            connection.fetch_nickname_fallback([1])
+            with self.subTest(fields=fields):
+                connection.fetch_vehicles([1, 2, 3, 4])
+                self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIBIB", 2, 1, fields, 2, fields))
+                self.assertEqual(connection.sent, {16: 3, 20: 2})
+                self.assertEqual(connection.fallback_successes, {1, 2})
+                self.assertEqual(connection.fallback_failures, {4})
+                self.assertEqual(connection.vehicle_masks, {p: fields for p in (1, 2, 3, 4)})
+                self.assertEqual(connection.vehicles, {p: [] for p in (1, 2, 3, 4)})
+                self.assertFalse(connection.vehicle_failures)
+                self.assertFalse(connection.vehicle_pending)
+
+    def test_zero_recovery_respects_batch_bounds_and_queries_each_identity_at_most_twice(self):
+        players = list(range(1, 53))
+        zero_players = {p for p in players if p % 7 == 0}
+        for fields in (4, 12):
+            for size in (10, 25, 50):
+                batches = []
+                for offset in range(0, len(players), size):
+                    batch = players[offset:offset + size]
+                    batches.append((reply(*(descriptor(p, 0 if p in zero_players else fields) for p in batch)),))
+                    retry = [p for p in batch if p in zero_players]
+                    if retry:
+                        batches.append((reply(*(descriptor(p, fields) for p in retry)),))
+                connection = VehicleConnection(batches, fallback_names={p: "Invented" for p in zero_players},
+                                               vehicle_fields=fields, vehicle_batch_size=size,
+                                               vehicle_zero_recovery=True)
+                connection.name_masks.update((p, 0) for p in zero_players)
+                connection.fetch_nickname_fallback(sorted(zero_players))
+                with self.subTest(fields=fields, batch_size=size):
+                    connection.fetch_vehicles(players)
+                    self.assertTrue(all(body[0] <= size for body in connection.vehicle_requests))
+                    requested = [p for body in connection.vehicle_requests for p, mask in struct.iter_unpack("<IB", body[1:])]
+                    self.assertEqual({p: requested.count(p) for p in players},
+                                     {p: 2 if p in zero_players else 1 for p in players})
+                    self.assertEqual(connection.sent[16], len(zero_players))
+                    self.assertEqual(connection.vehicle_masks, {p: fields for p in players})
+                    self.assertFalse(connection.vehicle_failures)
+
+    def test_optional_zero_recovery_keeps_malformed_and_uncorrelated_guards(self):
+        for packet in (reply(descriptor(9, 0)), (19, struct.pack("<BIB", 1, 1, 16)),
+                       reply(descriptor(1, 4), descriptor(1, 4))):
+            connection = VehicleConnection([(packet,)], vehicle_zero_recovery=True)
+            with self.subTest(packet_length=len(packet[1])), self.assertRaises(ValueError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 1})
+            self.assertFalse(connection.fallback_sent)
+
+    def test_zero_recovery_option_requires_bool_and_remains_disabled_by_default(self):
+        self.assertFalse(VehicleConnection().vehicle_zero_recovery)
+        self.assertTrue(VehicleConnection(vehicle_zero_recovery=True).vehicle_zero_recovery)
+        for value in (0, 1, None, "true", 0.0, []):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                VehicleConnection(vehicle_zero_recovery=value)
+
+    def test_capsule_only_mode_requests_four_and_resolves_actual_empty_and_nonempty_lists(self):
+        connection = VehicleConnection([(
+            reply(descriptor(1, 4, vehicles=[(8311, 3, [(1, 1, 75)])]), descriptor(2, 4)),
+        )], vehicle_fields=4)
+        connection.fetch_vehicles([1, 2])
+        self.assertEqual(connection.vehicle_requests, [struct.pack("<BIBIB", 2, 1, 4, 2, 4)])
+        self.assertEqual(connection.vehicle_masks, {1: 4, 2: 4})
+        self.assertEqual(connection.vehicle_failed_masks, {1: 0, 2: 0})
+        self.assertEqual(connection.vehicles[1], [
+            {"capsuleTypeId": 8311, "phase": 3, "level": 75, "fate": False},
+        ])
+        self.assertEqual(connection.vehicles[2], [])
+        self.assertFalse(connection.vehicle_failures)
+        self.assertFalse(connection.vehicle_pending)
+        self.assertEqual(connection.sent, {20: 1})
+
+    def test_capsule_only_mode_recovers_an_explicit_miss_once_with_mask_four(self):
+        miss = (18, struct.pack("<BI", 1, 1))
+        for recovered in (False, True):
+            connection = VehicleConnection([
+                (miss,),
+                (reply(descriptor(1, 4)),) if recovered else (miss,),
+            ], fallback_names={1: "Invented"}, vehicle_fields=4)
+            with self.subTest(recovered=recovered):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_requests, [struct.pack("<BIB", 1, 1, 4)] * 2)
+                self.assertEqual(connection.sent, {20: 2, 16: 1})
+                self.assertEqual(connection.vehicle_masks, {1: 4 if recovered else 0})
+                self.assertEqual(connection.vehicle_failed_masks, {1: 0 if recovered else 4})
+                self.assertEqual(connection.vehicle_failures, set() if recovered else {1})
+                self.assertEqual(connection.vehicles, {1: []} if recovered else {})
+
+    def test_capsule_only_mode_failed_nickname_keeps_the_list_unavailable(self):
+        connection = VehicleConnection([((18, struct.pack("<BI", 1, 1)),)], vehicle_fields=4)
+        connection.fetch_vehicles([1])
+        self.assertEqual(connection.sent, {20: 1, 16: 1})
+        self.assertEqual(connection.vehicle_masks, {1: 0})
+        self.assertEqual(connection.vehicle_failed_masks, {1: 4})
+        self.assertEqual(connection.vehicle_failures, {1})
+        self.assertFalse(connection.vehicles)
+
+    def test_capsule_only_mode_timeout_does_not_warm_or_retry(self):
+        for messages in ((), (reply(descriptor(1, 0)),)):
+            connection = VehicleConnection([messages], vehicle_fields=4)
+            with self.subTest(replies=len(messages)), self.assertRaises(TimeoutError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 1})
+            self.assertEqual(connection.vehicle_masks, {1: 0})
+            self.assertFalse(connection.vehicle_failures)
+            self.assertFalse(connection.vehicles)
+
+    def test_capsule_only_mode_rejects_unrequested_tactics_before_accepting_any_fields(self):
+        for mask in (8, 12):
+            connection = VehicleConnection([(reply(descriptor(1, mask)),)], vehicle_fields=4)
+            with self.subTest(mask=mask), self.assertRaisesRegex(ValueError, "Unrequested public vehicle fields"):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 1})
+            self.assertEqual(connection.vehicle_masks, {1: 0})
+            self.assertFalse(connection.vehicles)
+
+    def test_public_vehicle_mode_rejects_values_other_than_exact_four_or_twelve(self):
+        for mode in (0, 8, 16, None, True, False, "4", 4.0, float("nan"), float("inf")):
+            with self.subTest(mode=mode), self.assertRaises(ValueError):
+                VehicleConnection(vehicle_fields=mode)
+        self.assertEqual(VehicleConnection(vehicle_fields=4).vehicle_fields, 4)
+        self.assertEqual(VehicleConnection().vehicle_fields, 12)
+
+    def test_default_mode_still_requests_and_waits_for_capsules_and_tactics(self):
+        connection = VehicleConnection([(reply(descriptor(1, 4)),)])
+        with self.assertRaises(TimeoutError):
+            connection.fetch_vehicles([1])
+        self.assertEqual(connection.vehicle_requests, [struct.pack("<BIB", 1, 1, 12)])
+        self.assertEqual(connection.vehicle_masks, {1: 4})
+        self.assertFalse(connection.fallback_sent)
+
     def test_public_type_generation_and_carried_faculties_preserve_order(self):
         data = reply(descriptor(99, vehicles=[(8311, 3, [(1, 1, 99), (20, 1, 1)]),
                                                (9937, 2, [(1, 9, -1)])], tactics=[(123, 456)]))[1]
@@ -325,12 +613,40 @@ class PublicVehicleTests(unittest.TestCase):
         connection = VehicleConnection([tuple(reply(descriptor(p)) for p in players[i:i + 50])
                                         for i in range(0, 200, 50)])
         connection.fetch_vehicles(players[:200])
+        self.assertEqual(connection.vehicle_batch_size, 50)
         self.assertEqual([body[0] for body in connection.vehicle_requests], [50] * 4)
         self.assertEqual(len(connection.vehicles), 200)
         with self.assertRaises(ValueError):
             connection.fetch_vehicles([1])
         with self.assertRaises(ValueError):
             connection.fetch_vehicles(players)
+
+    def test_optional_smaller_batches_preserve_each_identity_and_requested_fields(self):
+        players = list(range(1, 62))
+        for size in (10, 25):
+            for fields in (4, 12):
+                batches = [tuple(reply(descriptor(p, fields)) for p in players[i:i + size])
+                           for i in range(0, len(players), size)]
+                connection = VehicleConnection(batches, vehicle_fields=fields, vehicle_batch_size=size)
+                with self.subTest(size=size, fields=fields):
+                    connection.fetch_vehicles(players)
+                    expected_counts = [min(size, len(players) - i) for i in range(0, len(players), size)]
+                    self.assertEqual([body[0] for body in connection.vehicle_requests], expected_counts)
+                    requested = [pair for body in connection.vehicle_requests
+                                 for pair in struct.iter_unpack("<IB", body[1:])]
+                    self.assertEqual(requested, [(p, fields) for p in players])
+                    self.assertEqual(connection.vehicle_masks, {p: fields for p in players})
+                    self.assertEqual(connection.vehicles, {p: [] for p in players})
+                    self.assertEqual(connection.sent, {20: len(batches)})
+                    self.assertFalse(connection.vehicle_failures)
+                    self.assertFalse(connection.vehicle_pending)
+
+    def test_optional_batch_size_requires_an_exact_integer_between_one_and_fifty(self):
+        for size in (0, -1, 51, None, True, False, "10", 10.0, float("nan"), float("inf")):
+            with self.subTest(size=size), self.assertRaises(ValueError):
+                VehicleConnection(vehicle_batch_size=size)
+        for size in (1, 50):
+            self.assertEqual(VehicleConnection(vehicle_batch_size=size).vehicle_batch_size, size)
 
     def test_invalid_payloads_never_reach_socket(self):
         connection = VehicleConnection()

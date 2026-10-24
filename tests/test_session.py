@@ -10,6 +10,7 @@ from collector.binary import Reader
 from collector.cipher import GameDes
 from collector.collect import CollectionStopped, scan_server
 from collector.configuration import load_masks, load_servers
+from collector.connection import CollectorConnection
 from collector.records import ServerRejection
 from collector.transport import TransportDecoder, TransportEncoder
 
@@ -112,6 +113,51 @@ class InventedGameSocket:
 
 
 class SessionTests(unittest.TestCase):
+    def test_mobile_zero_detail_reply_recovers_only_missing_identity_after_prior_successful17(self):
+        class ZeroThenVehicleSocket(InventedGameSocket):
+            def __init__(self, masks):
+                super().__init__(masks)
+                self.detail_counts = Counter()
+
+            def reply(self, opcode, payload=b""):
+                if opcode == 19:
+                    player = struct.unpack_from("<I", payload, 1)[0]
+                    self.detail_counts[player] += 1
+                    if player == 102:
+                        if self.detail_counts[player] == 1:
+                            payload = struct.pack("<BIB", 1, player, 0)
+                        else:
+                            payload = (struct.pack("<BIBBIBB", 1, player, 12, 1, 9937, 2, 1)
+                                       + struct.pack("<BHiB", 1, 1, 77, 0))
+                super().reply(opcode, payload)
+
+        masks = load_masks()
+        peer = ZeroThenVehicleSocket(masks)
+        with patch("collector.collect.open_socket", return_value=peer):
+            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+        self.assertTrue(peer.closed)
+        self.assertTrue(result["rankingEnumerationComplete"])
+        self.assertEqual(peer.sent[20], 2)
+        self.assertEqual(peer.sent[16], 2)  # Existing name lookups only; no repeated16.
+        self.assertEqual(peer.detail_counts, {101: 1, 102: 2})
+        self.assertEqual(result["rows"][1]["vehiclesStatus"], "resolved")
+        self.assertEqual(result["rows"][1]["vehicles"], [
+            {"capsuleTypeId": 9937, "phase": 2, "level": 77, "fate": False},
+        ])
+        self.assertEqual(result["rows"][2]["vehiclesStatus"], "unavailable")
+        self.assertIsNone(result["rows"][2]["vehicles"])
+
+    def test_production_steam_connection_keeps_zero_recovery_and_vehicle_collection_disabled(self):
+        server = next(server for server in load_servers() if server["key"] == "SteamBonn")
+        peer = InventedGameSocket(load_masks("steam"))
+        with patch("collector.collect.open_socket", return_value=peer), \
+                patch("collector.collect.CollectorConnection", wraps=CollectorConnection) as constructor:
+            result = scan_server(server, ("invented-account", "invented-password"), load_masks())
+        self.assertIs(constructor.call_args.kwargs["vehicle_zero_recovery"], False)
+        self.assertEqual(peer.sent[20], 0)
+        self.assertTrue(all(row["vehiclesStatus"] == "not_collected" and row["vehicles"] is None
+                            for row in result["rows"]))
+
     def test_complete_read_only_workflow_with_names_and_unavailable_name(self):
         masks = load_masks()
         peer = InventedGameSocket(masks)

@@ -1,0 +1,534 @@
+{
+  "schema": "metal-waltz.vehicle-refresh-verification.v1",
+  "fetchStartedAtUtc": "2026-10-24T10:58:46.609277Z",
+  "fetchCompletedAtUtc": "2026-10-24T10:58:48.648728Z",
+  "scope": "Read-only public static snapshot coverage comparison after the completed hosted refresh of the per-field vehicle recovery fix. No game connection, credential, protocol identity or raw packet is included.",
+  "runOutcomes": {
+    "source": "Sanitized hosted-run outcomes provided by root in this session; no raw logs or identifiers were copied.",
+    "previousCompletedRun": {
+      "runId": 40079890326,
+      "sourceRevision": "a4597fb",
+      "build": "success",
+      "deploy": "success",
+      "collectionStatus": "failure"
+    },
+    "fixTestRun": {
+      "runId": 40081661044,
+      "sourceRevision": "f056fda",
+      "build": "success",
+      "deploy": "success",
+      "collectionStatus": "failure",
+      "publicVehicleReplyTimeoutBackends": [
+        "Bonn",
+        "KOREA",
+        "BANGKOK"
+      ],
+      "rankingReplyTimeoutBackends": [
+        "SteamUSAVA"
+      ],
+      "successfulBackends": [
+        "YaleAndroid",
+        "YaleIOS",
+        "JP",
+        "JKMIX",
+        "SteamJP",
+        "SteamBonn"
+      ]
+    }
+  },
+  "sourceProvenance": {
+    "publishedIndexUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/index.json",
+    "durableIndexUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/index.json",
+    "indexSha256": "51f0cc4d684af9529082296ff23e57787501f83f41b8765287f08b333c9190b0",
+    "indexBytes": 4156,
+    "indexGeneratedAtUtc": "2026-10-24T10:45:36.756041Z",
+    "publishedAndDurableIndexBytesIdentical": true,
+    "bothIndexesStableThroughoutFetch": true,
+    "allSnapshotHashesVerified": true,
+    "backendCount": 10
+  },
+  "comparisons": {
+    "originalBaseline": {
+      "file": "docs/research/vehicle-coverage-2026-10-24.json",
+      "indexSha256": "2d2f76c3fe42359a84cc660097c2f97306f18baac83e55ccc28a7b681e404870",
+      "rows": 299202,
+      "vehicleStates": {
+        "not_collected": 272214,
+        "unavailable": 1453,
+        "resolved_empty": 18602,
+        "resolved_nonempty": 6933
+      }
+    },
+    "previousCompletedRun": {
+      "observedAtUtc": "2026-10-24T10:13:21.918894Z",
+      "indexSha256": "5e2cf7155c6f64d9bb9b2b42d3ff1d45da44cf158ad1d8b6279873cc3f3d038b",
+      "rows": 299210,
+      "vehicleStates": {
+        "not_collected": 272215,
+        "unavailable": 1453,
+        "resolved_empty": 18607,
+        "resolved_nonempty": 6935
+      }
+    }
+  },
+  "backends": [
+    {
+      "key": "Bonn",
+      "rows": 76797,
+      "namesResolved": 76797,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 76797,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 76797,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T10:03:15.275897Z",
+      "startedAtUtc": "2026-10-22T19:53:46.585513Z",
+      "completedAtUtc": "2026-10-22T19:55:14.288556Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/Bonn.rankings.json",
+      "file": "Bonn.rankings.json",
+      "bytes": 5644820,
+      "sha256": "7d4674484ed0e61466ea999cc1782d9a2bab4d751fea23346329dcb2dfd27561",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "YaleAndroid",
+      "rows": 14074,
+      "namesResolved": 14074,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 9778,
+        "resolved_nonempty": 4296
+      },
+      "changesFromBaseline": {
+        "rows": 4,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 2,
+          "resolved_nonempty": 2
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:04:18.460673Z",
+      "startedAtUtc": "2026-10-24T10:04:18.460708Z",
+      "completedAtUtc": "2026-10-24T10:06:05.259891Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/YaleAndroid.rankings.json",
+      "file": "YaleAndroid.rankings.json",
+      "bytes": 2815059,
+      "sha256": "f06dd421b0d840770c651bac1c87fe1333350247d3c345efde5088169063b82a",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "YaleIOS",
+      "rows": 3531,
+      "namesResolved": 2078,
+      "namesMissing": 1453,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 1453,
+        "resolved_empty": 1608,
+        "resolved_nonempty": 470
+      },
+      "changesFromBaseline": {
+        "rows": 2,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 2,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:06:05.580782Z",
+      "startedAtUtc": "2026-10-24T10:06:05.580816Z",
+      "completedAtUtc": "2026-10-24T10:07:11.961751Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/YaleIOS.rankings.json",
+      "file": "YaleIOS.rankings.json",
+      "bytes": 534162,
+      "sha256": "99b06f6efa0f0dd3e8ad29453a082e89bedc1a999af7827ce290844cd605d832",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "JP",
+      "rows": 1066,
+      "namesResolved": 1066,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 663,
+        "resolved_nonempty": 403
+      },
+      "changesFromBaseline": {
+        "rows": 1,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 1,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:07:12.022954Z",
+      "startedAtUtc": "2026-10-24T10:07:12.022987Z",
+      "completedAtUtc": "2026-10-24T10:07:22.010143Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/JP.rankings.json",
+      "file": "JP.rankings.json",
+      "bytes": 234709,
+      "sha256": "8bd72e4e41b877173a45ed4706a2533fe722ba9ad79552c7335c22c66965065f",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "KOREA",
+      "rows": 13765,
+      "namesResolved": 13765,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 13765,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 13765,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T10:07:22.040102Z",
+      "startedAtUtc": "2026-10-22T20:01:38.372698Z",
+      "completedAtUtc": "2026-10-22T20:06:08.625830Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/KOREA.rankings.json",
+      "file": "KOREA.rankings.json",
+      "bytes": 1016714,
+      "sha256": "2fcca341abbbce51c82fd4269051d7e69c8437f2576751a0bdc7e696cb7e51b3",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "JKMIX",
+      "rows": 8324,
+      "namesResolved": 8324,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 6558,
+        "resolved_nonempty": 1766
+      },
+      "changesFromBaseline": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:08:34.690562Z",
+      "startedAtUtc": "2026-10-24T10:08:34.690597Z",
+      "completedAtUtc": "2026-10-24T10:09:40.239728Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/JKMIX.rankings.json",
+      "file": "JKMIX.rankings.json",
+      "bytes": 1420260,
+      "sha256": "edfee2a2365e70a2dfc18d5ffc0bbd356e738a256ef2a07768144ea16268a2ee",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "BANGKOK",
+      "rows": 35169,
+      "namesResolved": 35169,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 35169,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 35169,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T10:09:40.397723Z",
+      "startedAtUtc": "2026-10-22T20:03:52.736685Z",
+      "completedAtUtc": "2026-10-22T20:09:23.007307Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/BANGKOK.rankings.json",
+      "file": "BANGKOK.rankings.json",
+      "bytes": 2522151,
+      "sha256": "9fea66f129ef6584c6289e632be8e67e79a0eea31403308c6b1c10dbac108aeb",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "SteamJP",
+      "rows": 98518,
+      "namesResolved": 98518,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 98518,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 2,
+        "vehicleStates": {
+          "not_collected": 2,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 2,
+        "vehicleStates": {
+          "not_collected": 2,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 98518,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:10:57.591503Z",
+      "startedAtUtc": "2026-10-24T10:10:57.591537Z",
+      "completedAtUtc": "2026-10-24T10:38:37.291226Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamJP.rankings.json",
+      "file": "SteamJP.rankings.json",
+      "bytes": 12051147,
+      "sha256": "1651a24d66e11f81cae574525855cc69f59ff80ed2c0cc33e30284e4b2a8a6fa",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "SteamBonn",
+      "rows": 37913,
+      "namesResolved": 37913,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 37913,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 37913,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T10:38:38.331401Z",
+      "startedAtUtc": "2026-10-24T10:38:38.331436Z",
+      "completedAtUtc": "2026-10-24T10:45:00.360002Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamBonn.rankings.json",
+      "file": "SteamBonn.rankings.json",
+      "bytes": 4606792,
+      "sha256": "246fc34ff2290ba9a6a41e52c5093160d831b2b5211e3b043d1d9a493f731a03",
+      "hashVerifiedAgainstIndex": true
+    },
+    {
+      "key": "SteamUSAVA",
+      "rows": 10055,
+      "namesResolved": 10055,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 10055,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "changesFromBaseline": {
+        "rows": 1,
+        "vehicleStates": {
+          "not_collected": 1,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "changesFromPreviousCompletedRun": {
+        "rows": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 10055,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T10:45:00.769252Z",
+      "startedAtUtc": "2026-10-24T09:57:05.856171Z",
+      "completedAtUtc": "2026-10-24T10:02:13.610889Z",
+      "sourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamUSAVA.rankings.json",
+      "file": "SteamUSAVA.rankings.json",
+      "bytes": 1207436,
+      "sha256": "267c246742309c560f8d8fff514b78cef484ebd5d050de50a995f99cc5776957",
+      "hashVerifiedAgainstIndex": true
+    }
+  ],
+  "totals": {
+    "rows": 299212,
+    "namesResolved": 297759,
+    "namesMissing": 1453,
+    "vehicleStates": {
+      "not_collected": 272217,
+      "unavailable": 1453,
+      "resolved_empty": 18607,
+      "resolved_nonempty": 6935
+    },
+    "legacyWithoutVehicleFields": 125731,
+    "explicitNotCollected": 146486
+  },
+  "changesFromBaseline": {
+    "rows": 10,
+    "vehicleStates": {
+      "not_collected": 3,
+      "unavailable": 0,
+      "resolved_empty": 5,
+      "resolved_nonempty": 2
+    }
+  },
+  "changesFromPreviousCompletedRun": {
+    "rows": 2,
+    "vehicleStates": {
+      "not_collected": 2,
+      "unavailable": 0,
+      "resolved_empty": 0,
+      "resolved_nonempty": 0
+    }
+  },
+  "interpretation": [
+    "Compared with the preceding completed run, resolved nonempty, resolved empty and unavailable profile counts are unchanged on every backend. The only row increase is two Steam Asia rows, both explicitly not_collected.",
+    "Europe, Korea and Thailand still retain 125,731 legacy rows without vehicle observations after reply_timeout during public_vehicles. This run did not replace those retained snapshots.",
+    "All 146,486 Steam rows remain explicitly not_collected because Steam vehicle collection is disabled. Steam USA retained its last-good ranking snapshot after a ranking reply timeout.",
+    "The increases of two resolved nonempty and five resolved empty lists versus the original baseline were already present after the preceding run; they are not additional coverage gained by the fix-test run.",
+    "These are observed public aggregate differences, not a diagnosis of the remaining server timeouts or evidence of reliable complete Steam vehicle collection."
+  ]
+}

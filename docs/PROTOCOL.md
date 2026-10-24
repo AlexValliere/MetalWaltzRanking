@@ -269,9 +269,9 @@ Disjoint mask-4 and mask-8 records for one player may occur inside the same 19
 packet, as well as in separate packets. The Steam native handler dispatches each
 record's fields independently. The collector accepts that grouping while rejecting
 any repeated field, invalid identity or unsupported mask.
-A correlated mask-zero record updates no fields and does not complete the
-transaction or establish an empty/unavailable profile. The original deadline
-still applies while actual fields or an explicit failure remain outstanding.
+A correlated mask-zero record updates no fields and does not establish an
+empty/unavailable profile. Mobile collection uses it only as an explicit keyed
+hint for the bounded recovery policy below. Unanswered requests still time out.
 
 Response 18 is a keyed primary-detail miss and may follow a partial response 19.
 The native client tracks capsule and tactics requirements independently. Identity
@@ -283,10 +283,28 @@ identity across the session, then one 20 requery of only the still-missing field
 after a successful 17. Previously observed fields remain intact. An explicit
 capsule failure stays unavailable; an actually returned capsule list remains
 resolved when only tactics are explicitly unavailable. A prior name-fallback 16
-is never repeated. Timeouts and malformed replies are not retried; the backend
-stops and retains its previous complete snapshot.
+is never repeated.
 
-This bounded collector policy is narrower than the native client. Native 18 can
+Mobile collection also allows one follow-up 20 after a correlated zero-field
+reply. The initial batch must first receive actual requested fields, an explicit
+18 failure, or a zero hint for every requested identity. Already-decoded queued
+messages are consumed through normal validation before deciding whether any
+fields remain missing. An earlier successful 17 permits the follow-up directly;
+otherwise one new 16 is allowed, and only an actual successful 17 permits 20.
+The follow-up includes only still-missing identities and fields, within the same
+50-record batch limit and pacing. This is one shared recovery allowance per
+identity across explicit-18 and zero-field replies. Further zero replies cannot
+trigger a third 20. Failed or missing warm-up after a zero hint leaves fields
+pending for actual data or timeout; it does not create an unavailable or empty
+profile. Timeouts and malformed replies are not retried; the backend stops and
+retains its previous complete snapshot. Steam collection does not enable this
+recovery or collect public vehicle lists.
+
+The zero-field follow-up is a collector policy supported by
+[bounded live observations](research/vehicle-field-probes-2026-10-24.json);
+it is not an inferred native retry timer. Full-scan verification is still pending.
+The collector also
+keeps a narrower identity-lookup policy than the native client. Native 18 can
 leave requirements pending when an identity lookup is throttled, and both a
 successful 17 and a nickname field in 380 can release those requirements. The
 native throttle is not an automatic retry timer. Static evidence for the
