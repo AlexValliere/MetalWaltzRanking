@@ -31,16 +31,19 @@ class CollectorConnection:
                  clock=time.monotonic, sleeper=time.sleep,
                  batch_request_gap_seconds=BATCH_REQUEST_GAP_SECONDS,
                  session_seconds=SESSION_SECONDS, vehicle_fields=0x0c, vehicle_batch_size=50,
-                 vehicle_zero_recovery=False):
+                 vehicle_zero_recovery=False, vehicle_partial_results=False):
         if type(vehicle_fields) is not int or vehicle_fields not in (4, 0x0c):
             raise ValueError("Invalid public vehicle fields")
         if type(vehicle_batch_size) is not int or not 1 <= vehicle_batch_size <= 50:
             raise ValueError("Invalid public vehicle batch size")
         if type(vehicle_zero_recovery) is not bool:
             raise ValueError("Invalid public vehicle zero recovery mode")
+        if type(vehicle_partial_results) is not bool or vehicle_partial_results and not vehicle_zero_recovery:
+            raise ValueError("Invalid public vehicle partial results mode")
         self.vehicle_fields = vehicle_fields
         self.vehicle_batch_size = vehicle_batch_size
         self.vehicle_zero_recovery = vehicle_zero_recovery
+        self.vehicle_partial_results = vehicle_partial_results
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
         self.batch_request_gap_seconds = positive_duration(batch_request_gap_seconds)
         self.session_seconds = positive_duration(session_seconds)
@@ -59,6 +62,7 @@ class CollectorConnection:
         self.vehicle_failed_masks = {}
         self.vehicle_zero_hints = set()
         self.vehicle_pending = set()
+        self.vehicle_unresolved, self.vehicle_retired_pending = set(), set()
         self.achievements = None
         self.incoming_bytes = 0
         self.started, self.last_request_at = clock(), 0.0
@@ -113,8 +117,9 @@ class CollectorConnection:
             r.finish()
             self.name_failures.update(player for player in failed if player in self.name_masks)
         elif opcode == 19:
+            correlated = self.vehicle_pending | self.vehicle_retired_pending
             for player, mask, vehicles in detail_records(payload):
-                if player not in self.vehicle_pending:
+                if player not in correlated:
                     raise ValueError("Uncorrelated public vehicle reply")
                 if mask & ~self.vehicle_fields:
                     raise ValueError("Unrequested public vehicle fields")
@@ -122,7 +127,7 @@ class CollectorConnection:
                     # Native19 can carry a descriptor with no field updates.
                     # An optional bounded recovery uses it only as a keyed hint;
                     # it never establishes field completion or availability.
-                    if self.vehicle_zero_recovery:
+                    if self.vehicle_zero_recovery and self.vehicle_masks[player] != self.vehicle_fields:
                         self.vehicle_zero_hints.add(player)
                     continue
                 if self.vehicle_masks[player] & mask:
@@ -131,16 +136,47 @@ class CollectorConnection:
                 self.vehicle_failed_masks[player] = self.vehicle_failed_masks.get(player, 0) & ~mask
                 if mask & 4:
                     self.vehicles[player] = vehicles
+                if player in self.vehicle_retired_pending:
+                    self._refresh_retired_vehicle(player)
         elif opcode == 18:
             r = Reader(payload)
             failed = r.vector()
             r.finish()
-            if (len(set(failed)) != len(failed) or any(p not in self.vehicle_pending
+            if (len(set(failed)) != len(failed) or any((p not in self.vehicle_pending
+                    and p not in self.vehicle_retired_pending)
                     or self.vehicle_failed_masks.get(p, 0) or self.vehicle_masks[p] == self.vehicle_fields
                     for p in failed)):
                 raise ValueError("Uncorrelated public vehicle failure")
             for player in failed:
                 self.vehicle_failed_masks[player] = self.vehicle_fields & ~self.vehicle_masks[player]
+                if player in self.vehicle_retired_pending:
+                    self._refresh_retired_vehicle(player)
+
+    def _refresh_retired_vehicle(self, player):
+        """Project actual capsules independently from unknown or failed tactics."""
+        self.vehicle_unresolved.discard(player)
+        self.vehicle_failures.discard(player)
+        if not self.vehicle_masks[player] & 4:
+            if self.vehicle_failed_masks[player] & 4:
+                self.vehicle_failures.add(player)
+            elif player in self.vehicle_zero_hints:
+                self.vehicle_unresolved.add(player)
+            else:
+                raise ValueError("Incomplete public vehicle observation")
+        if self.vehicle_masks[player] == self.vehicle_fields:
+            self.vehicle_retired_pending.discard(player)
+            self.vehicle_zero_hints.discard(player)
+        else:
+            # Keep the known request context for late disjoint keyed updates.
+            self.vehicle_retired_pending.add(player)
+
+    def finish_vehicles(self):
+        """Validate decoded late replies before projection; never poll or retry."""
+        self.read_phase = "public_vehicles"
+        self.check_deadlines()
+        if self.vehicle_pending:
+            raise ValueError("Active public vehicle transaction")
+        self._drain_queued_messages()
 
     def _dispatch_message(self, opcode, payload, target=None):
         self.received[opcode] += 1
@@ -308,16 +344,22 @@ class CollectorConnection:
             if retry:
                 # Each identity gets at most one extra20, shared by18/zero
                 # recovery. A zero on this requery cannot trigger a third20.
-                self._query_vehicles(retry)
+                self._query_vehicles(retry, allow_zero_hints=self.vehicle_partial_results)
             if self.vehicle_zero_recovery:
                 # Failed/missing warm-up does not turn a zero hint into a miss.
-                # Wait for actual fields or18 under the same session/run bounds.
+                # Strict mode waits for actual fields or18. Opt-in observation
+                # mode also accepts current keyedzero as unresolved information.
                 self._drain_queued_messages()
-                self.receive(until=lambda: self._vehicle_batch_complete(batch))
+                self.receive(until=lambda: self._vehicle_batch_complete(
+                    batch, allow_zero_hints=self.vehicle_partial_results))
                 self._drain_queued_messages()
             # A terminal tactics miss does not erase actual capsule observations.
             # The public projection reports only capsule-field availability.
-            self.vehicle_failures.update(p for p in batch if not self.vehicle_masks[p] & 4)
+            if self.vehicle_partial_results:
+                for player in batch:
+                    self._refresh_retired_vehicle(player)
+            else:
+                self.vehicle_failures.update(p for p in batch if not self.vehicle_masks[p] & 4)
             self.vehicle_pending.clear()
 
     def _vehicle_batch_complete(self, players, *, allow_zero_hints=False):

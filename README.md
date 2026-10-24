@@ -76,8 +76,13 @@ game client's 460-win interface unlock was not required for the verified reads.
 Vehicle portraits appear beside commanders on desktop and beneath their names
 on mobile. Hover, focus or select a portrait for its vehicle and Maiden names;
 selecting it also shows the returned level and Fate Pin. The mobile collector
-requests the actual public vehicle list for every ranked commander. Empty, unavailable
-and not-yet-collected lists remain distinct, and longer lists remain accessible.
+requests the actual public vehicle list for every ranked commander. Actual empty
+lists, explicit unavailable results, unresolved field replies and not-yet-collected
+data remain distinct, and longer lists remain accessible. A bounded keyed-zero
+reply can leave vehicle data **unresolved** while a complete ranking and its actual
+vehicle observations are published. Unresolved data carries null and is never
+presented as an empty list or an explicit unavailable profile. Silent or malformed
+responses still fail the refresh and retain its last-good snapshot.
 These are public profiles in server order; a current Attack/Defense formation
 or equipped costume is not established by this response.
 

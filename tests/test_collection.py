@@ -124,7 +124,47 @@ class SnapshotTests(unittest.TestCase):
         entry = snapshot_entry(self.directory, self.server)
         self.assertEqual((entry["rows"], entry["namesResolved"], entry["namesMissing"]), (2, 1, 1))
         self.assertEqual(entry["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+
         self.assertEqual(entry["refreshStatus"], "seed")
+
+    def test_complete_rankings_publish_mixed_vehicle_observations_atomically(self):
+        path = self.seed()
+        before = path.read_bytes()
+        value = snapshot(self.server, ("A", "B", "C", "D", "E"))
+        observations = (("resolved", [{"capsuleTypeId": 8311, "phase": 3, "level": 99, "fate": False}]),
+                        ("resolved", []), ("unavailable", None), ("unresolved", None), ("not_collected", None))
+        for row, (status, vehicles) in zip(value["rows"], observations):
+            row.update(vehiclesStatus=status, vehicles=vehicles)
+        logs = []
+        result = run_collection(self.directory, [self.server], {self.server["key"]}, ("invented", "invented"), {},
+                                scanner=lambda *args, **kwargs: value, emit=lambda **fields: logs.append(fields))
+        self.assertEqual(result, 0)
+        self.assertNotEqual(path.read_bytes(), before)
+        self.assertEqual(json.loads(path.read_bytes()), value)
+        entry = json.loads((self.directory / "index.json").read_text())["servers"][0]
+        self.assertEqual((entry["refreshStatus"], entry["rows"]), ("ok", 5))
+        self.assertEqual(entry["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+        finished = next(item for item in logs if item["phase"] == "finished")
+        self.assertEqual({key: count for key, count in finished.items() if key.startswith("vehicles")},
+                         {"vehiclesResolvedEmpty": 1, "vehiclesResolvedNonempty": 1,
+                          "vehiclesUnavailable": 1, "vehiclesUnresolved": 1, "vehiclesNotCollected": 1})
+
+    def test_unresolved_is_not_an_empty_or_guessed_vehicle_list(self):
+        for vehicles in ([], [{"capsuleTypeId": 8311, "phase": 3, "level": 99, "fate": False}], "unknown"):
+            value = snapshot(self.server)
+            value["rows"][0].update(vehiclesStatus="unresolved", vehicles=vehicles)
+            with self.assertRaises(ValueError):
+                validate_snapshot(value, self.server)
+
+    def test_invalid_vehicle_refresh_still_preserves_last_good(self):
+        path = self.seed()
+        before = path.read_bytes()
+        value = snapshot(self.server)
+        value["rows"][0].update(vehiclesStatus="unresolved", vehicles=[])
+        result = run_collection(self.directory, [self.server], {self.server["key"]}, ("invented", "invented"), {},
+                                scanner=lambda *args, **kwargs: value, emit=lambda **fields: None)
+        self.assertEqual(result, 1)
+        self.assertEqual(path.read_bytes(), before)
 
     def test_failed_refresh_preserves_last_good_bytes(self):
         path = self.seed()

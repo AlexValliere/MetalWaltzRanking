@@ -28,11 +28,16 @@ A fresh manifest time does not make a retained snapshot fresh. An unavailable
 name is also distinct from a failed scan: a complete ranking may have explicit
 nickname failures from the game server.
 
-Each fresh mobile backend scan also loads public vehicle profiles for every ranking
-entry. A completed profile may be empty or explicitly unavailable. A profile
-timeout or malformed response stops that backend and retains its last complete
-snapshot. The website distinguishes missing profile data from an observed empty
-list, and JSON exports preserve the full returned public list.
+Each fresh mobile backend scan also requests public vehicle profiles for every
+ranking entry. Complete rankings can publish with `unresolved` vehicle profiles
+when the server returns keyed zero-field descriptors after bounded recovery.
+Those profiles have a null list and display “Vehicle data unresolved”; actual
+empty lists and explicit unavailable responses remain distinct. Late observed
+fields can still resolve a profile before publication. Silent timeouts, malformed
+responses and incomplete rankings stop that backend and retain its last complete
+snapshot. JSON exports preserve each observation, and successful collection logs
+report separate counts for empty, nonempty, unavailable, unresolved and uncollected
+vehicle profiles.
 Steam collection is configured for rankings and names with vehicle lists explicitly
 marked `not_collected`: native profile probes reached incomplete transactions.
 Steam USA's first complete snapshot is verified: 10,054 ranking rows, 10,054

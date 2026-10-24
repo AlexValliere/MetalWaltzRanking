@@ -12,6 +12,7 @@ from collector.configuration import load_masks, load_servers
 from collector.connection import CollectorConnection
 from collector.cipher import GameDes
 from collector.transport import TransportEncoder
+from collector.timing import CollectionDeadline
 from test_session import InventedGameSocket
 
 
@@ -33,12 +34,13 @@ def reply(*descriptions):
 
 class VehicleConnection(CollectorConnection):
     def __init__(self, batches=(), fallback_names=None, *, vehicle_fields=0x0c, vehicle_batch_size=50,
-                 vehicle_zero_recovery=False):
+                 vehicle_zero_recovery=False, vehicle_partial_results=False):
         self.fake_clock = Clock()
         super().__init__(SyntheticSocket(self.fake_clock), load_masks(), GameDes(), b"invented-login",
                          clock=self.fake_clock.monotonic, sleeper=self.fake_clock.sleep,
                          vehicle_fields=vehicle_fields, vehicle_batch_size=vehicle_batch_size,
-                         vehicle_zero_recovery=vehicle_zero_recovery)
+                         vehicle_zero_recovery=vehicle_zero_recovery,
+                         vehicle_partial_results=vehicle_partial_results)
         self.batches = iter(batches)
         self.vehicle_requests = []
         self.fallback_names = fallback_names or {}
@@ -56,6 +58,206 @@ class VehicleConnection(CollectorConnection):
 
 
 class PublicVehicleTests(unittest.TestCase):
+    def test_partial_results_require_explicit_boolean_and_zero_recovery(self):
+        self.assertFalse(VehicleConnection().vehicle_partial_results)
+        for value in (0, 1, None, "true", [], 1.0):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                VehicleConnection(vehicle_zero_recovery=True, vehicle_partial_results=value)
+        with self.assertRaises(ValueError):
+            VehicleConnection(vehicle_partial_results=True)
+        self.assertTrue(VehicleConnection(vehicle_zero_recovery=True, vehicle_partial_results=True).vehicle_partial_results)
+
+    def test_partial_results_keep_actual_empty_nonempty_unavailable_and_unresolved_distinct(self):
+        connection = VehicleConnection([
+            (reply(descriptor(1, 0), descriptor(2, 12), descriptor(3, 12, vehicles=[(8311, 3, [])]),
+                   descriptor(5, 8), descriptor(5, 0),
+                   descriptor(6, 4, vehicles=[(9937, 2, [])]), descriptor(6, 0)),
+             (18, struct.pack("<BI", 1, 4))),
+            (reply(descriptor(1, 0), descriptor(5, 0), descriptor(6, 0)),),
+        ], fallback_names={1: "Invented one", 5: "Invented five", 6: "Invented six"},
+            vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1, 2, 3, 4, 5, 6])
+        self.assertEqual(connection.vehicle_masks, {1: 0, 2: 12, 3: 12, 4: 0, 5: 8, 6: 4})
+        self.assertEqual(connection.vehicle_unresolved, {1, 5})
+        self.assertEqual(connection.vehicle_failures, {4})
+        self.assertEqual(connection.vehicles[2], [])
+        self.assertEqual(connection.vehicles[3][0]["capsuleTypeId"], 8311)
+        self.assertEqual(connection.vehicles[6][0]["capsuleTypeId"], 9937)
+        self.assertNotIn(1, connection.vehicles)
+        self.assertNotIn(5, connection.vehicles)
+        self.assertEqual(connection.vehicle_retired_pending, {1, 4, 5, 6})
+        self.assertFalse(connection.vehicle_pending)
+        self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIBIBIB", 3, 1, 12, 5, 4, 6, 8))
+        self.assertEqual(connection.sent, {20: 2, 16: 4})
+        connection.finish_vehicles()
+
+    def test_failed_nickname_after_zero_stays_unresolved_without_another_query(self):
+        for previously_failed in (False, True):
+            connection = VehicleConnection([(reply(descriptor(1, 0)),)],
+                                           vehicle_zero_recovery=True, vehicle_partial_results=True)
+            if previously_failed:
+                connection.name_masks[1] = 0
+                connection.fetch_nickname_fallback([1])
+            with self.subTest(previously_failed=previously_failed):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_unresolved, {1})
+                self.assertFalse(connection.vehicle_failures)
+                self.assertFalse(connection.vehicles)
+                self.assertEqual(connection.sent, {20: 1, 16: 1})
+                connection.observe(*reply(descriptor(1, 0)))
+                self.assertEqual(connection.sent, {20: 1, 16: 1})
+                self.assertEqual(connection.vehicle_unresolved, {1})
+
+    def test_repeated_keyed_zero_retires_after_one_recovery_without_a_third_query(self):
+        for fields in (4, 12):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 0)),), (reply(descriptor(1, 0)),),
+            ], fallback_names={1: "Invented"}, vehicle_fields=fields,
+                vehicle_zero_recovery=True, vehicle_partial_results=True)
+            with self.subTest(fields=fields):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_unresolved, {1})
+                self.assertEqual(connection.vehicle_masks, {1: 0})
+                self.assertEqual(connection.vehicle_failed_masks, {1: 0})
+                self.assertEqual(connection.sent, {20: 2, 16: 1})
+                self.assertEqual(connection.vehicle_retired_pending, {1})
+                with self.assertRaises(ValueError):
+                    connection.fetch_vehicles([1])
+                self.assertEqual(connection.sent, {20: 2, 16: 1})
+
+    def test_retired_disjoint_fields_can_arrive_during_a_new_batch(self):
+        connection = VehicleConnection([
+            (reply(descriptor(1, 0)),), (reply(descriptor(1, 0)),),
+            (reply(descriptor(1, 8), descriptor(2, 12)),),
+        ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        connection.fetch_vehicles([2])
+        self.assertEqual(connection.vehicle_unresolved, {1})
+        self.assertEqual(connection.vehicle_masks, {1: 8, 2: 12})
+        self.assertFalse(connection.vehicle_pending)
+        self.assertEqual(connection.vehicle_retired_pending, {1})
+        connection.observe(*reply(descriptor(1, 4, vehicles=[(8311, 3, [])])))
+        self.assertFalse(connection.vehicle_unresolved)
+        self.assertFalse(connection.vehicle_retired_pending)
+        self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+        with self.assertRaises(ValueError):
+            connection.observe(*reply(descriptor(1, 4)))
+        self.assertEqual(connection.sent, {20: 3, 16: 1})
+
+    def test_late_explicit_miss_and_actual_fields_update_retired_availability(self):
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)],
+                                       vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        connection.observe(18, struct.pack("<BI", 1, 1))
+        self.assertFalse(connection.vehicle_unresolved)
+        self.assertEqual(connection.vehicle_failures, {1})
+        self.assertEqual(connection.vehicle_failed_masks, {1: 12})
+        connection.observe(*reply(descriptor(1, 8)))
+        self.assertEqual(connection.vehicle_failures, {1})
+        self.assertFalse(connection.vehicle_unresolved)
+        connection.observe(*reply(descriptor(1, 4)))
+        self.assertFalse(connection.vehicle_failures)
+        self.assertFalse(connection.vehicle_retired_pending)
+        self.assertEqual(connection.vehicles, {1: []})
+        self.assertEqual(connection.sent, {20: 1, 16: 1})
+
+    def test_actual_capsules_stay_resolved_when_late18_only_fails_tactics(self):
+        connection = VehicleConnection([(
+            reply(descriptor(1, 4, vehicles=[(8311, 3, [])]), descriptor(1, 0)),
+        )], vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        self.assertFalse(connection.vehicle_unresolved)
+        connection.observe(18, struct.pack("<BI", 1, 1))
+        self.assertEqual(connection.vehicle_failed_masks, {1: 8})
+        self.assertFalse(connection.vehicle_unresolved)
+        self.assertFalse(connection.vehicle_failures)
+        self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+        connection.observe(*reply(descriptor(1, 8)))
+        self.assertFalse(connection.vehicle_retired_pending)
+
+    def test_retired_completion_packet_can_end_with_a_noop_without_creating_unknown_fields(self):
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)],
+                                       vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        connection.observe(*reply(descriptor(1, 4), descriptor(1, 8), descriptor(1, 0)))
+        self.assertEqual(connection.vehicle_masks, {1: 12})
+        self.assertFalse(connection.vehicle_unresolved)
+        self.assertFalse(connection.vehicle_retired_pending)
+        self.assertNotIn(1, connection.vehicle_zero_hints)
+
+    def test_partial_results_do_not_convert_silence_or_incomplete_unhinted_peers(self):
+        cases = [((), [1], 1),
+                 ((reply(descriptor(1, 0)),), [1, 2], 1),
+                 ((reply(descriptor(1, 0)),), [1], 2)]
+        for messages, players, requests in cases:
+            connection = VehicleConnection([messages, ()], fallback_names={1: "Invented"},
+                                           vehicle_zero_recovery=True, vehicle_partial_results=True)
+            with self.subTest(players=len(players), requests=requests), self.assertRaises(TimeoutError):
+                connection.fetch_vehicles(players)
+            self.assertEqual(connection.sent[20], requests)
+            self.assertFalse(connection.vehicle_unresolved)
+            self.assertFalse(connection.vehicle_failures)
+
+    def test_partial_results_preserve_shared_deadline_preemption(self):
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)], fallback_names={1: "Invented"},
+                                       vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.collection_deadline = connection.clock() + 0.1
+        with self.assertRaises(CollectionDeadline):
+            connection.fetch_vehicles([1])
+        self.assertEqual(connection.sent, {20: 1, 16: 1})
+        self.assertFalse(connection.vehicle_unresolved)
+
+    def test_finish_drains_late_updates_without_polling_and_allows_retired_unknown_fields(self):
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)],
+                                       vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        connection.finish_vehicles()
+        self.assertEqual(connection.vehicle_unresolved, {1})
+        connection.messages.append(reply(descriptor(1, 12, vehicles=[(8311, 3, [])])))
+        before = connection.sent.copy()
+        with patch.object(connection.socket, "recv", side_effect=AssertionError("Must not poll")):
+            connection.finish_vehicles()
+        self.assertEqual(connection.sent, before)
+        self.assertFalse(connection.vehicle_unresolved)
+        self.assertFalse(connection.vehicle_retired_pending)
+        self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+
+    def test_partial_and_final_queued_invalid_replies_still_fail_the_scan(self):
+        for invalid in (reply(descriptor(999, 0)), (19, reply(descriptor(1, 4))[1] + b"x")):
+            connection = VehicleConnection([(reply(descriptor(1, 0)), invalid)],
+                                           vehicle_zero_recovery=True, vehicle_partial_results=True)
+            with self.subTest(phase="active", opcode=invalid[0]), self.assertRaises(ValueError):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 1})
+            self.assertFalse(connection.vehicle_unresolved)
+            connection = VehicleConnection([(reply(descriptor(1, 0)),)],
+                                           vehicle_zero_recovery=True, vehicle_partial_results=True)
+            connection.fetch_vehicles([1])
+            connection.messages.extend((reply(descriptor(1, 0)), invalid))
+            with self.subTest(phase="retired", opcode=invalid[0]), self.assertRaises(ValueError):
+                connection.finish_vehicles()
+
+    def test_retired_unknown_duplicate_and_unrequested_fields_are_rejected(self):
+        connection = VehicleConnection([(
+            reply(descriptor(1, 8), descriptor(1, 0)),
+        )], vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        for invalid in (reply(descriptor(1, 8)), reply(descriptor(999, 4)),
+                        (18, struct.pack("<BI", 1, 999))):
+            with self.subTest(opcode=invalid[0]), self.assertRaises(ValueError):
+                connection.observe(*invalid)
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)], vehicle_fields=4,
+                                       vehicle_zero_recovery=True, vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        with self.assertRaises(ValueError):
+            connection.observe(*reply(descriptor(1, 8)))
+
+    def test_finish_rejects_an_active_transaction(self):
+        connection = VehicleConnection()
+        connection.vehicle_pending = {1}
+        with self.assertRaises(ValueError):
+            connection.finish_vehicles()
+
     def test_zero_recovery_reuses_actual_successful_nickname_without_another16(self):
         for fields in (4, 12):
             connection = VehicleConnection([

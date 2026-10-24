@@ -5,7 +5,7 @@ const SNAPSHOT_SCHEMAS = new Set([
 ]);
 const PAGE_SIZES = new Set([25, 50, 100, 200]);
 const numberFormat = new Intl.NumberFormat('en-US');
-const VEHICLE_STATUS = new Set(['resolved', 'unavailable', 'not_collected']);
+const VEHICLE_STATUS = new Set(['resolved', 'unavailable', 'unresolved', 'not_collected']);
 
 function unsignedInteger(value, maximum = 0xffffffff) {
   return Number.isSafeInteger(value) && value >= 0 && value <= maximum;
@@ -616,7 +616,8 @@ function browserApp() {
       const message = document.createElement('span');
       message.className = 'vehicles-unavailable';
       message.textContent = status === 'resolved' ? 'No public vehicles' :
-        status === 'unavailable' ? 'Vehicles unavailable' : 'Vehicles not collected';
+        status === 'unavailable' ? 'Vehicles unavailable' :
+          status === 'unresolved' ? 'Vehicle data unresolved' : 'Vehicles not collected';
       cell.append(message);
       return cell;
     }

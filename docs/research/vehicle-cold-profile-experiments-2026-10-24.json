@@ -1,0 +1,1803 @@
+{
+  "schema": "metal-waltz.vehicle-cold-profile-experiments.v1",
+  "recordedAtUtc": "2026-10-24T15:06:32.712919Z",
+  "scope": "Sanitized aggregate-only review of completed authorized local prefix experiments after 13:23 UTC. The note author made no game connection or network fetch and changed no collector source. No credentials, account/player identity values, names, cohort digests or raw packets are included.",
+  "selectionBoundaryUtc": "2026-10-24T13:23:00Z",
+  "completedExperimentCount": 10,
+  "staticNativeEvidence": {
+    "file": "docs/research/mobile-vehicle-pending-queries-2026-10-24.json",
+    "distinction": "Native field/cache/transaction facts inform experimental request shapes; they do not establish server internals, a successful fix, or automatic native zero-field recovery."
+  },
+  "productionPolicy": {
+    "changedByThesePrivateExperiments": false,
+    "initialVehicleMask": 12,
+    "initialVehicleBatchMaximum": 50,
+    "steamVehicleCollectionEnabled": false
+  },
+  "experiments": [
+    {
+      "experiment": "smaller_recovery_chunks",
+      "outcome": "bounded_incomplete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T133450971003Z-KOREA.json",
+      "sourceAggregateSha256": "cd1314db9b93de65552e4a4e503953ea8526f618c40b8bb342138fda1137eb27",
+      "sourceAggregateBytes": 116594,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T13:33:10.496075+00:00",
+      "completedAtUtc": "2026-10-24T13:34:50.969175+00:00",
+      "elapsedWallSeconds": 100.4731,
+      "backend": "KOREA",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 10,
+        "recoveryDelaySeconds": null,
+        "diagnosticMode": null,
+        "privateDriverSha256": null,
+        "prefixDriverSha256": null,
+        "demultiplexingLimit": null,
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "public_vehicles",
+        "waitStage": "requery",
+        "rankOffset": 1400,
+        "rankingRowsReceived": 1600,
+        "pageRows": 200,
+        "subbatch": 1,
+        "queryRows": 10,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 39
+          },
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 10
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 1
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1401,
+          "0": 59
+        },
+        "detail18Vectors": {
+          "empty": 30
+        },
+        "zeroIdentities": 49,
+        "zeroNicknameStates": {
+          "successful17": 59
+        },
+        "detailAttemptHistogram": {
+          "1": 1440,
+          "2": 10
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 197,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 1152,
+          "0": 137,
+          "5": 5,
+          "4": 15,
+          "1": 77,
+          "2": 9,
+          "3": 6
+        },
+        "capsuleLists": 1401,
+        "sessionRemainingSeconds": 79.756,
+        "runRemainingSeconds": 79.528,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 30,
+        "detail_wait_completed": 57,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 29,
+        "requery": 1
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 1450,
+        "requery": 10
+      },
+      "outgoingReadCounts": {
+        "137": 9,
+        "15": 8,
+        "16": 197,
+        "20": 30
+      },
+      "incomingReadCounts": {
+        "131": 9,
+        "14": 8,
+        "380": 57,
+        "17": 197,
+        "18": 30,
+        "19": 251
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "initialFailingBatch": {
+        "rankOffset": 1400,
+        "rankingRowsReceived": 1600,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 49
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 1
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1401,
+          "0": 49
+        },
+        "capsuleLists": 1401
+      },
+      "selectedVsQueried": {
+        "rankingRowsReceived": 1600,
+        "distinctVehicleProfilesQueried": 1450,
+        "rankingRowsNotYetQueriedForVehicles": 150,
+        "unresolvedQueriedProfiles": 49
+      },
+      "observedCapsuleLists": {
+        "actual": 1401,
+        "nonempty": 1264,
+        "empty": 137
+      },
+      "recoveryObservation": {
+        "initialZeroProfiles": 49,
+        "recoveryProfilesSent": 10,
+        "repeatedZeroDescriptors": 10,
+        "newActualFieldDescriptors": 0,
+        "recoveryCandidatesNotYetSent": 39,
+        "additionalNicknameRequests": 0,
+        "profilesAboveTwoDetailAttempts": 0
+      },
+      "interpretation": "At ranking-page offset 1,400, the first 50-profile batch returned one real mask-12 update and 49 keyed zero acknowledgments. The first ten-profile recovery chunk returned ten zero acknowledgments again and no real fields; it timed out before the remaining 39 recovery candidates were sent. This did not establish successful smaller-chunk recovery."
+    },
+    {
+      "experiment": "thirty_second_recovery_delay",
+      "outcome": "inconclusive_setup_failure",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T134037040111Z-KOREA.json",
+      "sourceAggregateSha256": "09cc714d6ae78587a9f367a0bec5838f3ce320267a0fa166b9fd8c69f9d20ef8",
+      "sourceAggregateBytes": 4364,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T13:39:05.174501+00:00",
+      "completedAtUtc": "2026-10-24T13:40:37.039582+00:00",
+      "elapsedWallSeconds": 91.865081,
+      "backend": "KOREA",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 50,
+        "recoveryDelaySeconds": 30,
+        "diagnosticMode": null,
+        "privateDriverSha256": null,
+        "prefixDriverSha256": null,
+        "demultiplexingLimit": null,
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "commander_base",
+        "waitStage": "handshake",
+        "rankOffset": null,
+        "rankingRowsReceived": 0,
+        "pageRows": 0,
+        "subbatch": null,
+        "queryRows": 0,
+        "activeRows": 0,
+        "activeStates": [],
+        "detailMaskHistogram": {},
+        "detail18Vectors": {},
+        "zeroIdentities": 0,
+        "zeroNicknameStates": {},
+        "detailAttemptHistogram": {},
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 0,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {},
+        "capsuleLists": 0,
+        "sessionRemainingSeconds": 88.514,
+        "runRemainingSeconds": 88.136,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {},
+      "profileRequestRowRecordsByStage": {},
+      "outgoingReadCounts": {
+        "137": 0,
+        "15": 0,
+        "16": 0,
+        "20": 0
+      },
+      "incomingReadCounts": {
+        "131": 0,
+        "14": 0,
+        "380": 0,
+        "17": 0,
+        "18": 0,
+        "19": 0
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "configuredRecoveryDelayExercised": false,
+      "interpretation": "The connection timed out in commander_base/handshake before any ranking or detail request. The configured 30-second recovery delay was never exercised; this is inconclusive about delayed zero-field recovery."
+    },
+    {
+      "experiment": "native_order_nickname_and_craft_field_preparation",
+      "outcome": "bounded_incomplete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T134847811504Z-Bonn.json",
+      "sourceAggregateSha256": "2be98295b30c988c2c2e4a8cd17a6a7e237cc4a20150aa9f8e45defb1cf1ff4d",
+      "sourceAggregateBytes": 267183,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T13:47:00.549374+00:00",
+      "completedAtUtc": "2026-10-24T13:48:47.811002+00:00",
+      "elapsedWallSeconds": 107.261628,
+      "backend": "Bonn",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 50,
+        "recoveryDelaySeconds": 0,
+        "diagnosticMode": "native15_warm2_then_capsules",
+        "privateDriverSha256": "547c369fe792aa1d0f243451c17ac83c1ac60ec513599056f9002863925baf6d",
+        "prefixDriverSha256": "4c13aea8021b6866bf0d52a220682a37de6fafdce1819e78cd8fcb39e71d2df8",
+        "demultiplexingLimit": "The phase barrier drains decoded warm2 replies; a later network zero/18 has no field tag, so its origin cannot be proven.",
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "native_warm2",
+        "waitStage": "warm2_completion",
+        "rankOffset": 1600,
+        "rankingRowsReceived": 1800,
+        "pageRows": 200,
+        "subbatch": 4,
+        "queryRows": 50,
+        "activeRows": 0,
+        "activeStates": [],
+        "detailMaskHistogram": {
+          "12": 1600
+        },
+        "detail18Vectors": {
+          "empty": 32
+        },
+        "zeroIdentities": 0,
+        "zeroNicknameStates": {},
+        "detailAttemptHistogram": {
+          "1": 1600
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 178,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 1485,
+          "0": 30,
+          "5": 14,
+          "3": 14,
+          "1": 40,
+          "4": 11,
+          "2": 6
+        },
+        "capsuleLists": 1600,
+        "sessionRemainingSeconds": 72.756,
+        "runRemainingSeconds": 72.739,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "warm2_wait_completed": 17,
+        "warm2_barrier_passed": 8,
+        "detail_query_started": 32,
+        "detail_wait_completed": 64,
+        "warm2_replay_queued": 19,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 32
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 1600
+      },
+      "outgoingReadCounts": {
+        "137": 10,
+        "15": 9,
+        "16": 178,
+        "20": 87
+      },
+      "incomingReadCounts": {
+        "131": 10,
+        "14": 9,
+        "380": 65,
+        "17": 178,
+        "18": 87,
+        "19": 1352
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "warm2AtStop": {
+        "warm2StageActive": true,
+        "warm2BarrierPassed": false,
+        "warm2CohortRows": 200,
+        "warm2ActualRows": 23,
+        "warm2ExplicitMissRows": 0,
+        "warm2UnresolvedRows": 177,
+        "warm2ZeroRows": 177,
+        "warm2MaskHistogram": {
+          "2": 1623,
+          "0": 219
+        },
+        "warm2CraftCountHistogram": {
+          "4": 1286,
+          "2": 55,
+          "3": 282
+        },
+        "warm2MissVectors": {
+          "empty": 52,
+          "nonempty": 3
+        },
+        "warm2AttemptHistogram": {
+          "1": 1622,
+          "2": 178
+        },
+        "warm2IdentitiesAboveTwoAttempts": 0,
+        "warm2ActualCacheEventRows": 200,
+        "warm2ActualCacheEventKinds": {
+          "actual380mask4": 1622,
+          "actualSuccessful17": 178
+        }
+      },
+      "selectedVsQueried": {
+        "rankingRowsReceived": 1800,
+        "distinctVehicleProfilesQueried": 1600,
+        "rankingRowsNotYetQueriedForVehicles": 200
+      },
+      "observedCapsuleLists": {
+        "actual": 1600,
+        "nonempty": 1570,
+        "empty": 30
+      },
+      "interpretation": "The diagnostic completed 1,600 actual capsule lists on preceding pages, then stopped in bit-2 preparation for the 200-row page at offset 1,600. That current warm2 cohort contained 23 real bit-2 updates and 177 unresolved zero-field profiles, with no explicit misses. Its preparation barrier did not pass and no capsule read for that page began. Bit 2 is CraftPair data and does not establish capsule availability."
+    },
+    {
+      "experiment": "details_before_nickname_fallback",
+      "outcome": "bounded_incomplete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T140010360076Z-BANGKOK.json",
+      "sourceAggregateSha256": "cc4d0a7a83043d84cf8bffc921cbc909fa257ffbfaa93c01a0f4366acfae11b4",
+      "sourceAggregateBytes": 134123,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T13:57:57.476205+00:00",
+      "completedAtUtc": "2026-10-24T14:00:10.359687+00:00",
+      "elapsedWallSeconds": 132.883482,
+      "backend": "BANGKOK",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 50,
+        "recoveryDelaySeconds": 0,
+        "diagnosticMode": "details_before_nickname_fallback",
+        "privateDriverSha256": "8ce5e0c4b367d2593372941462aa85f06b0bf51385992334706c560288f60c97",
+        "prefixDriverSha256": "4c13aea8021b6866bf0d52a220682a37de6fafdce1819e78cd8fcb39e71d2df8",
+        "orderingScope": "This tests deferred nickname fallback; it does not claim the exact native UI sequence.",
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "public_vehicles",
+        "waitStage": "requery",
+        "rankOffset": 1200,
+        "rankingRowsReceived": 1400,
+        "pageRows": 200,
+        "subbatch": 1,
+        "queryRows": 45,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 45
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 5
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1205,
+          "0": 45
+        },
+        "detail18Vectors": {
+          "empty": 25,
+          "nonempty": 1
+        },
+        "zeroIdentities": 45,
+        "zeroNicknameStates": {
+          "successful17": 45
+        },
+        "detailAttemptHistogram": {
+          "1": 1205,
+          "2": 45
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 45,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 1086,
+          "5": 11,
+          "1": 47,
+          "3": 13,
+          "0": 28,
+          "4": 10,
+          "2": 10
+        },
+        "capsuleLists": 1205,
+        "sessionRemainingSeconds": 47.419,
+        "runRemainingSeconds": 47.119,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 26,
+        "detail_wait_completed": 49,
+        "post_vehicle_names_complete": 6,
+        "name_fallback_deferred": 1,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 25,
+        "requery": 1
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 1250,
+        "requery": 45
+      },
+      "outgoingReadCounts": {
+        "137": 8,
+        "15": 7,
+        "16": 45,
+        "20": 26
+      },
+      "incomingReadCounts": {
+        "131": 8,
+        "14": 7,
+        "380": 49,
+        "17": 45,
+        "18": 26,
+        "19": 171
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "selectedVsQueried": {
+        "rankingRowsReceived": 1400,
+        "distinctVehicleProfilesQueried": 1250,
+        "rankingRowsNotYetQueriedForVehicles": 150,
+        "unresolvedQueriedProfiles": 45
+      },
+      "observedCapsuleLists": {
+        "actual": 1205,
+        "nonempty": 1177,
+        "empty": 28
+      },
+      "initialFailingBatch": {
+        "rankOffset": 1200,
+        "rankingRowsReceived": 1400,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 12,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 45
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 5
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1205
+        },
+        "capsuleLists": 1205
+      },
+      "orderingObservation": {
+        "firstDetailBatchRows": 50,
+        "firstDetailRealMask12Rows": 5,
+        "explicitReply18RowsBeforeNicknameFallback": 45,
+        "request16PacketsBeforeInitialBatchCompleted": 0,
+        "successful17RowsBeforeRecovery": 45,
+        "recoveryRows": 45,
+        "recoveryActualFieldDescriptors": 0,
+        "recoveryZeroFieldDescriptors": 45,
+        "profileDetailAttemptsAtStop": 2,
+        "profilesAboveTwoDetailAttempts": 0,
+        "postVehicleNamePassOnFailedPage": false,
+        "completedEarlierPageNamePasses": 6,
+        "deferredNameFallbackCalls": 1,
+        "deferredNameRows": 182,
+        "deferredNamesStillUnresolved": 137,
+        "deferredNamesWith16Sent": 45,
+        "nicknameFallbackRowsDuringVehicles": 45,
+        "nicknameFallbackRowsAfterVehicles": 0
+      },
+      "interpretation": "At ranking-page offset 1,200, the first detail batch returned five real mask-12 rows and explicit reply18 misses for 45 profiles before any request16 fallback. All 45 then received successful reply17, but the one targeted detail recovery returned 45 keyed zero-field descriptors and no actual fields. Deferred nickname fallback alone was not sufficient in this bounded test. The failed page had no post-vehicle names pass; this private ordering test does not claim to reproduce the exact native UI sequence."
+    },
+    {
+      "experiment": "thirty_second_recovery_delay",
+      "outcome": "bounded_incomplete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T140757870506Z-Bonn.json",
+      "sourceAggregateSha256": "6c7f6d511a3fbcebc037edda2d27235ffac21435c3dd21ccb5bf268b5650d87c",
+      "sourceAggregateBytes": 184613,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:06:02.393144+00:00",
+      "completedAtUtc": "2026-10-24T14:07:57.869363+00:00",
+      "elapsedWallSeconds": 115.476219,
+      "backend": "Bonn",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 50,
+        "recoveryDelaySeconds": 30,
+        "diagnosticMode": null,
+        "privateDriverSha256": null,
+        "prefixDriverSha256": null,
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "public_vehicles",
+        "waitStage": "requery",
+        "rankOffset": 2200,
+        "rankingRowsReceived": 2400,
+        "pageRows": 200,
+        "subbatch": 1,
+        "queryRows": 45,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 45
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 5
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 2205,
+          "0": 90
+        },
+        "detail18Vectors": {
+          "empty": 46
+        },
+        "zeroIdentities": 45,
+        "zeroNicknameStates": {
+          "successful17": 90
+        },
+        "detailAttemptHistogram": {
+          "1": 2205,
+          "2": 45
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 358,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 2045,
+          "0": 41,
+          "5": 17,
+          "3": 19,
+          "1": 56,
+          "4": 17,
+          "2": 10
+        },
+        "capsuleLists": 2205,
+        "sessionRemainingSeconds": 64.541,
+        "runRemainingSeconds": 64.524,
+        "queuedMessages": 1,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 46,
+        "detail_wait_completed": 90,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 45,
+        "requery": 1
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 2250,
+        "requery": 45
+      },
+      "outgoingReadCounts": {
+        "137": 13,
+        "15": 12,
+        "16": 358,
+        "20": 46
+      },
+      "incomingReadCounts": {
+        "131": 13,
+        "14": 12,
+        "380": 82,
+        "17": 358,
+        "18": 46,
+        "19": 1628
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "selectedVsQueried": {
+        "rankingRowsReceived": 2400,
+        "distinctVehicleProfilesQueried": 2250,
+        "rankingRowsNotYetQueriedForVehicles": 150,
+        "unresolvedQueriedProfiles": 45
+      },
+      "observedCapsuleLists": {
+        "actual": 2205,
+        "nonempty": 2164,
+        "empty": 41
+      },
+      "initialFailingBatch": {
+        "rankOffset": 2200,
+        "rankingRowsReceived": 2400,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 45
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 5
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 2205,
+          "0": 45
+        },
+        "capsuleLists": 2205
+      },
+      "configuredRecoveryDelayExercised": true,
+      "delayObservation": {
+        "eligibilityParameterSeconds": 30,
+        "initialDetailRequestAtUtc": "2026-10-24T14:06:57.674210+00:00",
+        "initialDetailWaitCompletedAtUtc": "2026-10-24T14:07:02.690661+00:00",
+        "delayWaitCompletedAtUtc": "2026-10-24T14:07:27.715174+00:00",
+        "recoveryRequestAtUtc": "2026-10-24T14:07:27.715886+00:00",
+        "initialRequestToRecoverySeconds": 30.041676,
+        "initialCompletionToRecoverySeconds": 25.025225,
+        "scope": "The configured 30-second eligibility interval is measured from the initial detail request. The remaining wait after initial completion was about 25 seconds; this is not a 30-second sleep after the zero-field reply."
+      },
+      "recoveryObservation": {
+        "initialZeroProfiles": 45,
+        "recoveryProfilesSent": 45,
+        "repeatedZeroDescriptors": 45,
+        "newActualFieldDescriptors": 0,
+        "additionalNicknameRequests": 0,
+        "profilesAboveTwoDetailAttempts": 0,
+        "successful17ProfilesAcrossProbe": 358
+      },
+      "terminalQueueObservation": {
+        "queuedMessages": 1,
+        "decoderBufferedBytes": 0,
+        "queuedOpcode": null,
+        "interpretation": "The queued message opcode was not instrumented; no classification or completion inference is made."
+      },
+      "interpretation": "At ranking-page offset 2,200, the first 50-profile batch returned five real mask-12 updates and 45 keyed zero acknowledgments. The configured 30-second eligibility delay was exercised before one recovery for those 45; it still returned 45 zero-field descriptors and no actual fields. Unlike the earlier Korea setup failure, this is a completed negative test of delayed recovery in this cohort, without establishing a server-internal cause."
+    },
+    {
+      "experiment": "serial_single_profile_recovery",
+      "outcome": "bounded_incomplete_after_confirmed_recoveries",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T141255388394Z-KOREA.json",
+      "sourceAggregateSha256": "4fb24131a28f4b7fbf68feb45c11fe9b2772836daeaf391117e2a5380c9c8ef4",
+      "sourceAggregateBytes": 175879,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:09:55.001475+00:00",
+      "completedAtUtc": "2026-10-24T14:12:55.387969+00:00",
+      "elapsedWallSeconds": 180.386494,
+      "backend": "KOREA",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 1,
+        "recoveryDelaySeconds": 0,
+        "diagnosticMode": null,
+        "privateDriverSha256": null,
+        "prefixDriverSha256": null,
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "collection_deadline",
+        "reason": "run_deadline",
+        "readPhase": "public_vehicles",
+        "waitStage": "requery",
+        "rankOffset": 1600,
+        "rankingRowsReceived": 1800,
+        "pageRows": 200,
+        "subbatch": 3,
+        "queryRows": 1,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 1
+          },
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 6
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 33
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 10
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1743,
+          "0": 17
+        },
+        "detail18Vectors": {
+          "empty": 45
+        },
+        "zeroIdentities": 17,
+        "zeroNicknameStates": {
+          "successful17": 17
+        },
+        "detailAttemptHistogram": {
+          "1": 1739,
+          "2": 11
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 195,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 1411,
+          "0": 172,
+          "5": 5,
+          "4": 17,
+          "1": 119,
+          "2": 12,
+          "3": 7
+        },
+        "capsuleLists": 1743,
+        "sessionRemainingSeconds": 0,
+        "runRemainingSeconds": 0,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 46,
+        "detail_wait_completed": 79,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 35,
+        "requery": 11
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 1750,
+        "requery": 11
+      },
+      "outgoingReadCounts": {
+        "137": 10,
+        "15": 9,
+        "16": 195,
+        "20": 46
+      },
+      "incomingReadCounts": {
+        "131": 10,
+        "14": 9,
+        "380": 65,
+        "17": 195,
+        "18": 45,
+        "19": 272
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "selectedVsQueried": {
+        "rankingRowsReceived": 1800,
+        "distinctVehicleProfilesQueried": 1750,
+        "rankingRowsNotYetQueriedForVehicles": 50,
+        "unresolvedQueriedProfiles": 7
+      },
+      "observedCapsuleLists": {
+        "actual": 1743,
+        "nonempty": 1571,
+        "empty": 172
+      },
+      "initialFailingBatch": {
+        "rankOffset": 1600,
+        "rankingRowsReceived": 1800,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 17
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 33
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1733,
+          "0": 17
+        },
+        "capsuleLists": 1733
+      },
+      "recoveryObservation": {
+        "initialZeroProfiles": 17,
+        "sameProfileZeroToActualMask12Recoveries": 10,
+        "initialWholeProbeActualMask12Descriptors": 1733,
+        "finalWholeProbeActualMask12Descriptors": 1743,
+        "singleProfileRecoveryRequestsSent": 11,
+        "completedSingleProfileRecoveryRequests": 10,
+        "recoveryRequestAwaitingReplyAtDeadline": 1,
+        "zeroCandidatesNotYetResentAtDeadline": 6,
+        "unresolvedQueriedProfilesAtDeadline": 7,
+        "repeatedZeroDescriptorsObservedDuringRecovery": 0,
+        "profilesAboveTwoDetailAttempts": 0,
+        "completedRecoveryLatencySeconds": {
+          "count": 10,
+          "minimum": 0.750382,
+          "maximum": 5.394138,
+          "mean": 4.601
+        },
+        "latencyScope": "Diagnostic callback intervals for completed serial one-profile requests; these are observations, not a server latency bound or service guarantee.",
+        "historicalZeroCounterScope": "The terminal zeroIdentities counter remains 17 because it records profiles ever observed with a zero descriptor. Ten later recovered; it is not the count still unresolved at the deadline."
+      },
+      "interpretation": "Seventeen profiles in the current 50-profile batch initially returned keyed zero-field descriptors. Serial one-profile recovery then produced actual mask-12 fields for ten of those same in-session profiles, without any repeated-zero descriptor observed on the recovery replies. The 180-second run deadline arrived with one further recovery request awaiting a reply and six candidates not yet resent. This is confirmed recovery for ten profiles, not a complete bounded probe or a verified full-backend vehicle fix."
+    },
+    {
+      "experiment": "paced_single_profile_recovery_pipeline",
+      "outcome": "bounded_pipeline_proof_complete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T145129079605Z-Bonn.json",
+      "sourceAggregateSha256": "9d28dfa16d528eb77b14d16fce32176e8430c6e9b1dd8122186111cc4a0ca129",
+      "sourceAggregateBytes": 252108,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:50:06.037254+00:00",
+      "completedAtUtc": "2026-10-24T14:51:29.078290+00:00",
+      "elapsedWallSeconds": 83.041036,
+      "backend": "Bonn",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 1,
+        "recoveryDelaySeconds": 0,
+        "diagnosticMode": "bounded_one_id_recovery_pipeline",
+        "privateDriverSha256": "dc4f0079091526d6f9265bf15a51e3f421efdb93d00e438859cb23ad6a5954ef",
+        "prefixDriverSha256": "65b6520706f473e94472d6e5e824aa849324d5d808d6b8bb04eaed939ac6e658",
+        "maximumRecoveryIdentities": 50,
+        "policyLimit": "The 0.25s source gap and 50-identity bound are collector policy, not native rate limits.",
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": null,
+        "reason": null,
+        "readPhase": "public_vehicles",
+        "waitStage": "recovery_pipeline",
+        "rankOffset": 2400,
+        "rankingRowsReceived": 2600,
+        "pageRows": 200,
+        "subbatch": 4,
+        "queryRows": 4,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 3
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 43
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 4
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 2600,
+          "0": 4
+        },
+        "detail18Vectors": {
+          "empty": 56
+        },
+        "zeroIdentities": 4,
+        "zeroNicknameStates": {
+          "successful17": 4
+        },
+        "detailAttemptHistogram": {
+          "1": 2596,
+          "2": 4
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 318,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 2409,
+          "0": 48,
+          "5": 20,
+          "3": 24,
+          "1": 65,
+          "4": 21,
+          "2": 13
+        },
+        "capsuleLists": 2600,
+        "sessionRemainingSeconds": 96.979,
+        "runRemainingSeconds": 96.96,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "terminalPhase": "pipeline_proof_complete",
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 52,
+        "detail_wait_completed": 104,
+        "pipeline_batch_observed": 1,
+        "pipeline_proof_complete": 1
+      },
+      "requestStageCounts": {
+        "initial": 52
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 2600,
+        "recovery_pipeline": 4
+      },
+      "outgoingReadCounts": {
+        "137": 14,
+        "15": 13,
+        "16": 318,
+        "20": 56
+      },
+      "incomingReadCounts": {
+        "131": 14,
+        "14": 13,
+        "380": 97,
+        "17": 318,
+        "18": 56,
+        "19": 1716
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "selectedVsQueried": {
+        "rankingRowsReceived": 2600,
+        "distinctVehicleProfilesQueried": 2600,
+        "rankingRowsNotYetQueriedForVehicles": 0,
+        "unresolvedQueriedProfiles": 0
+      },
+      "observedCapsuleLists": {
+        "actual": 2600,
+        "nonempty": 2552,
+        "empty": 48
+      },
+      "initialColdBatch": {
+        "rankOffset": 2400,
+        "rankingRowsReceived": 2600,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 4
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "not_sent",
+            "detailAttempts": 1,
+            "rows": 3
+          },
+          {
+            "observedMask": 12,
+            "failedMask": 0,
+            "zeroHint": false,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 43
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 2596,
+          "0": 4
+        },
+        "capsuleLists": 2596
+      },
+      "pipelineObservation": {
+        "originalBatchRows": 50,
+        "targetedRecoveryRows": 4,
+        "initialZeroRows": 4,
+        "recoveryRequestsSent": 4,
+        "pipelineSeconds": 5.765,
+        "actualFullOriginalRows": 50,
+        "actualFullRequestedFieldsRows": 4,
+        "actualNonemptyCapsuleLists": 4,
+        "actualEmptyCapsuleLists": 0,
+        "explicitMissingFieldRows": 0,
+        "recoveryRequestGapSeconds": 0.25,
+        "pipelineSentRows": 4,
+        "pipelineSkippedCompletedRows": 0,
+        "sameInSessionProfileZeroToActualMask12Recoveries": 4,
+        "repeatedZeroDescriptorsDuringRecovery": 0,
+        "profilesAboveTwoDetailAttempts": 0,
+        "sourceGapIsCollectorPolicyNotNativeRateLimit": true
+      },
+      "completionScope": "The helper intentionally stopped after proving one cold-batch recovery. This is neither a full-backend enumeration nor completion of the 5,000-row ceiling.",
+      "tutorialCausalityEstablished": false,
+      "interpretation": "After 2,600 selected profiles, four profiles in the final original 50-row batch initially returned zero-field descriptors. Four one-profile requests in the paced pipeline returned actual nonempty mask-12 data for those same four in-session profiles in a recorded 5.765 seconds, completing actual mask-12 data for all 50 original rows. All 2,600 selected profiles had actual capsule lists when the proof stopped. The run followed the separate original-client tutorial capture in time, but it does not establish that tutorial activity improved response rates or involved the same cohort as an earlier 45-profile zero result."
+    },
+    {
+      "experiment": "paced_single_profile_recovery_pipeline",
+      "outcome": "bounded_incomplete",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T145508177391Z-KOREA.json",
+      "sourceAggregateSha256": "296632856f6c77c8e33cfad9b49c1271c89db1354bebc63094bcdeeeef4403b8",
+      "sourceAggregateBytes": 174157,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:53:27.342514+00:00",
+      "completedAtUtc": "2026-10-24T14:55:08.175899+00:00",
+      "elapsedWallSeconds": 100.833385,
+      "backend": "KOREA",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "recoveryBatchSize": 1,
+        "recoveryDelaySeconds": 0,
+        "diagnosticMode": "bounded_one_id_recovery_pipeline",
+        "privateDriverSha256": "dc4f0079091526d6f9265bf15a51e3f421efdb93d00e438859cb23ad6a5954ef",
+        "prefixDriverSha256": "65b6520706f473e94472d6e5e824aa849324d5d808d6b8bb04eaed939ac6e658",
+        "maximumRecoveryIdentities": 50,
+        "policyLimit": "The 0.25s source gap and 50-identity bound are collector policy, not native rate limits.",
+        "initialBatchSize": 50,
+        "requestedVehicleMask": 12
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "public_vehicles",
+        "waitStage": "recovery_pipeline",
+        "rankOffset": 1800,
+        "rankingRowsReceived": 2000,
+        "pageRows": 200,
+        "subbatch": 1,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 2,
+            "rows": 50
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1800,
+          "0": 100
+        },
+        "detail18Vectors": {
+          "empty": 87
+        },
+        "zeroIdentities": 50,
+        "zeroNicknameStates": {
+          "successful17": 100
+        },
+        "detailAttemptHistogram": {
+          "1": 1800,
+          "2": 50
+        },
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 200,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {
+          "6": 1451,
+          "0": 178,
+          "5": 5,
+          "4": 17,
+          "1": 128,
+          "2": 12,
+          "3": 9
+        },
+        "capsuleLists": 1800,
+        "sessionRemainingSeconds": 79.403,
+        "runRemainingSeconds": 79.168,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "terminalPhase": "probe_failed",
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 37,
+        "detail_wait_completed": 73,
+        "detail_wait_failed": 1,
+        "probe_failed": 1
+      },
+      "requestStageCounts": {
+        "initial": 37
+      },
+      "profileRequestRowRecordsByStage": {
+        "initial": 1850,
+        "recovery_pipeline": 50
+      },
+      "outgoingReadCounts": {
+        "137": 11,
+        "15": 10,
+        "16": 200,
+        "20": 87
+      },
+      "incomingReadCounts": {
+        "131": 11,
+        "14": 10,
+        "380": 72,
+        "17": 200,
+        "18": 87,
+        "19": 316
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "selectedVsQueried": {
+        "rankingRowsReceived": 2000,
+        "distinctVehicleProfilesQueried": 1850,
+        "rankingRowsNotYetQueriedForVehicles": 150,
+        "unresolvedQueriedProfiles": 50
+      },
+      "observedCapsuleLists": {
+        "actual": 1800,
+        "nonempty": 1622,
+        "empty": 178
+      },
+      "initialColdBatch": {
+        "rankOffset": 1800,
+        "rankingRowsReceived": 2000,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 50
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1800,
+          "0": 50
+        },
+        "capsuleLists": 1800
+      },
+      "pipelineObservation": {
+        "originalBatchRows": 50,
+        "targetedRecoveryRows": 50,
+        "initialZeroRows": 50,
+        "recoveryRequestGapSeconds": 0.25,
+        "pipelineSentRows": 50,
+        "pipelineSkippedCompletedRows": 0,
+        "sameInSessionProfileZeroToActualMask12Recoveries": 0,
+        "repeatedZeroDescriptorsDuringRecovery": 50,
+        "originalBatchActualMask12RowsAtStop": 0,
+        "originalBatchUnresolvedRowsAtStop": 50,
+        "profilesAboveTwoDetailAttempts": 0,
+        "overallBudgetExpired": false,
+        "sourceGapIsCollectorPolicyNotNativeRateLimit": true
+      },
+      "interpretation": "At ranking-page offset 1,800, all 50 profiles in the first detail batch returned zero-field descriptors. Fifty paced one-profile recovery requests returned another zero-field descriptor for every same in-session profile; no actual mask-12 row was recovered in that batch. The total of 100 zero descriptors concerns 50 profiles twice, not 100 profiles. The probe timed out with 79.168 run-budget seconds remaining and no queued messages or decoder-buffer bytes. This negative pipeline result prevents claiming a complete vehicle fix from the earlier Europe proof."
+    },
+    {
+      "experiment": "same_ordered_batch_reconnect",
+      "outcome": "inconclusive_before_cohort",
+      "sourceAggregateFile": "private/vehicle-probes/reconnect-20261024T145710401662Z-KOREA.json",
+      "sourceAggregateSha256": "f4d023b480464cd7b003833c012f3364452c41a960ff2732a8ec65768085926a",
+      "sourceAggregateBytes": 5221,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:56:30.183607+00:00",
+      "completedAtUtc": "2026-10-24T14:57:10.401085+00:00",
+      "elapsedWallSeconds": 40.217478,
+      "backend": "KOREA",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "diagnosticMode": "same_ordered_batch_fresh_session_once",
+        "privateDriverSha256": "fc51ee7c19d6902a6d47bff1fe26e7c53f41889012b240772de6d82992761fff",
+        "inferenceLimit": "A new session also changes elapsed time and login/handshake history."
+      },
+      "terminal": {
+        "errorCode": "reply_timeout",
+        "reason": "reply_missing",
+        "readPhase": "rankings",
+        "waitStage": "handshake",
+        "rankOffset": 0,
+        "rankingRowsReceived": 0,
+        "pageRows": 0,
+        "subbatch": null,
+        "queryRows": 0,
+        "activeRows": 0,
+        "activeStates": [],
+        "detailMaskHistogram": {},
+        "detail18Vectors": {},
+        "zeroIdentities": 0,
+        "zeroNicknameStates": {},
+        "detailAttemptHistogram": {},
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 0,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {},
+        "capsuleLists": 0,
+        "sessionRemainingSeconds": 140.143,
+        "runRemainingSeconds": 139.784,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "terminalPhase": "probe_failed",
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "probe_failed": 1
+      },
+      "terminalOutgoingReadCounts": {
+        "137": 1,
+        "15": 0,
+        "16": 0,
+        "20": 0
+      },
+      "terminalIncomingReadCounts": {
+        "131": 0,
+        "14": 0,
+        "380": 0,
+        "17": 0,
+        "18": 0,
+        "19": 0
+      },
+      "comparisonStateAtStop": {
+        "comparisonRows": 0,
+        "priorZeroRows": 0,
+        "priorFull12ControlRows": 0,
+        "priorOtherRows": 0,
+        "globalDetailAttemptHistogram": {},
+        "globalIdentitiesAboveTwoDetailAttempts": 0,
+        "globalNicknameAttemptHistogram": {},
+        "freshSessionDetailRequests": 0,
+        "comparisonElapsedSeconds": 40.217,
+        "secondsSinceInitialBatch": null,
+        "secondsSinceFirstSocketClosed": null,
+        "comparisonSession": 1
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "freshSessionVehicleComparisonExercised": false,
+      "interpretation": "The first ranking request timed out before any ranking rows or vehicle descriptors were received. No initial zero cohort was available, no second-session vehicle request occurred, and the effect of reconnecting was not tested."
+    },
+    {
+      "experiment": "same_ordered_batch_reconnect",
+      "outcome": "inconclusive_second_login_rejection",
+      "sourceAggregateFile": "private/vehicle-probes/reconnect-20261024T145942518470Z-BANGKOK.json",
+      "sourceAggregateSha256": "87492325703d12cd721b94dd635dd9a4cf83fdc36048ea214b1c86ff766ddf3c",
+      "sourceAggregateBytes": 159104,
+      "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+      "collectorSourceSha256": {
+        "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+        "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+        "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+        "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+        "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+        "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+        "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+        "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+        "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+        "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+        "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+        "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+        "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+        "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+        "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+      },
+      "startedAtUtc": "2026-10-24T14:58:38.241457+00:00",
+      "completedAtUtc": "2026-10-24T14:59:42.517910+00:00",
+      "elapsedWallSeconds": 64.276453,
+      "backend": "BANGKOK",
+      "configuration": {
+        "rowBound": 5000,
+        "seconds": 180,
+        "diagnosticMode": "same_ordered_batch_fresh_session_once",
+        "privateDriverSha256": "fc51ee7c19d6902a6d47bff1fe26e7c53f41889012b240772de6d82992761fff",
+        "inferenceLimit": "A new session also changes elapsed time and login/handshake history."
+      },
+      "terminal": {
+        "errorCode": "server_login_21",
+        "reason": "unclassified",
+        "readPhase": "login",
+        "waitStage": "handshake",
+        "rankOffset": null,
+        "rankingRowsReceived": 0,
+        "pageRows": 0,
+        "subbatch": null,
+        "queryRows": 0,
+        "activeRows": 0,
+        "activeStates": [],
+        "detailMaskHistogram": {},
+        "detail18Vectors": {},
+        "zeroIdentities": 0,
+        "zeroNicknameStates": {},
+        "detailAttemptHistogram": {},
+        "detailIdentitiesAboveTwoAttempts": 0,
+        "successful17Rows": 0,
+        "failed17Rows": 0,
+        "capsuleCountHistogram": {},
+        "capsuleLists": 0,
+        "sessionRemainingSeconds": 179.483,
+        "runRemainingSeconds": 115.724,
+        "queuedMessages": 0,
+        "decoderBufferedBytes": 0
+      },
+      "terminalPhase": "probe_failed",
+      "eventPhaseCounts": {
+        "probe_started": 1,
+        "detail_query_started": 29,
+        "detail_wait_completed": 57,
+        "cohort_captured": 1,
+        "first_session_closed": 1,
+        "probe_failed": 1
+      },
+      "terminalOutgoingReadCounts": {
+        "137": 0,
+        "15": 0,
+        "16": 0,
+        "20": 0
+      },
+      "terminalIncomingReadCounts": {
+        "131": 0,
+        "14": 0,
+        "380": 0,
+        "17": 0,
+        "18": 0,
+        "19": 0
+      },
+      "comparisonStateAtStop": {
+        "comparisonRows": 50,
+        "priorZeroRows": 50,
+        "priorFull12ControlRows": 0,
+        "priorOtherRows": 0,
+        "globalDetailAttemptHistogram": {
+          "1": 1450
+        },
+        "globalIdentitiesAboveTwoDetailAttempts": 0,
+        "globalNicknameAttemptHistogram": {
+          "1": 330
+        },
+        "freshSessionDetailRequests": 0,
+        "comparisonElapsedSeconds": 64.276,
+        "secondsSinceInitialBatch": 5.987,
+        "secondsSinceFirstSocketClosed": 0.811,
+        "comparisonSession": 2
+      },
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "freshSessionVehicleComparisonExercised": false,
+      "firstSessionCohort": {
+        "atUtc": "2026-10-24T14:59:41.706381+00:00",
+        "rankOffset": 1400,
+        "rankingRowsReceived": 1600,
+        "queryRows": 50,
+        "activeRows": 50,
+        "activeStates": [
+          {
+            "observedMask": 0,
+            "failedMask": 0,
+            "zeroHint": true,
+            "nickname": "successful17",
+            "detailAttempts": 1,
+            "rows": 50
+          }
+        ],
+        "detailMaskHistogram": {
+          "12": 1400,
+          "0": 50
+        },
+        "capsuleCountHistogram": {
+          "6": 1252,
+          "5": 15,
+          "1": 62,
+          "3": 14,
+          "0": 32,
+          "4": 12,
+          "2": 13
+        },
+        "capsuleLists": 1400,
+        "comparisonRows": 50,
+        "priorZeroRows": 50,
+        "priorFull12ControlRows": 0,
+        "priorOtherRows": 0,
+        "globalDetailAttemptHistogram": {
+          "1": 1450
+        },
+        "globalNicknameAttemptHistogram": {
+          "1": 330
+        }
+      },
+      "firstSocketClosedAtUtc": "2026-10-24T14:59:41.707326+00:00",
+      "observedCapsuleLists": {
+        "actual": 1400,
+        "nonempty": 1368,
+        "empty": 32
+      },
+      "observedCapsuleListsSourceEvent": "cohort_captured in first session; terminal counters belong to second login session",
+      "selectedVsQueried": {
+        "firstSessionRankingRowsReceived": 1600,
+        "firstSessionDistinctVehicleProfilesQueried": 1450,
+        "firstSessionRankingRowsNotYetQueriedForVehicles": 150,
+        "firstSessionUnresolvedQueriedProfiles": 50
+      },
+      "interpretation": "The first session captured an ordered 50-profile zero-field cohort at ranking offset 1,400, after 1,400 actual capsule lists on preceding rows, then closed its socket. The second session received login status 21 before any detail query. No same-ordered-cohort field comparison occurred, so the reconnect effect is inconclusive. No account-status, cooldown or server-cause meaning is assigned to status 21."
+    }
+  ],
+  "limits": [
+    "Only terminal completed aggregates with a parent completion/ready message are evidence. A deliberate pipeline_proof_complete stop is a completed bounded proof, not a complete backend scan. All recorded experiments are closed and no running result is included.",
+    "These are private diagnostic request policies on recorded committed collector source, not deployed source changes or complete backend scans. Driver hashes are recorded only where supplied by the aggregate; missing older driver hashes remain null.",
+    "Ranking offset, ranking rows received, queried profiles, unresolved profiles and not-yet-queried profiles are distinct quantities. A page at offset 1,400 includes 1,600 received ranking rows; a page at offset 1,600 includes 1,800.",
+    "The ten-profile recovery covered only the first ten of 49 keyed-zero candidates; its failure stopped the remaining 39. It establishes no successful smaller-batch recovery or causal batch-size improvement.",
+    "The configured 30-second delay case failed in commander_base before ranking and is inconclusive about vehicle behavior or recovery timing.",
+    "Warm2 counters are separate from capsule counters. CraftPair bit 2 does not complete capsule/tactics bits; unresolved warm2 is not an explicit capsule-unavailable observation.",
+    "The native-order diagnostic drains decoded warm2 replies at a phase barrier. A later network zero-field descriptor or reply18 has no field tag, so its origin cannot be proven solely from later phase position.",
+    "Different cohorts, windows, cache history, request ordering, masks and helper policies prevent a causal server, rate, cache-residency, packet-size or batch-size conclusion. Successful nickname replies alone do not establish that vehicle fields will arrive.",
+    "Timeouts and zero-field descriptors are neither actual empty lists nor explicit unavailable profiles. No partial diagnostic profile snapshot is published or substituted for validated public last-good data.",
+    "The Thailand deferred-fallback test separates initial explicit reply18 misses from the later zero-field reply19 descriptors. One successful nickname lookup followed by a zero-field recovery does not prove unavailable profile data or justify an empty list.",
+    "The Europe 30-second-delay experiment exercised its configured eligibility interval from the initial request, whereas the earlier Korea delay configuration never reached ranking. These outcomes must not be combined as two successful tests of that delay. The one queued terminal message in Europe has no instrumented opcode and is not classified.",
+    "The serial count-one experiment establishes ten same-profile zero-to-real-field recoveries in that run. It does not establish universal superiority over ten/50-profile batches across different cohorts or windows, nor a server-internal cause. One sent recovery was still awaiting a reply at deadline and must not be called a repeated-zero failure.",
+    "The Europe four-profile pipeline proof occurred after the separate original-client tutorial capture, at a different time and after prior warm-ups. No causal tutorial/rate improvement or equivalence with an earlier 45-profile zero cohort is established.",
+    "The passive original-client report records 1,269 transport packets with no observed decode failure, but none are ranking or public vehicle requests. The user-visible ranking lock and its native verification are separate evidence; this trace cannot establish native cold-profile recovery or a successful collector fix.",
+    "The Korea paced pipeline returned zero fields twice for all 50 same in-session profiles, with no profile exceeding two detail attempts. This is distinct from Europe's four-profile success and from the serial Korea experiment that recovered ten before its deadline. Different cohorts/windows do not establish a universal batch, pacing or server-cache rule.",
+    "The Korea reconnect diagnostic failed on its first ranking request and never acquired a zero-field cohort. The Thailand diagnostic closed its first socket after capturing 50 zero-field profiles, but its second login stopped with status 21 before any detail read. Neither evaluates the effect of a fresh-session detail request, and no account-status or server-cause meaning is inferred.",
+    "The approved unresolved/null publication policy is separate from proving vehicle recovery: it preserves actual observations and honestly identifies correlated unanswered fields after complete ranking enumeration. The private experiments above did not publish a new ranking snapshot or establish full-scan verification of that policy."
+  ],
+  "pendingExperiments": [],
+  "originalClientCapture": {
+    "evidenceType": "completed passive original Android-client capture; separate from collector pipeline probes",
+    "sourceAggregateFile": "private/native-ranking-capture/capture-20261024T143541Z/report.json",
+    "sourceAggregateSha256": "53da9b79a427a4115b0b31b923c84afae6453df84779d65be7085196d00c7997",
+    "serverFilter": "Bonn only",
+    "finished": true,
+    "routeRestored": true,
+    "nativeLibrarySha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+    "observedTransportPackets": 1269,
+    "directionPacketCounts": {
+      "c2g": 190,
+      "g2c": 1079
+    },
+    "connections": 1,
+    "transportDecodeStatus": "no-failure-observed",
+    "callbackErrors": 0,
+    "truncated": false,
+    "rankingAndProfilePacketCounts": {
+      "c2g:137": 0,
+      "g2c:131": 0,
+      "c2g:20": 0,
+      "g2c:19": 0,
+      "g2c:18": 0,
+      "c2g:16": 0,
+      "g2c:17": 0
+    },
+    "otherAllowlistedMetadata": {
+      "c2g15Packets": 1,
+      "c2g15Records": 1,
+      "c2g15MaskCounts": {
+        "128": 1
+      },
+      "g2c380Packets": 1,
+      "g2c380DescriptorCount": 1,
+      "g2c380Layout": "metadata-only",
+      "g2c14Packets": 1,
+      "g2c14VectorCount": 0
+    },
+    "tutorialAndStateOpcodeCountsOnly": {
+      "c2g:436": 1,
+      "g2c:438": 1,
+      "c2g:425": 1,
+      "g2c:426": 1,
+      "c2g:326": 1,
+      "g2c:404": 1,
+      "g2c:401": 74,
+      "g2c:431": 35,
+      "c2g:415": 73,
+      "g2c:413": 73
+    },
+    "passiveOnly": true,
+    "wrapperRequestsSent": 0,
+    "observerGameRequestsSent": 0,
+    "rankingUiBlocked": true,
+    "uiBlockProvenance": "The parent reports the user-visible 460-clash-win ranking lock and its native UI verification. This lock is separate UI/static evidence, not inferred from unrecorded payloads.",
+    "interpretation": "Transport capture was active and recorded tutorial/state traffic. No ranking or public vehicle query occurred, so this capture cannot demonstrate the native client behavior for cold or zero-field profile replies. Nothing is inferred about other backends from this Bonn-filtered trace."
+  },
+  "currentConclusion": "Selected same-profile single-request recoveries succeeded, but smaller chunks, an exercised delay and a later 50-profile Korea pipeline also failed. Both reconnect comparisons are inconclusive before any fresh-session detail read. No reliable full-backend vehicle recovery is established. All bounded experiments recorded here are closed; full-scan verification of the separately approved unresolved-state publication policy is still pending.",
+  "notRunExperiments": [
+    {
+      "experiment": "paced_single_profile_recovery_pipeline",
+      "backend": "BANGKOK",
+      "status": "No completed Thailand pipeline result is supplied. The later Thailand experiment attempted a reconnect comparison and remained inconclusive."
+    }
+  ]
+}

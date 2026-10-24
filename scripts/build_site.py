@@ -132,7 +132,7 @@ def validate_data(data_dir: Path, *, allow_legacy_snapshot_branch: bool = False)
             if "vehiclesStatus" in row or "vehicles" in row:
                 require({"vehiclesStatus", "vehicles"} <= row.keys(), "incomplete vehicle observation")
                 vehicle_status = row["vehiclesStatus"]
-                require(isinstance(vehicle_status, str) and vehicle_status in {"resolved", "unavailable", "not_collected"}, "invalid vehicle status")
+                require(isinstance(vehicle_status, str) and vehicle_status in {"resolved", "unavailable", "unresolved", "not_collected"}, "invalid vehicle status")
                 vehicles = row["vehicles"]
                 if vehicle_status == "resolved":
                     require(isinstance(vehicles, list) and len(vehicles) <= 255, "invalid public vehicle list")

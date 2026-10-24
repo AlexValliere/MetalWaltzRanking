@@ -294,7 +294,16 @@ for (const unavailable of [unavailableServer, unavailableSteamAsia]) {
     };
     const loadedSnapshot = {
       ...snapshot,
-      rows: rows.map((row) => row.rank === 3 ? { ...row, name: '\u3000' } : row),
+      rows: rows.map((row, index) => ({
+        ...row,
+        ...(row.rank === 3 ? { name: '\u3000' } : {}),
+        ...[
+          { vehiclesStatus: 'unresolved', vehicles: null },
+          { vehiclesStatus: 'unavailable', vehicles: null },
+          { vehiclesStatus: 'resolved', vehicles: [] },
+          { vehiclesStatus: 'not_collected', vehicles: null },
+        ][index],
+      })),
     };
     let currentIndex = { ...index, servers: [server, unavailable] };
     let failNextSnapshot = false;
@@ -328,6 +337,10 @@ for (const unavailable of [unavailableServer, unavailableSteamAsia]) {
       assert.equal(element('names-count').textContent, '3');
       assert.equal(element('ranking-rows').children[2].children[1].textContent, '\u3000');
       assert.equal(element('ranking-rows').children[3].children[1].textContent, 'Name unavailable');
+      assert.deepEqual(element('ranking-rows').children.map((row) => row.children[2].textContent), [
+        'Vehicle data unresolved', 'Vehicles unavailable', 'No public vehicles', 'Vehicles not collected',
+      ]);
+      assert.match(element('vehicle-note').textContent, /lists available for 1 of 4 entries/);
       assert.equal(element('download-json').href, './data/Bonn.rankings.json');
       const steamTab = element('server-tabs').children.find((button) => button.dataset.key === unavailable.key);
       assert.equal(steamTab.textContent, `${displayName}Not collected`);
@@ -500,13 +513,16 @@ const vehicleCatalog = {
   },
 };
 
-test('public vehicle states distinguish an empty observed list from unavailable and legacy data', () => {
+test('public vehicle states distinguish observed lists, unresolved, unavailable and uncollected data', () => {
   assert.deepEqual(publicVehicles(rows[0]), { status: 'not_collected', vehicles: [] });
   assert.deepEqual(publicVehicles({ vehiclesStatus: 'unavailable', vehicles: null }), {
     status: 'unavailable', vehicles: [],
   });
   assert.deepEqual(publicVehicles({ vehiclesStatus: 'not_collected', vehicles: null }), {
     status: 'not_collected', vehicles: [],
+  });
+  assert.deepEqual(publicVehicles({ vehiclesStatus: 'unresolved', vehicles: null }), {
+    status: 'unresolved', vehicles: [],
   });
   assert.deepEqual(publicVehicles({ vehiclesStatus: 'resolved', vehicles: [] }), {
     status: 'resolved', vehicles: [],
@@ -524,6 +540,7 @@ test('snapshot validation requires a complete, truthful public vehicle state pai
     { vehiclesStatus: 'resolved', vehicles: [publicVehicle] },
     { vehiclesStatus: 'resolved', vehicles: [] },
     { vehiclesStatus: 'unavailable', vehicles: null },
+    { vehiclesStatus: 'unresolved', vehicles: null },
     { vehiclesStatus: 'not_collected', vehicles: null },
   ]) assert.doesNotThrow(() => validateSnapshot(withVehicle(change), server));
   for (const change of [
@@ -531,6 +548,9 @@ test('snapshot validation requires a complete, truthful public vehicle state pai
     { vehicles: [] },
     { vehiclesStatus: 'resolved', vehicles: null },
     { vehiclesStatus: 'unavailable', vehicles: [] },
+    { vehiclesStatus: 'unresolved', vehicles: [] },
+    { vehiclesStatus: 'unresolved', vehicles: [publicVehicle] },
+    { vehiclesStatus: 'unresolved' },
     { vehiclesStatus: 'not_collected', vehicles: [publicVehicle] },
     { vehiclesStatus: 'guessed', vehicles: [publicVehicle] },
   ]) assert.throws(() => validateSnapshot(withVehicle(change), server));
@@ -591,4 +611,16 @@ test('name search, rank paging and CSV keep their behavior when public vehicle d
   assert.deepEqual(filterRows(enriched, 'alex'), [enriched[0]]);
   assert.equal(pageForRank(enriched, 4), 0);
   assert.equal(rowsToCsv(enriched), rowsToCsv(rows));
+  const mixed = enriched.map((row, index) => ({
+    ...row,
+    ...[
+      { vehiclesStatus: 'unresolved', vehicles: null },
+      { vehiclesStatus: 'unavailable', vehicles: null },
+      { vehiclesStatus: 'not_collected', vehicles: null },
+      { vehiclesStatus: 'resolved', vehicles: [] },
+    ][index],
+  }));
+  assert.deepEqual(filterRows(mixed, 'alex'), [mixed[0]]);
+  assert.equal(pageForRank(mixed, 4), 0);
+  assert.equal(rowsToCsv(mixed), rowsToCsv(rows));
 });

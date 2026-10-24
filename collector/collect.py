@@ -88,7 +88,8 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock,
                                              batch_request_gap_seconds=server.get("batchRequestGapSeconds", 0.25),
                                              session_seconds=server.get("sessionSeconds", SESSION_SECONDS),
-                                             vehicle_zero_recovery=server.get("protocolProfile", "mobile") == "mobile")
+                                             vehicle_zero_recovery=server.get("protocolProfile", "mobile") == "mobile",
+                                             vehicle_partial_results=server.get("protocolProfile", "mobile") == "mobile")
             connection.read_phase = "login"
             connection.send(324, request)
             status, account = login_reply(connection.receive(331))
@@ -131,15 +132,21 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             connection.receive(438)
             collect_vehicles = server.get("collectVehicles", True)
             rows = enumerate_rankings(connection, progress=progress, collect_vehicles=collect_vehicles)
+            if collect_vehicles:
+                connection.finish_vehicles()
             public_rows = []
             for rank, (identity, score) in enumerate(rows, 1):
                 resolved = connection.name_resolved(identity)
+                vehicle_status = ("not_collected" if not collect_vehicles else
+                                  "resolved" if identity in connection.vehicles else
+                                  "unresolved" if identity in connection.vehicle_unresolved else
+                                  "unavailable" if identity in connection.vehicle_failures else None)
+                if vehicle_status is None:
+                    raise ValueError("Missing public vehicle observation")
                 public_rows.append({"rank": rank, "name": connection.names[identity] if resolved else None,
                                     "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable",
-                                    "vehiclesStatus": ("not_collected" if not collect_vehicles else
-                                                       "unavailable" if identity in connection.vehicle_failures else "resolved"),
-                                    "vehicles": (None if not collect_vehicles or identity in connection.vehicle_failures
-                                                 else connection.vehicles[identity])})
+                                    "vehiclesStatus": vehicle_status,
+                                    "vehicles": connection.vehicles[identity] if vehicle_status == "resolved" else None})
             snapshot = {"schema": SNAPSHOT_SCHEMA, "serverKey": server["key"], "aliases": server["aliases"],
                         "serverNames": server["serverNames"], "fund": 5, "startedAtUtc": started,
                         "completedAtUtc": now(), "rankingEnumerationComplete": True,
@@ -196,6 +203,7 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
         entry = entries[position]
         attempted = now()
         read_phase, failed_read_phase = "not_started", None
+        vehicle_coverage = {}
         try:
             remaining_seconds(deadline, clock)
             if credentials is None:
@@ -211,6 +219,16 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
             entry = snapshot_entry(directory, server, "ok")
             if entry["file"] is None:
                 raise CollectionStopped("snapshot_write_failed")
+            vehicle_coverage = {"vehiclesResolvedEmpty": 0, "vehiclesResolvedNonempty": 0,
+                                "vehiclesUnavailable": 0, "vehiclesUnresolved": 0,
+                                "vehiclesNotCollected": 0}
+            for row in snapshot["rows"]:
+                status = row.get("vehiclesStatus", "not_collected")
+                field = (("vehiclesResolvedNonempty" if row["vehicles"] else "vehiclesResolvedEmpty")
+                         if status == "resolved" else {"unavailable": "vehiclesUnavailable",
+                                                      "unresolved": "vehiclesUnresolved",
+                                                      "not_collected": "vehiclesNotCollected"}[status])
+                vehicle_coverage[field] += 1
         except Exception as error:
             failures += 1
             entry.update(refreshStatus="failed", errorCode=error_code(error))
@@ -220,6 +238,7 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
         entries[position] = entry
         emit(serverKey=key, phase="finished", refreshStatus=entry["refreshStatus"],
              rows=entry["rows"], namesResolved=entry["namesResolved"],
+             **vehicle_coverage,
              **({"errorCode": entry["errorCode"]} if "errorCode" in entry else {}),
              **({"readPhase": failed_read_phase} if failed_read_phase is not None else {}))
         # Save each completed backend immediately, keeping a coherent full index

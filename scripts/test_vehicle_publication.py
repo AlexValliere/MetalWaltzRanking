@@ -45,11 +45,12 @@ def portrait_fixture(source):
 
 
 class VehiclePublicationTests(unittest.TestCase):
-    def test_observed_empty_unavailable_and_legacy_profiles_remain_distinct(self):
+    def test_observed_empty_unresolved_unavailable_and_legacy_profiles_remain_distinct(self):
         profiles = [
             {},
             {"vehiclesStatus": "resolved", "vehicles": []},
             {"vehiclesStatus": "unavailable", "vehicles": None},
+            {"vehiclesStatus": "unresolved", "vehicles": None},
             {"vehiclesStatus": "not_collected", "vehicles": None},
             {"vehiclesStatus": "resolved", "vehicles": [{"capsuleTypeId": 32, "phase": 4, "level": None, "fate": False}]},
         ]
@@ -65,6 +66,10 @@ class VehiclePublicationTests(unittest.TestCase):
             {"vehiclesStatus": "resolved"},
             {"vehicles": []},
             {"vehiclesStatus": "unavailable", "vehicles": []},
+            {"vehiclesStatus": "unresolved", "vehicles": []},
+            {"vehiclesStatus": "unresolved", "vehicles": [{"capsuleTypeId": 32, "phase": 4, "level": 50, "fate": True}]},
+            {"vehiclesStatus": "unresolved"},
+            {"vehiclesStatus": "guessed", "vehicles": None},
             {"vehiclesStatus": "resolved", "vehicles": [{"capsuleTypeId": 32, "phase": 4, "level": 50, "fate": True, "instanceId": 123}]},
             {"vehiclesStatus": "resolved", "vehicles": [{"capsuleTypeId": 32, "phase": 4, "level": -1, "fate": True}]},
         ]
@@ -75,6 +80,26 @@ class VehiclePublicationTests(unittest.TestCase):
                 observed_row(directory, index, **profile)
                 with self.assertRaises(ValidationError):
                     validate_data(directory)
+
+    def test_unresolved_null_and_actual_vehicle_data_are_published_without_rewriting(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            source = base / "site"
+            index = fixture(source / "data")
+            (source / "index.html").write_text("<h1>Rankings</h1>", encoding="utf-8")
+            entry = index["servers"][0]
+            path = source / "data" / entry["file"]
+            snapshot = json.loads(path.read_text(encoding="utf-8"))
+            snapshot["rows"][0].update(vehiclesStatus="unresolved", vehicles=None)
+            snapshot["rows"][1].update(vehiclesStatus="resolved", vehicles=[
+                {"capsuleTypeId": 32, "phase": 4, "level": 50, "fate": True},
+            ])
+            raw = json.dumps(snapshot, ensure_ascii=False).encode("utf-8")
+            path.write_bytes(raw)
+            entry["sha256"] = hashlib.sha256(raw).hexdigest()
+            write_index(source / "data", index)
+            self.assertEqual(build_site(source, base / "public"), len(SERVER_KEYS))
+            self.assertEqual((base / "public" / "data" / entry["file"]).read_bytes(), raw)
 
     def test_generated_portrait_and_catalog_are_published_after_hash_validation(self):
         with tempfile.TemporaryDirectory() as folder:

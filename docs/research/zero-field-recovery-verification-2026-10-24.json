@@ -1,0 +1,649 @@
+{
+  "schema": "metal-waltz.zero-field-recovery-verification.v1",
+  "fetchStartedAtUtc": "2026-10-24T13:01:07.751771Z",
+  "fetchCompletedAtUtc": "2026-10-24T13:01:12.474104Z",
+  "scope": "Read-only public/durable snapshot verification plus separate aggregate evidence from an authorized completed bounded Korea diagnostic. The note author made no game connection. No credentials, account/player identity values, raw protocol packets or raw private captures are included.",
+  "runOutcomes": {
+    "source": "Sanitized completed hosted-run outcomes supplied by the parent agent in this session; no raw hosted logs were copied.",
+    "runId": 40092925914,
+    "sourceRevision": "72c9612",
+    "build": "success",
+    "deploy": "success",
+    "collectionStatus": "failure",
+    "publicVehicleReplyTimeoutBackends": [
+      "Bonn",
+      "KOREA",
+      "BANGKOK"
+    ],
+    "errorCode": "reply_timeout",
+    "readPhase": "public_vehicles",
+    "successfulBackends": [
+      "YaleAndroid",
+      "YaleIOS",
+      "JP",
+      "JKMIX",
+      "SteamJP",
+      "SteamBonn",
+      "SteamUSAVA"
+    ]
+  },
+  "sourceProvenance": {
+    "publishedIndexUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/index.json",
+    "durableIndexUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/index.json",
+    "indexSha256": "a796600ab2e0cdfb38974b08d5a48a5c60871488b1b7e2dfd3c6234b12b2da0b",
+    "indexBytes": 4124,
+    "indexGeneratedAtUtc": "2026-10-24T12:45:39.201075Z",
+    "publishedAndDurableIndexBytesIdentical": true,
+    "bothIndexesStableThroughoutFetch": true,
+    "allTenPublishedAndDurableSnapshotHashesVerified": true,
+    "allTenSnapshotPairsBytesIdentical": true,
+    "strictPublicSchemaValidation": "scripts.build_site.validate_data passed independently for both complete 10-backend downloads; unknown fields/files and hash mismatches remain rejected.",
+    "backendCount": 10,
+    "httpRequestCount": 24,
+    "gitStateChanged": false
+  },
+  "comparisonReference": {
+    "file": "docs/research/vehicle-refresh-verification-2026-10-24.json",
+    "fileSha256": "3b9c9a1c114c68fa5b332258fb041a1dacb0b315151b61e8691109ea9b658cb6",
+    "indexSha256": "51f0cc4d684af9529082296ff23e57787501f83f41b8765287f08b333c9190b0",
+    "totals": {
+      "rows": 299212,
+      "namesResolved": 297759,
+      "namesMissing": 1453,
+      "vehicleStates": {
+        "not_collected": 272217,
+        "unavailable": 1453,
+        "resolved_empty": 18607,
+        "resolved_nonempty": 6935
+      },
+      "legacyWithoutVehicleFields": 125731,
+      "explicitNotCollected": 146486
+    }
+  },
+  "backends": [
+    {
+      "key": "Bonn",
+      "rows": 76797,
+      "namesResolved": 76797,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 76797,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 76797,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T12:12:53.834664Z",
+      "startedAtUtc": "2026-10-22T19:53:46.585513Z",
+      "completedAtUtc": "2026-10-22T19:55:14.288556Z",
+      "snapshotDisposition": "retained_last_good",
+      "classification": "Retained last-good legacy snapshot after public_vehicles reply_timeout; no new vehicle coverage was published.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": true,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/Bonn.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/Bonn.rankings.json",
+      "file": "Bonn.rankings.json",
+      "bytes": 5644820,
+      "sha256": "7d4674484ed0e61466ea999cc1782d9a2bab4d751fea23346329dcb2dfd27561",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "YaleAndroid",
+      "rows": 14074,
+      "namesResolved": 14074,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 9777,
+        "resolved_nonempty": 4297
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:14:16.947239Z",
+      "startedAtUtc": "2026-10-24T12:14:16.947277Z",
+      "completedAtUtc": "2026-10-24T12:16:03.701459Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh successful snapshot with observed vehicle fields; unavailable is an explicit observation, not inferred from a timeout.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": -1,
+          "resolved_nonempty": 1
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/YaleAndroid.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/YaleAndroid.rankings.json",
+      "file": "YaleAndroid.rankings.json",
+      "bytes": 2815401,
+      "sha256": "21860a23ac159cb4fb0a986195185a6bf509b1a75f95fa62434809bd4a3b0167",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "YaleIOS",
+      "rows": 3531,
+      "namesResolved": 2078,
+      "namesMissing": 1453,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 1453,
+        "resolved_empty": 1608,
+        "resolved_nonempty": 470
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:16:03.907843Z",
+      "startedAtUtc": "2026-10-24T12:16:03.907955Z",
+      "completedAtUtc": "2026-10-24T12:17:11.009200Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh successful snapshot with observed vehicle fields; unavailable is an explicit observation, not inferred from a timeout.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/YaleIOS.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/YaleIOS.rankings.json",
+      "file": "YaleIOS.rankings.json",
+      "bytes": 534162,
+      "sha256": "0e57b6219b04c6e5d4d3c2ddf1e86bf02fcc88a142d30c5638efcaa0bb189175",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "JP",
+      "rows": 1066,
+      "namesResolved": 1066,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 663,
+        "resolved_nonempty": 403
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:17:11.044176Z",
+      "startedAtUtc": "2026-10-24T12:17:11.044199Z",
+      "completedAtUtc": "2026-10-24T12:17:21.032812Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh successful snapshot with observed vehicle fields; unavailable is an explicit observation, not inferred from a timeout.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/JP.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/JP.rankings.json",
+      "file": "JP.rankings.json",
+      "bytes": 234709,
+      "sha256": "9fceec726897e2e6910626928e92fbe0c25203437d29241f4d6f367b27811ace",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "KOREA",
+      "rows": 13765,
+      "namesResolved": 13765,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 13765,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 13765,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T12:17:21.050214Z",
+      "startedAtUtc": "2026-10-22T20:01:38.372698Z",
+      "completedAtUtc": "2026-10-22T20:06:08.625830Z",
+      "snapshotDisposition": "retained_last_good",
+      "classification": "Retained last-good legacy snapshot after public_vehicles reply_timeout; no new vehicle coverage was published.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": true,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/KOREA.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/KOREA.rankings.json",
+      "file": "KOREA.rankings.json",
+      "bytes": 1016714,
+      "sha256": "2fcca341abbbce51c82fd4269051d7e69c8437f2576751a0bdc7e696cb7e51b3",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "JKMIX",
+      "rows": 8324,
+      "namesResolved": 8324,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 0,
+        "unavailable": 0,
+        "resolved_empty": 6558,
+        "resolved_nonempty": 1766
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 0,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:18:35.351792Z",
+      "startedAtUtc": "2026-10-24T12:18:35.351822Z",
+      "completedAtUtc": "2026-10-24T12:19:40.490141Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh successful snapshot with observed vehicle fields; unavailable is an explicit observation, not inferred from a timeout.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/JKMIX.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/JKMIX.rankings.json",
+      "file": "JKMIX.rankings.json",
+      "bytes": 1420260,
+      "sha256": "12c8e0d1b301c094483ecdccffed19111fe6e6a67bc5fba1d1d0aaf4470393ea",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "BANGKOK",
+      "rows": 35169,
+      "namesResolved": 35169,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 35169,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 35169,
+      "explicitNotCollected": 0,
+      "refreshStatus": "failed",
+      "errorCode": "reply_timeout",
+      "lastAttemptAtUtc": "2026-10-24T12:19:40.580634Z",
+      "startedAtUtc": "2026-10-22T20:03:52.736685Z",
+      "completedAtUtc": "2026-10-22T20:09:23.007307Z",
+      "snapshotDisposition": "retained_last_good",
+      "classification": "Retained last-good legacy snapshot after public_vehicles reply_timeout; no new vehicle coverage was published.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": true,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/BANGKOK.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/BANGKOK.rankings.json",
+      "file": "BANGKOK.rankings.json",
+      "bytes": 2522151,
+      "sha256": "9fea66f129ef6584c6289e632be8e67e79a0eea31403308c6b1c10dbac108aeb",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "SteamJP",
+      "rows": 98518,
+      "namesResolved": 98518,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 98518,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 98518,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:21:04.347584Z",
+      "startedAtUtc": "2026-10-24T12:21:04.347612Z",
+      "completedAtUtc": "2026-10-24T12:37:32.673959Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh ranking snapshot; vehicle fields remain explicitly not_collected because production Steam vehicle collection is disabled.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamJP.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/SteamJP.rankings.json",
+      "file": "SteamJP.rankings.json",
+      "bytes": 12051147,
+      "sha256": "74b93ad744e5bf86c926dbdb0e173565b7680f6eec146c6dd6a876cf4a9ab055",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "SteamBonn",
+      "rows": 37913,
+      "namesResolved": 37913,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 37913,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 37913,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:37:33.283775Z",
+      "startedAtUtc": "2026-10-24T12:37:33.283809Z",
+      "completedAtUtc": "2026-10-24T12:43:55.357674Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh ranking snapshot; vehicle fields remain explicitly not_collected because production Steam vehicle collection is disabled.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamBonn.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/SteamBonn.rankings.json",
+      "file": "SteamBonn.rankings.json",
+      "bytes": 4606792,
+      "sha256": "9eab02df8ea3eecc6e48bab37d33cea3d26b4c438ab664e380cbcd157e5bb361",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    },
+    {
+      "key": "SteamUSAVA",
+      "rows": 10055,
+      "namesResolved": 10055,
+      "namesMissing": 0,
+      "vehicleStates": {
+        "not_collected": 10055,
+        "unavailable": 0,
+        "resolved_empty": 0,
+        "resolved_nonempty": 0
+      },
+      "legacyWithoutVehicleFields": 0,
+      "explicitNotCollected": 10055,
+      "refreshStatus": "ok",
+      "errorCode": null,
+      "lastAttemptAtUtc": "2026-10-24T12:43:55.608937Z",
+      "startedAtUtc": "2026-10-24T12:43:55.608974Z",
+      "completedAtUtc": "2026-10-24T12:45:39.134481Z",
+      "snapshotDisposition": "fresh_success",
+      "classification": "Fresh ranking snapshot; vehicle fields remain explicitly not_collected because production Steam vehicle collection is disabled.",
+      "changesFromReference": {
+        "rows": 0,
+        "namesResolved": 0,
+        "namesMissing": 0,
+        "vehicleStates": {
+          "not_collected": 0,
+          "unavailable": 0,
+          "resolved_empty": 0,
+          "resolved_nonempty": 0
+        }
+      },
+      "snapshotBytesUnchangedFromReference": false,
+      "publishedSourceUrl": "https://alexvalliere.github.io/MetalWaltzRanking/data/SteamUSAVA.rankings.json",
+      "durableSourceUrl": "https://raw.githubusercontent.com/AlexValliere/MetalWaltzRanking/snapshots/data/SteamUSAVA.rankings.json",
+      "file": "SteamUSAVA.rankings.json",
+      "bytes": 1207435,
+      "sha256": "e1812e0adf8b3204385984bd0750a6b167232550128a3610a7c1ec7f8979c329",
+      "hashVerifiedAgainstIndex": true,
+      "publishedAndDurableBytesIdentical": true
+    }
+  ],
+  "totals": {
+    "rows": 299212,
+    "namesResolved": 297759,
+    "namesMissing": 1453,
+    "legacyWithoutVehicleFields": 125731,
+    "explicitNotCollected": 146486,
+    "vehicleStates": {
+      "not_collected": 272217,
+      "unavailable": 1453,
+      "resolved_empty": 18606,
+      "resolved_nonempty": 6936
+    }
+  },
+  "changesFromReference": {
+    "rows": 0,
+    "namesResolved": 0,
+    "namesMissing": 0,
+    "legacyWithoutVehicleFields": 0,
+    "explicitNotCollected": 0,
+    "vehicleStates": {
+      "not_collected": 0,
+      "unavailable": 0,
+      "resolved_empty": -1,
+      "resolved_nonempty": 1
+    }
+  },
+  "interpretation": [
+    "Compared with docs/research/vehicle-refresh-verification-2026-10-24.json, total rows and names are unchanged. The only vehicle-state count difference is YaleAndroid: resolved_nonempty increased by one and resolved_empty decreased by one. This aggregate change is not attributed to zero-field recovery.",
+    "Europe, Korea and Thailand still retain their 22 October legacy ranking snapshots without vehicle fields after public_vehicles reply_timeout. Their public snapshot bytes are unchanged from the comparison reference; zero-field recovery did not publish new vehicle coverage on those three backends.",
+    "The seven other backends completed this refresh, including Steam USA. Successful Steam ranking refreshes do not imply vehicle coverage; all Steam vehicle states remain explicitly not_collected.",
+    "Vehicle-state deltas are aggregate published coverage differences. They do not establish a server-internal cause, whether a recovery branch executed, or reliable full-backend profile collection.",
+    "A failed refresh preserves the complete last-good snapshot. No partial profile results from the failed attempts are included, and a timeout is not relabeled unavailable or an empty observed list."
+  ],
+  "boundedDiagnostic": {
+    "evidenceType": "completed authorized bounded live diagnostic; aggregate-only review",
+    "recordedAtUtc": "2026-10-24T13:17:38.699043Z",
+    "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T131411540575Z-KOREA.json",
+    "sourceAggregateSha256": "02500e3edc0a685a42a073c56695fd7af1a0a62d40b7eac744454f1fdbbffc71",
+    "sourceRevision": "72c9612467f053b3db67ae2ca9bfef2b96ec7cc2",
+    "collectorSourceSha256": {
+      "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+      "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+      "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+      "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+      "collector/collect.py": "64188f9729e436114bdf55af6bc906ad73cfaa7fd61ac37e23e52a599d1b7566",
+      "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+      "collector/connection.py": "47fbfff466d3cafdda4f0ef698343a8fff1c59f8e6f41dcd4a5006c6fec33683",
+      "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+      "collector/snapshots.py": "6f039a63731933d72f4b78f0c1a636438f5f854fcccebd710846a38709276d73",
+      "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+      "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+      "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+      "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+      "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+      "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+    },
+    "helper": "private/probe_vehicle_prefix.py",
+    "backend": "KOREA",
+    "rowBound": 5000,
+    "sessionAndRunSecondsBound": 180,
+    "initialVehicleMask": 12,
+    "initialVehicleBatchMaximum": 50,
+    "startedAtUtc": "2026-10-24T13:12:23.582011+00:00",
+    "completedAtUtc": "2026-10-24T13:14:11.540207+00:00",
+    "elapsedWallSeconds": 107.958196,
+    "outcome": "bounded_incomplete",
+    "processExitCode": 1,
+    "errorCode": "reply_timeout",
+    "reason": "reply_missing",
+    "readPhase": "public_vehicles",
+    "terminalWaitStage": "requery",
+    "rankingPageOffsetAtFailure": 1200,
+    "rankingPageRows": 200,
+    "vehicleSubbatchAtFailure": 1,
+    "rankingRowsReceived": 1400,
+    "distinctProfilesQueriedForVehicles": 1250,
+    "rankingRowsNotYetQueriedForVehicles": 150,
+    "queryStageCounts": {
+      "initial": 25,
+      "requery": 1
+    },
+    "profileRequestRowRecordsByStage": {
+      "initial": 1250,
+      "requery": 46
+    },
+    "request20Packets": 26,
+    "incomingDetailMaskCounts": {
+      "12": 1204,
+      "0": 92
+    },
+    "actualCapsuleListsObserved": 1204,
+    "resolvedNonemptyListsObserved": 1088,
+    "resolvedEmptyListsObserved": 116,
+    "profilesStillMissingVehicleFields": 46,
+    "initialFailingBatch": {
+      "rows": 50,
+      "actualMask12Descriptors": 4,
+      "keyedZeroFieldDescriptors": 46,
+      "all46ZeroFieldProfilesHadActualSuccessful17": true,
+      "activeProfileStateGroups": [
+        {
+          "observedMask": 0,
+          "failedMask": 0,
+          "zeroHint": true,
+          "nickname": "successful17",
+          "detailAttempts": 1,
+          "rows": 46
+        },
+        {
+          "observedMask": 12,
+          "failedMask": 0,
+          "zeroHint": false,
+          "nickname": "not_sent",
+          "detailAttempts": 1,
+          "rows": 4
+        }
+      ],
+      "wholeProbeMaskCountsBeforeRecovery": {
+        "12": 1204,
+        "0": 46
+      }
+    },
+    "singleBoundedRecovery": {
+      "targetedProfiles": 46,
+      "additionalRequest20Packets": 1,
+      "returnedActualMask12Descriptors": 0,
+      "returnedKeyedZeroFieldDescriptors": 46,
+      "additionalRequest16Packets": 0,
+      "targetedProfilesDetailAttempts": 2,
+      "profilesAboveTwoAttempts": 0,
+      "thirdDetailRequestSent": false,
+      "timeoutOrMalformedReplyRetried": false,
+      "activeProfileStateGroupsAtStop": [
+        {
+          "observedMask": 0,
+          "failedMask": 0,
+          "zeroHint": true,
+          "nickname": "successful17",
+          "detailAttempts": 2,
+          "rows": 46
+        },
+        {
+          "observedMask": 12,
+          "failedMask": 0,
+          "zeroHint": false,
+          "nickname": "not_sent",
+          "detailAttempts": 1,
+          "rows": 4
+        }
+      ],
+      "nicknameReplyStateProvenance": "The 46 unresolved profiles had actual successful request-17 replies before their initial detail request and recovery; the active-state groups report that correlation without publishing identity values.",
+      "zeroDescriptorNicknameStateCounts": {
+        "successful17": 92
+      }
+    },
+    "terminalProgress": {
+      "detailAttemptHistogram": {
+        "1": 1204,
+        "2": 46
+      },
+      "successfulNicknameReplyProfiles": 193,
+      "failedNicknameReplyProfiles": 0,
+      "sessionRemainingSeconds": 72.288,
+      "runRemainingSeconds": 72.043,
+      "queuedMessages": 0,
+      "decoderBufferedBytes": 0,
+      "emptyDetail18Vectors": 26,
+      "overallBudgetExpired": false
+    },
+    "publication": {
+      "partialSnapshotPublished": false,
+      "unavailableOrEmptyStateFabricated": false,
+      "previousPublicCoverageReplacedByDiagnostic": false
+    },
+    "limits": [
+      "This is one authorized bounded Korea production-prefix diagnostic on the recorded committed source. It is separate from the hosted run and does not prove that Europe, Korea or Thailand hosted failures had precisely the same cause.",
+      "The 5,000-row and 180-second settings are ceilings, not completed coverage: 1,400 ranking rows were received, 1,250 distinct profiles were queried, and the final 150 ranking rows had not yet been queried for vehicles. Of the queried profiles, 1,204 supplied actual lists and 46 remained unresolved.",
+      "The mask-zero count of 92 describes 46 initial descriptors plus 46 repeated descriptors for the same unresolved profiles. It does not represent 92 distinct missing profiles or any empty/unavailable list.",
+      "Only the 46 keyed zero-field acknowledgments were followed up once. No third request 20, repeat nickname request, timeout/malformed-response retry or fabricated availability completed the transaction.",
+      "The remaining run/session budgets and empty local queue/decoder buffer describe the terminal observation. They establish that the overall budget had not expired, but do not prove that no later network reply could ever arrive.",
+      "Successful nickname replies did not produce vehicle fields for these 46 profiles in either detail attempt. No server-internal, rate-limit, batch-size, cache, packet-size or native-behavior cause is established by this observation.",
+      "No account/player identity values, names, cohort digests or raw packets are included. Aggregate active-state groups and source hashes are sufficient to distinguish parsed zero-field acknowledgments from actual field updates."
+    ]
+  }
+}

@@ -245,13 +245,17 @@ credential, session value or raw response is part of this contract.
 New observations add the paired fields `vehiclesStatus` and `vehicles`:
 
 ```text
-vehiclesStatus: resolved | unavailable | not_collected
+vehiclesStatus: resolved | unavailable | unresolved | not_collected
 vehicles: null | [{capsuleTypeId, phase, level, fate}, ...]
 ```
 
 `resolved` carries the ordered list actually returned by the server, including
-an empty list. The other states carry null; legacy rows without either field
-mean not collected. Capsule type is a public reference-data identifier, never
+an empty list. `unavailable` means an explicit terminal capsule-field miss.
+`unresolved` means a correlated zero-field reply left capsule data unanswered
+after the bounded mobile policy; it does not assert availability. `not_collected`
+means that collection was disabled or no observation was attempted. These three
+states carry null; legacy rows without either field mean not collected.
+Capsule type is a public reference-data identifier, never
 an owned-instance ID. Phase is the native generation byte; level is a carried
 nonnegative value or null, and Fate Pin follows the observed category-20 flag.
 The complete list is retained even when the row shows only its first six images.
@@ -261,8 +265,10 @@ Request 20 uses at most 50 `(u32 playerID, u8 mask)` records per transaction,
 with initial mask 12. Keyed response 19 may split masks across records. Bit 4 carries
 capsule type, phase and a faculty vector; bit 8 carries tactics pairs, consumed
 without converting them into a guessed formation. Unknown masks, conflicting
-duplicates and incomplete transactions stop the backend rather than publishing
-a fabricated or partial list. Native evidence and read-only pilot aggregates are
+duplicates and silent or malformed transactions stop the backend rather than
+publishing a fabricated list. The narrow keyed-zero outcome described below may
+publish an unresolved vehicle status with a null list alongside actual observations
+after complete ranking enumeration. Native evidence and read-only pilot aggregates are
 recorded in [the public-vehicle trace](research/public-vehicles-protocol.json).
 
 Disjoint mask-4 and mask-8 records for one player may occur inside the same 19
@@ -270,8 +276,9 @@ packet, as well as in separate packets. The Steam native handler dispatches each
 record's fields independently. The collector accepts that grouping while rejecting
 any repeated field, invalid identity or unsupported mask.
 A correlated mask-zero record updates no fields and does not establish an
-empty/unavailable profile. Mobile collection uses it only as an explicit keyed
-hint for the bounded recovery policy below. Unanswered requests still time out.
+empty/unavailable profile. Mobile collection uses it as an explicit keyed hint
+for the bounded recovery policy below. Requests without a correlated response
+still time out.
 
 Response 18 is a keyed primary-detail miss and may follow a partial response 19.
 The native client tracks capsule and tactics requirements independently. Identity
@@ -294,15 +301,29 @@ otherwise one new 16 is allowed, and only an actual successful 17 permits 20.
 The follow-up includes only still-missing identities and fields, within the same
 50-record batch limit and pacing. This is one shared recovery allowance per
 identity across explicit-18 and zero-field replies. Further zero replies cannot
-trigger a third 20. Failed or missing warm-up after a zero hint leaves fields
-pending for actual data or timeout; it does not create an unavailable or empty
-profile. Timeouts and malformed replies are not retried; the backend stops and
-retains its previous complete snapshot. Steam collection does not enable this
-recovery or collect public vehicle lists.
+trigger a third 20. With the mobile `vehicle_partial_results` policy enabled,
+capsule fields still unanswered by a correlated zero reply become
+`vehiclesStatus: "unresolved"` with `vehicles: null` after the bounded recovery
+decision. An actual capsule-bit-4 update remains `resolved`, including an empty
+vector, even if tactics bit 8 remains unanswered. An explicit terminal capsule
+miss remains `unavailable`. A zero hint, including one whose nickname warm-up
+does not succeed, never fabricates an empty or unavailable list.
+
+This permits publishing a complete validated ranking with mixed actual,
+unavailable and unresolved vehicle observations. It does not permit publishing
+an incomplete ranking, treating a silent request as a keyed zero, or suppressing
+malformed/uncorrelated replies, transport failures or deadlines. Those failures
+still stop the backend and retain its previous complete snapshot. No timeout
+or malformed response is retried. Steam collection does not enable this policy
+or collect public vehicle lists.
 
 The zero-field follow-up is a collector policy supported by
 [bounded live observations](research/vehicle-field-probes-2026-10-24.json);
-it is not an inferred native retry timer. Full-scan verification is still pending.
+it is not an inferred native retry timer. The later
+[cold-profile experiments](research/vehicle-cold-profile-experiments-2026-10-24.json)
+include both successful bounded recoveries and repeated-zero failures; neither
+establishes reliable complete vehicle coverage. Full-scan verification of the
+unresolved-state publication policy is still pending.
 The collector also
 keeps a narrower identity-lookup policy than the native client. Native 18 can
 leave requirements pending when an identity lookup is throttled, and both a

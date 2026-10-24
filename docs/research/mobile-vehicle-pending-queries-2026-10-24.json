@@ -1,0 +1,181 @@
+{
+  "schema": "metal-waltz.mobile-vehicle-pending-queries-static-evidence.v1",
+  "recordedClientDate": "2026-10-24",
+  "scope": "Read-only local Ghidra analysis. No game login, game-server request, collector source change, or raw player data is included. This note establishes native client behavior, not server internals or a successful fix for the repeated zero-field observations.",
+  "nativeProgram": {
+    "name": "metal-waltz-libasgame-arm64-research.so",
+    "ghidraProgram": "/MaidenWaltzResearch/metal-waltz-libasgame-arm64-research.so",
+    "language": "AARCH64:LE:64:v8A",
+    "imageBase": "0x00100000",
+    "sha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+    "provenance": "The reopened program executable path was read from Ghidra metadata and the corresponding local file was hashed. This is the historical mobile research binary, not the separately discovered current extracted libasgame.so."
+  },
+  "zeroFieldHandling": {
+    "dispatch": "0x007fb9c0, PlayerDetailedInfoDesc_Ntf_Item, calls a field strategy only when its bit is present in the descriptor mask. A zero mask dispatches no field, completes no pending field and updates no field timestamp.",
+    "periodicSocialUpdate": "0x007f84dc, Social_Set::update(float), returns immediately. There is no periodic query or zero-retry code in this function.",
+    "query20CallerInventory": "The QueryPlayerDetailDesc_Req thunk at 0x006f9af0 has two direct call sites: 0x007f8d60 inside clearIDQueryTransaction and 0x007fcb08 inside loadForDetail. No separate zero-mask retry caller was identified in this inventory.",
+    "limit": "These inspected functions contain no special zero-mask recovery timer. This is not an exhaustive proof about all possible external or indirect client behavior."
+  },
+  "fieldRequestEligibility": {
+    "capsuleLoader": "0x00791dc4, PlayerSocialRecords<PlayerDetailInfoDesc, vector<CapsuleQueryDesc>>::checkCreateTransaction.",
+    "tacticsLoader": "0x00790d64 has the corresponding eligibility logic for vector<TacticsQueryDesc>.",
+    "newOrExpired": "The loader returns send-needed=1 when its timestamp is below 1 or timestamp + caller_cache_age <= current_clock_seconds. It stores the current timestamp when creating a requirement for a send. Thus this timestamp is set before a successful field reply, not solely by successful replies.",
+    "freshWithPending": "If the timestamp is fresh and its pending requirement vector is nonempty, the loader creates another requirement and refreshes the timestamp, but returns send-needed=0. Merely invoking the loader again immediately therefore does not necessarily emit a new request.",
+    "freshWithoutPending": "If its timestamp is fresh and the pending vector is empty, the loader returns 0 and creates no new requirement.",
+    "negativeCacheAge": "With negative cache age and an existing positive timestamp, the loader returns 0 before creating another requirement.",
+    "success": "0x00791ca4, capsule updateFromPackage, refreshes the timestamp, copies the received capsule vector and completes its requirements through resultedForDetailQueries(..., true). Empty vectors are still received field data.",
+    "assembly": {
+      "argumentPreservation": "0x00791dec saves caller cache age from w3 to w20.",
+      "expiration": "0x00791f7c adds saved timestamp and cache age; 0x00791f80 compares with current time; 0x00791f84 branches on less-or-equal to the send-needed=1 path at 0x00791fcc.",
+      "freshPending": "0x00791f88-0x00791f98 tests pending-vector emptiness and keeps send-needed=0 while entering requirement creation for nonempty pending vectors.",
+      "timestampOnRequest": "0x00791fd8 stores current seconds to the field record before allocating its requirement.",
+      "return": "0x00792178 returns send-needed in w0."
+    },
+    "consequence": "A later real UI load can request an unresolved field after its caller cache interval expires, even if an earlier reply had mask zero. No native server latency guarantee, required delay, successful retry outcome, or automatic repeated retry is established."
+  },
+  "realCapsuleUiCall": {
+    "function": "0x007f3be8, Ranking_Set::doLoadPlayerCapsuleForTrigger.",
+    "mask": 12,
+    "cacheAgeSeconds": 30,
+    "assemblyArguments": "0x007f3c18 sets w2=12; 0x007f3c1c sets w3=30; 0x007f3c24 calls loadForDetail through its thunk.",
+    "uiDelaySeconds": "new_requirement_count * 10 / 50.0 + 5.0, or 0 if there are no new requirements.",
+    "timerDoesNotFetchFields": "FTransactionTask is constructed with its final bool false. At the delay expiry, 0x00944600 invokes its success action even when requirements remain. 0x007f4838, PlayerCapsuleListCall::doAction, only emits event 0x428. It sends no request20 or request16.",
+    "availabilityLimit": "The UI callback can occur while capsule fields are still missing; an empty cache display does not prove the server returned an actual empty capsule vector."
+  },
+  "rankingPreparationAndMask2": {
+    "function": "0x007f3294, Ranking_Set::onFundRankingListedForPrepare.",
+    "ordering": "It constructs the ranking IDs, calls loadForNickName at 0x007f3384, then immediately calls loadForDetail(mask=2, cacheAge=30) at 0x007f339c. There is no receive or nickname-completion wait between these calls.",
+    "nicknameRequest": "0x007fbe0c, loadForNickName, emits query15 with mask5 for uncached names.",
+    "mask2Arguments": "0x007f3394 sets w2=2 and 0x007f3398 sets w3=30 before loadForDetail.",
+    "identityCorrelation": "Each request20 item remains u32 player correlation ID followed by u8 field mask. A bit2 update is distinct from capsule bit4 and tactics bit8, and must not satisfy their availability.",
+    "bit2Payload": "In reply19, each descriptor starts u32 ID and u8 mask. For bit2, read u8 CraftPair count, then three consecutive 2-byte values per element (six wire bytes). The inspected reader imposes no duplicate-key check. No semantic names or signedness are inferred for these three values by this note.",
+    "bit2ReaderProof": "The bit2 branch at 0x007fdc1c calls PLT 0x00702450, whose GOT entry at 0x01377d68 contains 0x007fdc68. That function is named PackableRefVector<Proto::CraftPair, unsigned char> reader and performs one byte-count read followed by three readData(...,2) calls per element.",
+    "primaryMissOrdering": "0x007f8090 handles reply14 by immediately invoking LoadPlayerNicknameByID for each supplied ID. Because ranking preparation does not wait between its two initial calls, detail2 requirements can already be pending when reply14 is dispatched. This does not prove selected-player capsule4/8 requirements are pending at that point.",
+    "successfulNicknameReplay": "0x007fb21c handles reply17 status0 by calling clearIDQueryTransaction(ID,true). 0x007fb598 likewise calls it for a reply380 descriptor containing nickname bit4. 0x007f8a98 reconstructs the OR of detail bits with nonempty per-ID pending vectors and sends one-ID query20 carrying that remaining mask. No query is sent for fields that were never registered as pending.",
+    "causalLimit": "This establishes a client request-order difference and a native read-only query shape. It does not establish that the omitted mask2 read caused repeated capsule zero masks, that it is a mandatory server warm-up, or that deferring nickname16 until capsule4/8 are pending exactly reproduces the ranking UI."
+  },
+  "nickname17MetadataCrosscheck": {
+    "reader": "0x007f7d38 reads u16 status. Only status0 reads the u32 ID, nickname string with destination capacity49, and one trailing byte. It then invokes LoadPlayerNicknameByID_Ack.",
+    "statusGate": "0x007fb21c checks only the status before applying the successful reply. Assembly 0x007fb250-0x007fb25c performs that gate.",
+    "trailingByte": "The successful reply trailing byte is loaded at 0x007fb418 from the decoded structure offset0x39 and stored at 0x007fb420 to nickname-cache record offset0x51. Its value is not tested before pending-detail replay. Reply380 nickname-bit4 stores the corresponding metadata byte to the same nickname-cache offset.",
+    "unconditionalReplayOnSuccess": "After storing the nickname and metadata, 0x007fb530 loads the ID, 0x007fb534 sets w2=1, and 0x007fb53c calls clearIDQueryTransaction. The trailing byte does not gate this path.",
+    "request16": "0x007fa2f0 writes only the u32 target ID into opcode16. Its local per-ID query record stores the request timestamp and a false completion flag; successful17 sets that query flag true. These are client query/name state changes, not capsule, tactics or CraftPair field population.",
+    "fieldEligibilityIndependence": "The inspected detail strategy loaders use their own field timestamps and pending requirement vectors. No nickname trailing-byte test or nickname-query completion-flag test was found in their request eligibility logic.",
+    "meaningLimit": "The semantic name of the trailing byte is not established here. It must not be called a profile-availability, online, partial-profile or cache-residency flag without separate evidence. Client code alone cannot establish whether a server nickname lookup populates a partial profile cache."
+  },
+  "oneIdentityPendingReplay": {
+    "function": "0x007f8a98, Social_Set::clearIDQueryTransaction.",
+    "shape": "For the one nickname-completion ID, it ORs only detail fields with nonempty per-ID pending requirement vectors, creates a fresh PlayerWithMask vector containing exactly one item and calls QueryPlayerDetailDesc_Req. The generic request20 maximum50 does not combine these separate callbacks into one multi-ID replay message.",
+    "assembly": "0x007f8d38-0x007f8d40 initializes the empty vector;0x007f8d44 sets append count1;0x007f8d48 appends one item;0x007f8d54 stores the pending mask;0x007f8d58 stores the ID;0x007f8d60 calls the query20 thunk.",
+    "responseWait": "The nickname17 handler applies its successful reply, calls clearIDQueryTransaction, sends any pending one-ID detail request and returns. Neither that inspected callback nor its request20 sender waits for a detail19 reply. Successive nickname-completion callbacks can therefore send separate count1 request20 messages before their detail replies arrive.",
+    "collectorPolicyLimit": "A paced pipeline of separate one-ID messages is compatible with this client send shape. This note does not prove a native maximum outstanding count, a native0.25-second gap, server throughput, completion guarantees or the outcome of any pipeline experiment. Combining those items into one countN application message would change the native replay shape described here."
+  },
+  "alternatePublicProfileAssessment": {
+    "publicUi": "0x007f39f8, doLoadPlayerSocialBriefForTrigger, chooses among detail masks and invokes the same loadForDetail/request20 mechanism. It is not a separate full-profile network command.",
+    "customPublicLoader": "0x00927fa8, r_LoadPlayerForCustomEvent, maps its selectors to masks and invokes loadForNickName, loadForBrief and loadForDetail. These remain the existing social15/detail20 request families; no separate full-profile or cache-population opcode appears in this inspected loader.",
+    "similarlyNamedRosterRead": "0x0080132c, Unit_Set::loadPlayerCapsule_Req, emits opcode425 with no target-player ID and resets the Unit_Set loaded flag. It is not an arbitrary-player public query and is outside this diagnostic's allowlist.",
+    "conclusion": "The inspected public capsule/profile paths still use query20 field masks. No alternate force-full-profile request, cache-bypass flag, or guaranteed profile-population request was established by this investigation."
+  },
+  "sendLimits": {
+    "exactPayload": "Serializers0x007fefb0 (query15) and0x007ff640 (query20) each write exactly one byte for the vector count, then four bytes of ID and one byte of mask per item. The native in-memory eight-byte element stride contains padding that is not sent. No force/full/cache flag or trailing request flag is serialized. The collector's byte count followed by repeated little-endian u32 ID/u8 mask matches this native body shape.",
+    "nativeMaximumBatch": 50,
+    "sender": "0x007f8ed0 supplies limit0x32 to sendVectorMessage at 0x007fa730. The batcher flushes at that count and sends the final nonempty remainder.",
+    "pacing": "The inspected batch loop contains no sleep, timer scheduling, per-profile delay or special smaller limit. A ceiling of50 does not establish a reliable server service rate.",
+    "scratchBuffer": "0x007ff3b8, request20 VectorSender::sendElements, serializes the outgoing message in a local approximately16KiB scratch buffer. This function does not establish an inbound response cap or explain a parsed zero-mask descriptor.",
+    "vectorCount": "The outgoing vector serializer independently rejects counts above255; the normal request20 caller limits batches to50."
+  },
+  "additionalNativeSocialInitialization": {
+    "trigger": "The SocialConnected_Ntf thunk is called from onMessage376 at0x007f7ab4.",
+    "campaignRead": "0x007f93d8 sends empty opcode184, matching ListActiveCampaign_Req0x007f9594. It then requests social15 for the selected own player ID.",
+    "ownQueryMask": "Assembly0x007f94dc passes the own-ID vector and0x007f94e0 sets mask0x80 before the social-query call at0x007f94e4.",
+    "scopeLimit": "These are native handshake differences from the reviewed collector. They do not target the external profile cohort or request capsule fields. No dependency from the inspected detail-field loaders to campaign-list or own-social completion was established, so neither extra read is identified here as a necessary fix."
+  },
+  "rankingUiUnlock460ClashWins": {
+    "scope": "Static source and DAT parsing only. No unlock, achievement mutation, battle, game login or game-server request was performed for this analysis.",
+    "sourceRoot": "com.astrogame.shermange/patch/_1.10/",
+    "uiGate": "RanaScripts/ui/MainUI.lua lines5438-5456 lists UNLOCK_RANKING rules and calls GetProduceLineDemand(first_rule,5,true). If unmet demands remain, it displays GetAchievemtProduceDesc instead of emitting ranking UI event36900. The existing package-policy branch is observed source behavior; no override is applied or recommended here.",
+    "achievement": {
+      "id": 731080,
+      "kind": "UNLOCK_RANKING",
+      "descriptionStringId": 2000368,
+      "description": "After winning 460 clashes, you can view the Rankings list~",
+      "visibleDemandGroup": 511,
+      "visibleDemands": [],
+      "fetchedDemandGroup": 5535802,
+      "fetchedDemand": {"type": 3, "fields": [621080, 1, 1, 2147483647]}
+    },
+    "produceRule": {
+      "id": 731080,
+      "demandGroups": [5535803, 5535801],
+      "clashWinDemand": {"type": 3, "fields": [2, 1, 460, 2147483647]},
+      "notYetFetchedDemand": {"type": 3, "fields": [621080, 1, 0, 0]},
+      "fieldMeaning": "For these type3 demands the fields are quest ID, achievement ID, inclusive minimum and inclusive maximum. The threshold460 is a value bound on quest/achievement key(2,1), not a rule ID, commander level or message-format placeholder."
+    },
+    "counterSemanticsCrosscheck": [
+      {"achievement": 571010, "descriptionStringId": 2000203, "description": "Win 1 time in Clash Mode", "questKey": [2, 1], "minimum": 1},
+      {"achievement": 571020, "descriptionStringId": 2000204, "description": "Accumulate 4 wins in Clash Mode", "questKey": [2, 1], "minimum": 4},
+      {"achievement": 571150, "descriptionStringId": 2000217, "description": "Accumulate 460 wins in Clash Mode", "questKey": [2, 1], "minimum": 460}
+    ],
+    "nativeEvaluation": {
+      "listRules": "0x008e7040, r_ListAchievemtProduceRules, looks up achievement records by the supplied kind string.",
+      "luaDemandBinding": "0x00904c70, r_GetProduceLineDemand, reads the produce rule's configured demand groups and delegates to getResourceDataFromDemandVec.",
+      "failedDemandFilter": "0x008f3e44 calls Property_Set::checkFailedDemands when its bool is true; resource-data type5 returns the complete filtered set rather than one resource subtype.",
+      "questDemandBounds": "0x007dccd4, Produce_Set::getProduceDemandIsSatisfaction, case3 reads Quest_Set::getQuestAchievementValue for the configured quest/achievement key and compares it with the configured minimum and maximum, subject to the evaluator's upper-bound option.",
+      "questValue": "0x007f02b0, Quest_Set::getQuestAchievementValue, reads the observed two-part quest/achievement-key map. It does not calculate or locally award Clash wins."
+    },
+    "uiVersusProtocolLimit": "This establishes a real normal-client UI gate requiring cumulative Clash wins. It does not establish that every public ranking, nickname or capsule query has the same server-side permission check. The separately inspected137/15/20 sender paths do not call this achievement gate, and earlier collector observations include actual ranking/detail reads before tutorial or ranking-UI unlock. Those observations argue against a universal460-win requirement for all such replies; they do not exclude a backend-specific cold-profile rule or explain zero-field replies. No bypass or unlock mutation follows from this note.",
+    "sourceSha256": {
+      "RanaScripts/ui/MainUI.lua": "7dd78e0aa660d0f54083b413003b5a79459c5f663205323c4328011d12a848d0",
+      "config/AchievementListInfo.dat": "6ebe269af206af3a9c0257cf1e2ba09124a5e34a39f65e87370e19fc5db2c73d",
+      "config/ProduceRuleInfo.dat": "c5ba149a18e17325f2292b9113d642e32bbdc27699d75919500601395953054a",
+      "config/DemandGroupInfo.dat": "673cde0ebd272c96a7ad9dbd7d737c3e5b75e4229f06c49ccd9215785b549b80",
+      "config/StringTableInfo.dat": "3dbe81841b1beaf8981103a939407bbf88692d419e8d6851850b290ee63d2c0d"
+    }
+  },
+  "decompilationHashEncoding": "SHA256 of exact UTF-8 pseudocode strings returned by the reopened Ghidra project, preserving returned line endings. Differences from earlier cached pseudocode hashes may reflect project analysis or formatting; the native file hash is recorded separately.",
+  "functionSha256": {
+    "0x007f84dc": "a92208d4248aa60ff2541974605c9851c3070ee6f5b7d8270208941c053cf7be",
+    "0x007fb9c0": "3a58e49325349c86e17fcbe144f952b0df04bd295e9b99aa874683ffe97680d7",
+    "0x00791dc4": "4aedf03c76b4926b11ab8fb1cea98cb4fe1b19dbb831cfeafb0292f4d924e19f",
+    "0x00790d64": "e13b35e19ac916b5b4d359e81a10a37a25793c822f474bfa765f808bbf092305",
+    "0x00791ca4": "cdc8ca0206e77c42d9c0722bf1d12d53f071ba8444b51988953ae7c228fbd90f",
+    "0x007f3be8": "aea875df1e76a95d6ca63dd7557eb84267f59afc883cbafe9cf5aaef2a220d15",
+    "0x007f3294": "8dc69a0fe68f11f04aa9dff4b4d73c1ba5a5e2ea3e0a8a617d123984ed172ccc",
+    "0x007fbe0c": "7e1cec59faae5ec0dad19640963fda1dcfc9c17e54212600a3ba697d739c3a4b",
+    "0x007f8090": "6b47f212820843fe2669a269217d526793c120dbe6897d59c974c6b64eef6fb8",
+    "0x007f7d38": "becb9e8b9aa51fff30a2cf2452b706f542fe49de7b451df6220ab51412bd7e02",
+    "0x007fa2f0": "593863a1ec755fa71d49d74e1ab08e24a5282440a118c555c6e7e58fde688cb3",
+    "0x007fb21c": "b239e232c9cabc9679af9a762984a45dc88c8b8e9e4b99cfb977d26f7b063f2a",
+    "0x007fb598": "e041eb4b9ac076e8be556c3e3bdc877decafe1786bffa1a50591d21a7b0335d5",
+    "0x007f8a98": "885af9241aa0bee77def6dbbbce71a6836914841400fcb6609b491d12a2712c4",
+    "0x007fdb5c": "f5e8f111427a337bb680253bf265723a4ea9864342fc25ac7c6e067e5ad8f3ec",
+    "0x007fdc68": "0cba64fd0b980ae1c2ee64316b1772ba9bac73d5290a2897fc821c60b73e1049",
+    "0x007f8ed0": "430efe2f9f59d0d9d05b84f9a24d88d96a589a7b7601fab289019770e3481619",
+    "0x007fefb0": "281c390325623282950316600045a082975abdfdd19aa062f7c3548da47c2859",
+    "0x007ff640": "05a093471fc3064eb3449fa12489d3f355b64d2b9da35b35f60799cb04173ed3",
+    "0x007f93d8": "201e6bbdbc52ebeea01721d5eba51e5954a0963558299ca6899add0865e8cb0e",
+    "0x007f9594": "cb445dc33367ce82afaf023cb396307dde578ac37b75bcd3cf4ca30421f1737e",
+    "0x00927fa8": "a3c56cf6129c6b99e007d2a9fdaadee4cda8165187481b4c5281acd356975fe3",
+    "0x007fa730": "7db21ee45d43dfcde106d21819bcc1701b0e5a675a523324ab6f77076e62dd37",
+    "0x007ff3b8": "3a6ea93d649374d0b8fd1bc0de0ff6aeaf0d9661a52747d1fc4b2329d4a4e2a9",
+    "0x00944600": "a081120625017438dcc1ce3bd52b808bef3746b82e5ef878846f519e2b9a955c",
+    "0x00943e04": "c3b5e9b845a7ad6aafd7520a91a399b3f93c3f11201c1aa27aaec4888ac9bf4f",
+    "0x007f4838": "fd7dc398b00cb7e4e0075d059ab5690cf599be9ee100477d795f232e3ecaf632",
+    "0x007f39f8": "d5a944ea7ee2d9290f382ed06428fb95e9028bae161a0e62417ebd185e40038c",
+    "0x0080132c": "b41c55be45468467b3a5dd2cb8645fa3a700dfd7c7540b225435a75904ee2636",
+    "0x008e7040": "6f63b18b14702c5741930bd98039974f41f9898e6a1dc1b7e573859a1b89f8ed",
+    "0x00904c70": "1b101c7beda0f9251346559df658e38248fe59c513bd1b7531dcf72ebfbece1a",
+    "0x008f3e44": "e7e30c4495bad24a5930c437314a70afd2331a6ed9abd957f95565e6b3559072",
+    "0x007dccd4": "f2fd152a38cf4215ea8838a465f937ed13424bf3888b4548859f127f74b45b8d",
+    "0x007f02b0": "27df6cc78079b62a8fcda6c588dcd21cf64355ff45ab1ebcd2ee05d078e0804d"
+  },
+  "assemblyResponseJsonSha256": {
+    "capsuleEligibility": "d3d36b3f80ade8781148dea0fc4f604dc31946ffe417acf9965abe4a34005f80",
+    "capsuleUiTrigger": "ed1a16d8633bb16988e422fd1a5c38cdce616af50cabc18430945d6a92a283e2",
+    "detailReader": "463123eb4ca09ab648e5eada118d4e1857e4b408a532574627d17754adc28afb",
+    "rankingPreparationAndOverloadThunks": "2f6d3fe1d1e6517b45cf6433bcde2b009292eb2fe4001462fab2f5ca0acec2db",
+    "nickname17CacheAndReplayGate": "2a05328849f927bc7fa8c50418e21fa5642c57c950e05e3b209a167388ea6fc1",
+    "socialConnectedOwnQueryMask": "3410ab2a96f8c89ef40985e6fa1abf32d6606521373206e272289362d792f357",
+    "oneIdentityPendingReplay": "7ba45e85cfee3113025ea241948a938a4796c22f692cb4a44ac2374f72709f6e"
+  }
+}

@@ -113,6 +113,62 @@ class InventedGameSocket:
 
 
 class SessionTests(unittest.TestCase):
+    def test_repeated_keyed_zero_publishes_unresolved_without_losing_other_profiles(self):
+        class PersistentZeroSocket(InventedGameSocket):
+            def reply(self, opcode, payload=b""):
+                if opcode == 19 and struct.unpack_from("<I", payload, 1)[0] == 102:
+                    payload = struct.pack("<BIB", 1, 102, 0)
+                super().reply(opcode, payload)
+
+        masks = load_masks()
+        peer = PersistentZeroSocket(masks)
+        with patch("collector.collect.open_socket", return_value=peer):
+            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+        self.assertTrue(peer.closed)
+        self.assertTrue(result["rankingEnumerationComplete"])
+        self.assertEqual(peer.rank_requests, [(0, 200), (3, 200)])
+        self.assertEqual(peer.sent[20], 2)
+        self.assertEqual(peer.sent[16], 2)
+        self.assertEqual([row["vehiclesStatus"] for row in result["rows"]],
+                         ["resolved", "unresolved", "unavailable"])
+        self.assertTrue(result["rows"][0]["vehicles"])
+        self.assertIsNone(result["rows"][1]["vehicles"])
+        self.assertIsNone(result["rows"][2]["vehicles"])
+
+    def test_final_ranking_boundary_drains_late_vehicle_fields_with_normal_validation(self):
+        class LateVehicleSocket(InventedGameSocket):
+            def __init__(self, masks, late_identity):
+                super().__init__(masks)
+                self.late_identity = late_identity
+
+            def reply(self, opcode, payload=b""):
+                if opcode == 19 and struct.unpack_from("<I", payload, 1)[0] == 102:
+                    payload = struct.pack("<BIB", 1, 102, 0)
+                super().reply(opcode, payload)
+                if opcode == 131 and payload[:3] == b"\0\0\0":
+                    # The late real empty list is already decoded behind the
+                    # empty-ranking boundary; it must still be validated.
+                    super().reply(19, struct.pack("<BIBBB", 1, self.late_identity, 12, 0, 0))
+
+            def recv(self, size):
+                if not self.pending:
+                    raise socket.timeout()
+                data = bytes(self.pending)
+                self.pending.clear()
+                return data
+
+        masks = load_masks()
+        peer = LateVehicleSocket(masks, 102)
+        with patch("collector.collect.open_socket", return_value=peer):
+            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+        self.assertEqual(result["rows"][1]["vehiclesStatus"], "resolved")
+        self.assertEqual(result["rows"][1]["vehicles"], [])
+        self.assertEqual(peer.sent[20], 2)
+        peer = LateVehicleSocket(masks, 999999)
+        with patch("collector.collect.open_socket", return_value=peer), self.assertRaises(ValueError):
+            scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+        self.assertTrue(peer.closed)
+
     def test_mobile_zero_detail_reply_recovers_only_missing_identity_after_prior_successful17(self):
         class ZeroThenVehicleSocket(InventedGameSocket):
             def __init__(self, masks):
@@ -154,6 +210,7 @@ class SessionTests(unittest.TestCase):
                 patch("collector.collect.CollectorConnection", wraps=CollectorConnection) as constructor:
             result = scan_server(server, ("invented-account", "invented-password"), load_masks())
         self.assertIs(constructor.call_args.kwargs["vehicle_zero_recovery"], False)
+        self.assertIs(constructor.call_args.kwargs["vehicle_partial_results"], False)
         self.assertEqual(peer.sent[20], 0)
         self.assertTrue(all(row["vehiclesStatus"] == "not_collected" and row["vehicles"] is None
                             for row in result["rows"]))

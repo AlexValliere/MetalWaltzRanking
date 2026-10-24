@@ -27,7 +27,7 @@ def validate_vehicles(row):
     if set(row) == ROW_KEYS:
         return
     status, vehicles = row["vehiclesStatus"], row["vehicles"]
-    if status in ("unavailable", "not_collected"):
+    if status in ("unavailable", "unresolved", "not_collected"):
         if vehicles is not None:
             raise ValueError("Invalid unavailable public vehicles")
         return
