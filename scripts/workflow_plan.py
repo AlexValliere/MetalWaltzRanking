@@ -12,7 +12,11 @@ sys.path.insert(0, str(ROOT))
 from collector.configuration import EXPECTED_BACKENDS, load_servers
 
 AFFECTED_MOBILE = ("Bonn", "KOREA", "BANGKOK")
-MANUAL_SCOPES = {"affected-mobile": AFFECTED_MOBILE, "bonn": ("Bonn",)}
+MANUAL_SCOPES = {
+    "affected-mobile": AFFECTED_MOBILE,
+    "bonn": ("Bonn",),
+    "europe-thailand": ("Bonn", "BANGKOK"),
+}
 
 
 def collection_plan(event: str, attempt: int, fetch: bool, scope: str = "all") -> dict:

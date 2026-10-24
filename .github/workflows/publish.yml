@@ -19,6 +19,7 @@ on:
           - all
           - affected-mobile
           - bonn
+          - europe-thailand
 
 permissions:
   contents: read

@@ -197,7 +197,7 @@ class DiagnosticTests(unittest.TestCase):
         connection.fetch_vehicles = vehicles
         with self.assertRaises(ConnectionResetError):
             enumerate_rankings(connection, progress=progress.append)
-        self.assertEqual(connection.ranking_rows_fetched, 400)
+        self.assertEqual(connection.ranking_rows_fetched, 450)
         self.assertEqual(connection.ranking_rows_completed, 200)
         self.assertEqual(progress, [])  # No fabricated 5,000-row progress checkpoint.
 

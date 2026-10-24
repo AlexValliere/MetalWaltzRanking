@@ -135,7 +135,7 @@ class SessionTests(unittest.TestCase):
         self.assertIsNone(result["rows"][1]["vehicles"])
         self.assertIsNone(result["rows"][2]["vehicles"])
 
-    def test_final_ranking_boundary_drains_late_vehicle_fields_with_normal_validation(self):
+    def test_final_vehicle_boundary_drains_late_vehicle_fields_with_normal_validation(self):
         class LateVehicleSocket(InventedGameSocket):
             def __init__(self, masks, late_identity):
                 super().__init__(masks)
@@ -145,9 +145,9 @@ class SessionTests(unittest.TestCase):
                 if opcode == 19 and struct.unpack_from("<I", payload, 1)[0] == 102:
                     payload = struct.pack("<BIB", 1, 102, 0)
                 super().reply(opcode, payload)
-                if opcode == 131 and payload[:3] == b"\0\0\0":
+                if opcode == 19 and struct.unpack_from("<I", payload, 1)[0] == 102 and self.sent[20] == 2:
                     # The late real empty list is already decoded behind the
-                    # empty-ranking boundary; it must still be validated.
+                    # final keyedzero boundary; it must still be validated.
                     super().reply(19, struct.pack("<BIBBB", 1, self.late_identity, 12, 0, 0))
 
             def recv(self, size):

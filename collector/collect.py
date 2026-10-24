@@ -11,6 +11,8 @@ from .binary import Reader
 from .cipher import GameDes
 from .connection import (CONNECTION_FAILURE_OPERATIONS, CONNECTION_FAILURE_REASONS,
                          CollectorConnection, MAX_ROWS, SESSION_SECONDS)
+from .connection_setup import (ConnectionSetupDiagnostics, open_reviewed_socket,
+                               safe_setup_diagnostics)
 from .configuration import load_masks
 from .records import login_payload, login_reply, player_list, require_zero, ServerRejection
 from .snapshots import (INDEX_SCHEMA, SNAPSHOT_SCHEMA, SCOPE, atomic_json, now,
@@ -29,30 +31,20 @@ class CollectionStopped(Exception):
         super().__init__("Collection stopped")
 
 
-def open_socket(server, *, deadline=None, clock=time.monotonic):
+def open_socket(server, *, deadline=None, clock=time.monotonic, diagnostics=None):
     # Try another reviewed port only if no connection has been established.
     # Authentication, reads and ambiguous responses are never replayed.
-    for route in (server, *server.get("alternateRoutes", [])):
-        for port in route["ports"]:
-            remaining = remaining_seconds(deadline, clock)
-            try:
-                sock = socket.create_connection((route["address"], port),
-                                                timeout=min(5, remaining) if remaining is not None else 5)
-            except OSError:
-                remaining_seconds(deadline, clock)
-                continue
-            try:
-                remaining_seconds(deadline, clock)
-            except CollectionDeadline:
-                sock.close()
-                raise
-            return sock
-    raise ConnectionError("No reviewed endpoint could be reached")
+    return open_reviewed_socket(server, connector=socket.create_connection, deadline=deadline,
+                                clock=clock, diagnostics=diagnostics)
 
 
 def enumerate_rankings(connection, *, progress=None, collect_vehicles=True):
+    """Validate a complete ranking sequence before enriching its frozen cohorts."""
     rows, seen, overlap_checked = [], set(), False
+    connection.ranking_rows_fetched = connection.ranking_rows_completed = 0
+    connection.read_phase = "rankings"
     while True:
+        connection.check_deadlines()
         page = connection.fetch_rank_page(len(rows))
         if not page:
             break
@@ -63,32 +55,45 @@ def enumerate_rankings(connection, *, progress=None, collect_vehicles=True):
         seen.update(player for player, _ in page)
         rows.extend(page)
         connection.ranking_rows_fetched = len(rows)
-        connection.fetch_names([player for player, _ in page])
-        if collect_vehicles:
-            connection.fetch_vehicles([player for player, _ in page])
         if not overlap_checked and len(rows) >= 201:
             overlap = connection.fetch_rank_page(199, 2)
             if [p for p, _ in overlap] != [p for p, _ in rows[199:201]]:
                 raise CollectionStopped("ranking_overlap_changed")
             overlap_checked = True
-        connection.ranking_rows_completed = len(rows)
-        if progress and (len(rows) % 5000 == 0 or len(page) < 200):
-            progress(len(rows))
+    connection.check_deadlines()
     if any(a[1] < b[1] for a, b in zip(rows, rows[1:])):
         raise CollectionStopped("ranking_score_order_changed")
+    # Slow public-detail lookups cannot change later ranking offsets. Keep all
+    # strict enumeration guards above, then enrich the original order in groups of 200.
+    for offset in range(0, len(rows), 200):
+        connection.check_deadlines()
+        players = [player for player, _ in rows[offset:offset + 200]]
+        connection.read_phase = "primary_names"
+        connection.fetch_names(players)
+        if collect_vehicles:
+            connection.read_phase = "public_vehicles"
+            connection.fetch_vehicles(players)
+        completed = offset + len(players)
+        connection.ranking_rows_completed = completed
+        if progress and (completed % 5000 == 0 or completed == len(rows)):
+            progress(completed)
+    connection.check_deadlines()
     return rows
 
 
 def scan_server(server, credentials, masks, *, progress=None, deadline=None, clock=time.monotonic):
     connection = None
+    setup, setup_operation = ConnectionSetupDiagnostics(), "connect"
     try:
         remaining_seconds(deadline, clock)
         started = now()
         request = login_payload(*credentials)
         if server.get("protocolProfile", "mobile") != "mobile":
             masks = load_masks(server["protocolProfile"])
-        with open_socket(server, deadline=deadline, clock=clock) as sock:
+        with open_socket(server, deadline=deadline, clock=clock, diagnostics=setup) as sock:
+            setup_operation = "socket_setup"
             sock.settimeout(0.4)
+            setup_operation = "session_initialization"
             connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock,
                                              batch_request_gap_seconds=server.get("batchRequestGapSeconds", 0.25),
                                              session_seconds=server.get("sessionSeconds", SESSION_SECONDS),
@@ -163,6 +168,8 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
         error.collector_read_phase = connection.read_phase if connection is not None else "connect"
         if connection is not None:
             error.collector_diagnostics = connection.failure_diagnostics(error)
+        else:
+            setup.annotate(error, setup_operation)
         raise
 
 
@@ -195,7 +202,7 @@ def failure_diagnostics(error):
     supplied = getattr(error, "collector_diagnostics", None)
     if not isinstance(supplied, dict):
         return {}
-    result = {}
+    result = safe_setup_diagnostics(supplied)
     for key in ("heartbeatsReceived", "heartbeatAcksSent", "idlePingsSent",
                 "attemptRowsFetched", "attemptRowsCompleted"):
         value = supplied.get(key)

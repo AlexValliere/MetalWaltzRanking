@@ -1,0 +1,76 @@
+{
+  "schema": "metal-waltz.connection-pagination-investigation.v1",
+  "recordedAtUtc": "2026-10-24T18:03:02Z",
+  "scope": "Public endpoint and original game script review, no-login TCP checks, offline collector fixes. No credentials, game identities, player names or raw packets.",
+  "sourceCommitBeforeFix": "450c8528635717eca08de949fd020b95eb1ef11b",
+  "bonn": {
+    "priorRun": 40112163212,
+    "observedFailure": "connection_failed/connect before CollectorConnection or login, 0.273 seconds; original errno not logged",
+    "officialDirectory": {
+      "url": "http://bonnver.metalwaltz.com/sherman_ge/android/patch/2020031601/serverlist",
+      "sha256": "a8e5eacd2d65de0b1278098b6cb6a059964955bfe5eaf49a3f53603f7fd187da",
+      "bytes": 4207,
+      "reviewedBonnEndpointMatches": true,
+      "directoryFileBytesDifferFromEarlierFingerprint": true,
+      "meaning": "The public directory still lists the configured Bonn address and both configured ports. A differing overall directory hash does not establish an endpoint change."
+    },
+    "boundedProbe": {
+      "hostedCollectorsIdle": true,
+      "authenticationAttempted": false,
+      "gamePayloadBytesSent": 0,
+      "endpoints": [
+        {
+          "ordinal": 1,
+          "result": "connection_refused",
+          "elapsedSeconds": 2.138
+        },
+        {
+          "ordinal": 2,
+          "result": "connection_refused",
+          "elapsedSeconds": 2.112
+        }
+      ]
+    },
+    "conclusion": "Current refusal from this PC is established. The earlier hosted failure is consistent with endpoint unavailability but its exact errno is unknown. This is not a keepalive failure: no protocol session was reached. Do not infer server-internal cause or bypass onto hidden/unreviewed ports.",
+    "change": "Retain the reviewed connection sequence and add fixed, privacy-safe connection-setup classifications and counters, including cleanup for pre-session setup failures. No authentication replay, extra endpoint or speculative retry.",
+    "userSuppliedCorroboration": "A user-provided screenshot shows multiple players reporting EU01 Error_Proto_Initial and inability to log in, with another region reported working. This supports an availability incident but is not independent proof of the underlying server-internal cause."
+  },
+  "thailand": {
+    "priorRun": 40108040041,
+    "errorCode": "ranking_changed_or_offset_ignored",
+    "elapsedSeconds": 4122.582,
+    "lastProgressRows": 30000,
+    "retainedRows": 35169,
+    "sourceGuard": "collector/collect.py rejects a page containing an identity already seen on an earlier page; no player identity was logged",
+    "mechanism": "The old loop fetched one ranking page, then names and potentially slow vehicles, before fetching the next offset. A live rank change across a page boundary can return a player twice or omit another while offsets advance.",
+    "nativeEvidence": [
+      {
+        "file": "Resources/RanaScripts/ScrambleChallenge.lua",
+        "sha256": "f66b7acfbbd89cd569023e041ffc4f951684543f917733f54a58e8a6ea2402a8",
+        "line": 828,
+        "meaning": "Clash ranking screen requests LoadFundRankingList(5, Start_Num, End_Num), matching collector fund 5."
+      },
+      {
+        "file": "Resources/RanaScripts/luaFunction/ScoreScrambleRule.lua",
+        "sha256": "b05853cbd73ddddc6412dbfa8c5ead5c8f71bf2d462268608b83b707dcc2e4bf7",
+        "line": 64,
+        "meaning": "ranking_scramble_score_equal takes both ranks/scores and the battle outcome; lines108-112 return positive and negative score changes for attacker and defender."
+      }
+    ],
+    "causalLimit": "PvP-driven rank movement is plausible and supported by original game scoring logic, but no specific battle or server pagination cause was observed in this failed run.",
+    "change": "Enumerate and validate the ranking IDs/scores before any profile lookups. Then enrich the stored ranking in cohorts of at most 200 identities, retaining existing vehicle batches, pacing and deadlines. No sorting, duplicate suppression, malformed-read retry or relaxation of complete-ranking guards.",
+    "remainingLimit": "A fast sequential ranking pass is still not an atomic snapshot; rank changes during the shorter pass can still fail validation."
+  },
+  "validation": {
+    "collectorTests": 220,
+    "publicationWorkflowTests": 34,
+    "nodeTests": 26,
+    "actionlint": "1.7.12 passed",
+    "independentReview": "Ranking enumeration, connection setup and workflow scope approved",
+    "seedBuild": "All ten public snapshots validated",
+    "hostedFreshVerification": "Pending one first-attempt europe-thailand run after push",
+    "sourceCollectSha256": "c5b87c3b3f80242d047f2eb76c4329604a7d9407207033bf6c49355cf492cf2d",
+    "sourceConnectionSetupSha256": "e62a913c1e2cb5ed68010538b6c445d4a575cd1f82465ca5dc414f33605ad8de"
+  },
+  "publicationPolicy": "Failed connection, incomplete ranking, malformed data or silent timeout preserves last-good snapshots. Actual empty, actual nonempty, unavailable, unresolved and not-collected vehicle states remain distinct."
+}

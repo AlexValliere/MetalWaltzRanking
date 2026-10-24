@@ -182,6 +182,16 @@ Only a completed enumeration can replace an exported snapshot. Rankings may move
 during the scan; a complete sequential scan is not an atomic server snapshot or
 proof that every registered commander appears.
 
+The collector completes this ranking pass before querying names or vehicles.
+Only after the empty terminator and all ranking guards pass does it enrich the
+stored rows in cohorts of at most 200 identities. This separates ranking offsets
+from potentially slow public-profile responses while keeping the same request
+pacing, native field masks and complete-enumeration requirement. Original Clash
+scoring scripts can change both players' scores after a battle, so a live ranking
+change can plausibly cause cross-page overlap; the failed Thailand log does not
+identify a particular battle. The source evidence and Bonn connectivity check are
+recorded in `research/connection-pagination-investigation-2026-10-24.json`.
+
 ## Name fallback
 
 Public name request 15 contains up to 200 `u32 playerID, u8 mask` records. Reply

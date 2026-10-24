@@ -29,6 +29,9 @@ class SyntheticRanking:
         self.rows = [(index + 1, count - index) for index in range(count)]
         self.offsets, self.named, self.clamp = [], [], clamp
 
+    def check_deadlines(self):
+        pass
+
     def fetch_rank_page(self, offset, count=200):
         self.offsets.append((offset, count))
         return self.rows[offset:offset + min(count, self.clamp)]

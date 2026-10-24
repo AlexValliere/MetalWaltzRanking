@@ -8,8 +8,8 @@ run contacts the game servers. To collect manually, open **Actions → Refresh
 rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
 from the game servers before publishing** (`fetch_rankings`), and start a new run.
 The `collection_scope` input defaults to `all`. Choose `affected-mobile` to check
-only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`), or `bonn` for
-Europe №1 alone. Scheduled runs
+only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`), `bonn` for
+Europe №1 alone, or `europe-thailand` for exactly Bonn and BANGKOK. Scheduled runs
 always select all ten canonical backends.
 Each backend is attempted at most once per collection run; a failure retains its
 previous snapshot until the next scheduled or opted-in manual attempt.
@@ -66,6 +66,15 @@ the assets separately when updating game data or presentation sources.
 Mobile ranking, primary-name and vehicle batch requests share a minimum **250 ms**
 start-to-start gap. Mobile ranking batches contain up to 200 entries; primary-name
 and vehicle batches allow up to 200 names and 50 profiles respectively.
+
+The collector first enumerates and validates every ranking page, then retrieves
+names and vehicles in cohorts of at most 200 identities. Slow profile responses
+therefore do not leave minutes between ranking offsets. It keeps the observed
+ranking order and scores; it does not silently remove duplicates or sort a moving
+ranking into apparent consistency. A rank change during the shorter enumeration
+can still fail its duplicate, overlap or score-order checks. Progress row counts
+refer to completed profile cohorts; failure diagnostics distinguish ranking rows
+fetched from rows whose profile processing completed.
 
 Steam ranking batches ask for **up to 200 new rows**, advancing by the actual
 returned count. Steam ranking and primary-name batches share a minimum **one-second**
@@ -218,6 +227,14 @@ receive. These values alone do not measure time spent waiting in the decoded que
 `attemptRowsFetched` and `attemptRowsCompleted` describe the failed attempt;
 the existing `rows` field describes the retained public snapshot. Diagnostic
 fields stay in logs and do not alter public snapshot or manifest schemas.
+
+Failures before a protocol session exists also report `connectAttempts`, fixed
+counts for refused, unreachable, timed-out, name-resolution, reset and other
+connection errors, plus the last failure's endpoint ordinal and setup operation.
+No address, port or arbitrary exception text is logged. Each reviewed endpoint
+is tried at most once, and a successful TCP connection ends that fallback sequence.
+A connection refusal before login cannot demonstrate a keep-alive problem; the
+server must first accept a connection for live keep-alive validation to be useful.
 
 ## Updating the application
 
