@@ -1,0 +1,1013 @@
+{
+  "schema": "metal-waltz.steam-client-evidence.v1",
+  "recordedAtUtc": "2026-10-23T20:58:36.126954+00:00",
+  "scope": "Public installed Steam client and patch metadata inspection, followed by explicitly authorized dedicated collector setup, bounded live probes, completed public-ranking/name enumeration and independent validation. No saved game login, token or game log was read. Credential and protocol identity values are omitted.",
+  "nativeProgram": {
+    "name": "Sherman.exe",
+    "format": "PE32 Intel 80386",
+    "imageBase": "0x00400000",
+    "bytes": 4658688,
+    "sha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724",
+    "steamAppId": 581130
+  },
+  "publicConfiguration": {
+    "version": {
+      "url": "http://steamversion.metalwaltz.com/sherman_steam/win32/patch/2017041201/version_2017041201_st_fcm",
+      "sha256": "06e3ac7358035ae810140e4513a25e4af8111599bc775c44d2fcff2fbda6b82c",
+      "bytes": 920,
+      "embeddedUrlFileOffset": "0x00471307",
+      "values": {
+        "AstroBinaryRelease": "1.0",
+        "IsUseLoginList": "1",
+        "PlatformBuildId": "0",
+        "PatchSummaryVer": "",
+        "PatchActiveVer": ""
+      },
+      "loginSignValidateModePresent": false
+    },
+    "serverDirectory": {
+      "url": "http://steamversion.metalwaltz.com/sherman_steam/win32/patch/2017041201/serverlist",
+      "sha256": "0d86da17bfe0fb10afb8d055e276d4b04e2cdbfec2cfec19d778655b2a6d0c3b",
+      "bytes": 3507,
+      "defaultServerNameList": [
+        "JP",
+        "BONN",
+        "USAVA",
+        "TEST"
+      ],
+      "visibleEntries": [
+        {
+          "key": "JP",
+          "name": "N°1 ASIA",
+          "address": "54.250.239.190",
+          "ports": [
+            37000,
+            37001
+          ],
+          "description": "hotdouble"
+        },
+        {
+          "key": "BONN",
+          "name": "N°2 EURO",
+          "address": "54.93.200.178",
+          "ports": [
+            37000,
+            37001
+          ],
+          "description": "hotdouble"
+        },
+        {
+          "key": "USAVA",
+          "name": "USA I",
+          "address": "54.242.218.25",
+          "ports": [
+            37000,
+            37001
+          ],
+          "description": "hotdouble"
+        },
+        {
+          "key": "TEST",
+          "name": "N°1 ASIA HONGKONG",
+          "address": "54.169.167.235",
+          "ports": [
+            37002,
+            37003
+          ],
+          "description": "hotdouble"
+        }
+      ],
+      "excludedEntries": {
+        "hidden": [
+          "ASIAJHOU",
+          "USAHOU",
+          "HOU",
+          "HOUSHANGHAI",
+          "HOUTEST",
+          "BONHOU",
+          "Banben"
+        ],
+        "notInDefaultServerNameList": [
+          "SHANGHAI",
+          "ASIAJP"
+        ]
+      },
+      "timezoneOverrides": {
+        "Tokyo Standard Time": [
+          "JP",
+          "TEST"
+        ],
+        "China Standard Time": [
+          "JP",
+          "TEST",
+          "SHANGHAI",
+          "BONN",
+          "USAVA",
+          "HOU",
+          "HOUSHANGHAI",
+          "HOUTEST",
+          "BONHOU",
+          "USAHOU",
+          "Banben"
+        ]
+      }
+    }
+  },
+  "authenticationEvidence": {
+    "luaSources": [
+      {
+        "path": "RunningResources/RanaScripts/loginExtraPC.lua",
+        "sha256": "ffbd832a139615e2f6bcb41b928b1739bca5492e1484b079df441d59fda6f266",
+        "facts": [
+          {
+            "lines": [
+              776
+            ],
+            "code": "AccountLoginMD5(EncryptToString(GetMessageParam(\"UserName\")), EncryptToString(GetMessageParam(\"Code\")))",
+            "purpose": "Explicit username/code login trigger."
+          },
+          {
+            "lines": [
+              816,
+              833
+            ],
+            "code": "AccountLoginMD5(GetAccount(), GetPassword())",
+            "purpose": "Account-creation success and automatic-login triggers."
+          }
+        ]
+      },
+      {
+        "path": "RunningResources/RanaScripts/login.lua",
+        "sha256": "38aa7adaf2797acb1f28ab6f175250bc512a8b0a19474ddb83b9153cf5a5acec",
+        "facts": [
+          {
+            "lines": [
+              794
+            ],
+            "code": "AccountLogin(GetAccount(), GetPassword())",
+            "purpose": "Automatic account/password login trigger."
+          },
+          {
+            "lines": [
+              1431,
+              1442
+            ],
+            "code": "LoginBySignValidate(false); LoginBySignValidate(true)",
+            "purpose": "SDK signed-login triggers."
+          },
+          {
+            "lines": [
+              771,
+              774
+            ],
+            "code": "isNeedSignLogin(); getSignLoginUserId()",
+            "purpose": "Chooses account symbol according to native signed-login mode."
+          }
+        ]
+      }
+    ],
+    "nativeStringAddresses": [
+      {
+        "address": "0x0074313c",
+        "value": "AccountLogin"
+      },
+      {
+        "address": "0x00743160",
+        "value": "AccountLoginMD5"
+      },
+      {
+        "address": "0x007431b8",
+        "value": "LoginBySignValidate"
+      },
+      {
+        "address": "0x00737048",
+        "value": "LoginSignValidateMode"
+      },
+      {
+        "address": "0x0074f938",
+        "value": "http://steamdouj.metalwaltz.com:60888"
+      },
+      {
+        "address": "0x0074fb70",
+        "value": "/login"
+      },
+      {
+        "address": "0x0074fb3c",
+        "value": "password=%s&landername=%s&username=%s"
+      },
+      {
+        "address": "0x0074f9bc",
+        "value": "timeStamp"
+      },
+      {
+        "address": "0x0074f9c8",
+        "value": "signature"
+      }
+    ],
+    "interpretation": "The shipped scripts and native bindings expose account/password and SDK signed-login paths. String presence and script calls do not establish their current server acceptance or the effective Steam authentication mode.",
+    "nativePasswordLogin": {
+      "function": "0x005926f0",
+      "md5Variant": "0x005929e0",
+      "opcode": 324,
+      "fields": "u8 mode0, username CString(max128 bytes), lowercase MD5 password CString(32 bytes), final CString(max20 bytes)",
+      "reviewedParser": "0x0058ff30",
+      "serializer": "0x00682800",
+      "source": "Ghidra decompilation of pinned Steam executable"
+    }
+  },
+  "unknowns": [
+    "The effective LoginSignValidateMode; it is absent from the fetched version configuration and public top-level installed configuration files.",
+    "Reliable complete Steam public-vehicle collection remains unverified and disabled."
+  ],
+  "integrationStatus": "All three logical Steam backends have complete independently validated ranking/name snapshots: 146,483 rows and names, with none missing. The ten-backend archive has 299,193 rows and 297,740 resolved names. Steam public vehicles remain disabled and explicitly not_collected; historical bounded probes remain separate estimates.",
+  "rankingEvidence": {
+    "sender": "0x00433280",
+    "requestOpcode": 137,
+    "request": "u16 fund,u32 offset,u8 count; native ceiling200",
+    "replyHandler": "0x00431d80",
+    "replyOpcode": 131,
+    "vectorReader": "0x005a1600",
+    "reply": "u16 status; success u8 count,(u32 player,i32 grandeur) records,4 trailing bytes left uninterpreted"
+  },
+  "liveAuthenticationProbe": {
+    "dateUtc": "2026-10-23",
+    "credentials": "Existing dedicated collector credential pair, values omitted",
+    "results": {
+      "SteamJP": "login accepted; commander list empty",
+      "SteamBonn": "login rejected, native status12",
+      "SteamUSAVA": "login accepted; commander list empty",
+      "SteamTEST": "login accepted; commander list empty"
+    },
+    "scope": "One initial login/commander-list probe per Steam route. No account or player identifiers recorded."
+  },
+  "steamBackendGrouping": {
+    "canonicalBackend": "SteamJP",
+    "aliases": [
+      "SteamJP",
+      "SteamTEST"
+    ],
+    "verification": {
+      "sameNewlyCreatedCommander": true,
+      "sameFirstRankingRecords": true,
+      "sampleRows": 200
+    },
+    "collectionPolicy": "Collect once; Hong Kong is a connection-only alternate route."
+  },
+  "collectorSetup": {
+    "authorization": "Explicit user approval in this development session",
+    "operations": {
+      "SteamJP": "Created sole dedicated commander",
+      "SteamBonn": "Registered dedicated account and created sole commander",
+      "SteamUSAVA": "Created sole dedicated commander",
+      "SteamTEST": "Rechecked existing commander; no duplicate creation"
+    },
+    "runtime": "Setup helpers are outside the production collector; outgoing runtime allowlist unchanged."
+  },
+  "nativePublicVehicleEvidence": {
+    "scope": "Read-only localhost GhidraMCP GET inspection of the pinned installed Sherman.exe; no live game requests made by this research step.",
+    "request": {
+      "opcode": 20,
+      "mask": 12,
+      "maximumBatch": 50,
+      "fields": "u8 count; count * (u32 player correlation key,u8 mask)"
+    },
+    "reply": {
+      "opcode": 19,
+      "dispatchInitializer": "0x0071e140",
+      "fields": "u8 count; count * (u32 player correlation key,u8 mask,fields selected by mask)",
+      "mask4": "u8 count; count * (u32 public capsule type,u8 generation,u8 faculty count,faculty count * (u8 category,u16 trend,i32 carried value))",
+      "mask8": "u8 count; count * (u32,u32), consumed without inferred formation semantics",
+      "failureOpcode": 18,
+      "failureDispatchInitializer": "0x0071e180",
+      "failureFields": "u8 count; count * u32 player correlation key"
+    },
+    "compatibility": "Field widths and ordering for request20 and reply19 mask12 match the reviewed mobile format. The native readers append vector entries without enforcing uniqueness of public capsule type or faculty category; uniqueness is an additional collector assumption, not a proven wire constraint.",
+    "nativeFunctions": [
+      {
+        "ghidraAddress": "0x00432670",
+        "decompilationSha256": "f5198cb6e5a9d28d97fb86222c23da77b83ddbdd1b8304fe31ef0a6c24d6b457",
+        "purpose": "Native ranking public-capsule inspection requests mask12."
+      },
+      {
+        "ghidraAddress": "0x005b0700",
+        "decompilationSha256": "c21a9a4394c8895b5d97a11bf9bb153ce47f5b19b71388876b8de6a0bc26604b",
+        "purpose": "Native detail query batches opcode20 at maximum50 identities."
+      },
+      {
+        "ghidraAddress": "0x005ac8f0",
+        "decompilationSha256": "cbe8665ef6e890d87fc132f5f6550e8caf3e5439ff70085575ae1a5f856ac913",
+        "purpose": "Reply19 handler."
+      },
+      {
+        "ghidraAddress": "0x005b1060",
+        "decompilationSha256": "570329a8dff4c7acad299f491224195851e51ae84566b40526b54693245bd654",
+        "purpose": "Build and send the batched public-detail request."
+      },
+      {
+        "ghidraAddress": "0x005aa1e0",
+        "decompilationSha256": "40276823d96c2d3f663184ab164fb9b74243ba1f913212815755078347195b26",
+        "purpose": "Byte-counted vector of public-detail descriptors."
+      },
+      {
+        "ghidraAddress": "0x005aa370",
+        "decompilationSha256": "e88ecfeefde34eaaf910a2b602acd0a2188292cb3dc27e83818580e595791be7",
+        "purpose": "Byte-counted identity/mask request vector serializer."
+      },
+      {
+        "ghidraAddress": "0x005ad840",
+        "decompilationSha256": "c6fd3a21b3716656c127efa22da80d447ae521de4a2d2cace225280b2096faea",
+        "purpose": "Public-detail identity and mask reader; bits4/8 choose capsule/tactics vectors."
+      },
+      {
+        "ghidraAddress": "0x005aa090",
+        "decompilationSha256": "65982b0f31dbc0944bcece93b9be4b5cd764c2aea58a3c07e05f526a07f62fc9",
+        "purpose": "Byte-counted capsule vector: type, generation, faculty vector."
+      },
+      {
+        "ghidraAddress": "0x00584d70",
+        "decompilationSha256": "55b5de6d36b5bd166fb031a690aee0c04ad5f8fb4a18cdbc614525f23a13407a",
+        "purpose": "Byte-counted faculty vector: category, trend, carried value."
+      },
+      {
+        "ghidraAddress": "0x005a1600",
+        "decompilationSha256": "805f0cd35bdeb2362ec7e3d01f2a6e7e3cebe9526230d75e672f09c99e905bf8",
+        "purpose": "Byte-counted pairs, also consumed for public-detail mask8."
+      },
+      {
+        "ghidraAddress": "0x005ac860",
+        "decompilationSha256": "d2baa96de1118445de294fe90f738143ad26713bbd97b9561f9379e0823b9f8c",
+        "purpose": "Reply18 keyed failure handler."
+      },
+      {
+        "ghidraAddress": "0x00419770",
+        "decompilationSha256": "979ae15b1b71b9a4ef092c496ce63d76e20c7ed231d0c66750df4dc2c05beecf",
+        "purpose": "Byte-counted u32 identity vector reader."
+      }
+    ],
+    "nativeRecordHandling": {
+      "disjointFields": "Repeated descriptors for one identity with disjoint mask4/mask8 fields are independently dispatched, including within one packet.",
+      "maskZero": "A mask-zero descriptor is consumed without invoking field handlers; it neither completes the request nor establishes unavailable/empty data.",
+      "runtimeChecks": "Pending-identity correlation, supported masks, nonoverlapping fields, exact packet consumption, finite waits and capsule/faculty validation remain enforced."
+    }
+  },
+  "nativeSetupRecordEvidence": {
+    "scope": "Static schema evidence only. These mutating messages are excluded from the production collector allowlist; session-authorized setup results are recorded separately in collectorSetup.",
+    "createCommander": {
+      "requestOpcode": 313,
+      "request": "name UTF-8 CString(max48 bytes),u8 zero",
+      "luaArguments": [
+        "name"
+      ],
+      "extraByteSemantics": "Unclassified; shipped Lua adapter always supplies0.",
+      "replyOpcode": 325,
+      "dispatchInitializer": "0x0071d290",
+      "reply": "u16 status; on success u32 commander correlation key,name CString(max48 bytes),u8 unclassified selector,u32 unclassified extra",
+      "nameConstraints": {
+        "nativeBufferCapacityBytes": 49,
+        "nativeOverlengthBehavior": "Bounded copy truncates before serialization.",
+        "uiLimit": 16,
+        "uiLimitEvidence": "Embedded SpecialCustomCode=BATTLE_ENDSTYLE:ENG|PLAYER_LENGTH:16 and loginUI.lua input limit branch.",
+        "uiChecks": "Nonempty input, FilterStringByShitList unchanged; another branch also applies FilterStringByCN. The complete server name policy is not established.",
+        "asciiSetupNameFits": "MWRanking"
+      }
+    },
+    "registerAccount": {
+      "requestOpcode": 141,
+      "request": "username CString(max128 bytes),u8 empty-vector count0,lowercase MD5(password UTF-8) CString(32 ASCII bytes),empty CString",
+      "replyOpcode": 139,
+      "dispatchInitializer": "0x0071d310",
+      "reply": "u16 status,username CString(max128 bytes); on success u32 unclassified extra",
+      "emptyFinalStringEvidence": "DAT_007edc60 is the shared empty std::string, size0/capacity15 in static data; sole WRITE reference is its destructor0x00722e70, which clears it.",
+      "statusInterpretation": {
+        "12": "error_proto_userpass; does not alone establish absence of an account",
+        "87": "error_proto_unregister"
+      }
+    },
+    "luaSources": [
+      {
+        "path": "RunningResources/RanaScripts/login.lua",
+        "lines": [
+          936
+        ],
+        "purpose": "Calls CreatePlayer with one string."
+      },
+      {
+        "path": "RunningResources/RanaScripts/ui/loginUI.lua",
+        "lines": [
+          2794,
+          2796,
+          2910,
+          2915,
+          3127,
+          3130,
+          3187,
+          3192
+        ],
+        "purpose": "Package-selected input limits and nonempty/filter checks."
+      }
+    ],
+    "nativeFunctions": [
+      {
+        "ghidraAddress": "0x00524c30",
+        "decompilationSha256": "e20790aa515232f06bab4b7c6210993baf32d138d5051565d36e831185a26013",
+        "purpose": "Lua CreatePlayer binding accepts one string."
+      },
+      {
+        "ghidraAddress": "0x00500510",
+        "decompilationSha256": "b11c8535528629c3499de5e1ab60da3becd606b410bc08a7183112d5e71b7909",
+        "purpose": "Adapter hardcodes the native extra byte to zero."
+      },
+      {
+        "ghidraAddress": "0x00590ac0",
+        "decompilationSha256": "72f9a6f31ef8a06bc966f232f959eef74a2c17cdaa146b9cfae90c68475c8d51",
+        "purpose": "Successful creation stores the returned commander; failure exposes the native error."
+      },
+      {
+        "ghidraAddress": "0x00593520",
+        "decompilationSha256": "9a81169f25383381c3d2eae42335fbd344645b58d61e3b3f69d58a1d41e0a728",
+        "purpose": "CreatePlayer313 request serializer."
+      },
+      {
+        "ghidraAddress": "0x0058f0f0",
+        "decompilationSha256": "f493a21c921572ae89c3ab94d0e0acccb559fc8c4b4ced31ad2b64ccccfb5636",
+        "purpose": "CreatePlayer325 acknowledgement parser."
+      },
+      {
+        "ghidraAddress": "0x00682850",
+        "decompilationSha256": "a7a2264eaaabb844c9e2e6eb3e469bb6d4b624e6609cbe9ae44dd97d30823662",
+        "purpose": "Native bounded copy truncates to capacity minus one and NUL-terminates."
+      },
+      {
+        "ghidraAddress": "0x00682800",
+        "decompilationSha256": "0b3055028fa25d5f8e3fa2f02e2af25bb251d44cbc821ea3d24ea76e28a27ca2",
+        "purpose": "C-string serializer includes NUL and rejects length at least the given capacity."
+      },
+      {
+        "ghidraAddress": "0x00592ec0",
+        "decompilationSha256": "d48dc8d918ccd4bbe99f0c17c5faeb1f648331776d9c95244943afa5df51f27f",
+        "purpose": "CreateAccount141 request serializer with password hashing."
+      },
+      {
+        "ghidraAddress": "0x0058f350",
+        "decompilationSha256": "cd00adb566a619df230aa10c1d048e0439bed6bec081f878617ce8a1d52c8194",
+        "purpose": "RegisterAccount139 acknowledgement parser."
+      },
+      {
+        "ghidraAddress": "0x0058dae0",
+        "decompilationSha256": "8ea20f0c471b4307a5d24719c05cc315199774013790c656b3a8748620590adf",
+        "purpose": "Registration string-vector serializer uses u8 count; native request supplies an empty vector."
+      },
+      {
+        "ghidraAddress": "0x0064f5d0",
+        "decompilationSha256": "337ae7b854451198e670b34a79c825ad0533b552b62f80b16a775e2a481762f4",
+        "purpose": "Computes the 16-byte digest and emits 32 lowercase hexadecimal characters."
+      },
+      {
+        "ghidraAddress": "0x005941b0",
+        "decompilationSha256": "fd84cb84b41ab40b822b0d4d2cb79958428dceb54ea933c8e6e8aa73fd494d73",
+        "purpose": "Maps status12 to error_proto_userpass and status87 to error_proto_unregister."
+      }
+    ]
+  },
+  "steamProfileCollection": {
+    "enabled": false,
+    "export": "Every Steam ranking row has vehiclesStatus=not_collected and vehicles=null.",
+    "observations": [
+      "A top200-row probe including names and vehicles completed.",
+      "A full scan reached mask-zero descriptors after1000 profile observations. Native-compatible no-op handling and disjoint-field grouping were verified and regression tested.",
+      "A later full attempt ended in an incomplete public-vehicle transaction, reply_timeout.",
+      "No incomplete ranking or guessed vehicle profile was exported."
+    ],
+    "policy": "Keep complete ranking/name enumeration independent of currently unverified Steam optional profile reliability; mobile public-vehicle collection unchanged."
+  },
+  "nativeRankingPagingEvidence": {
+    "scope": "Read-only installed public Lua resource inspection and localhost GhidraMCP GET inspection of the pinned Sherman.exe. No live game requests were made by this paging research step.",
+    "luaSources": [
+      {
+        "path": "RunningResources/RanaScripts/ui/ScrambleChallengeUI.lua",
+        "sha256": "7d9e22f4fb10d1b1b249e4df5a4cc1b6f48eaf43fcd82dd746ab395d5acc610c",
+        "facts": [
+          {
+            "lines": [
+              980
+            ],
+            "purpose": "Sets RANKLIST_NUM to6 visible rows."
+          },
+          {
+            "lines": [
+              1021,
+              1029
+            ],
+            "purpose": "Sets page Up/Down button click delay to500ms; this is not a verified network interval or server rate limit."
+          },
+          {
+            "lines": [
+              1166,
+              1167,
+              1168,
+              1170,
+              1171,
+              1172,
+              1173,
+              1174,
+              1175,
+              1195
+            ],
+            "purpose": "Reads cached IDs from(page-1)*6+1, displays six rows and uses one extra row as next-page lookahead."
+          },
+          {
+            "lines": [
+              1740,
+              1741,
+              1742,
+              1744
+            ],
+            "purpose": "Builds Start_Num=(page-1)*6+1 and End_Num=page*6+1: ranges1-7,7-13,13-19."
+          }
+        ]
+      },
+      {
+        "path": "RunningResources/RanaScripts/ScrambleChallenge.lua",
+        "sha256": "991abc18b9a7ca026480fab9304cd7eafbbedc288cbe992d6ca05cd777ff28e2",
+        "facts": [
+          {
+            "lines": [
+              824,
+              825,
+              826,
+              827,
+              828
+            ],
+            "purpose": "Passes fund5,Start_Num,End_Num to LoadFundRankingList."
+          }
+        ]
+      }
+    ],
+    "nativeFunctions": [
+      {
+        "ghidraAddress": "0x00506600",
+        "decompilationSha256": "b47e5f1abed848ddb2afaae49ba13350d0415d76d49e793108861d1c8c076e2a",
+        "purpose": "Lua adapter subtracts1 from Start_Num and passes End_Num unchanged."
+      },
+      {
+        "ghidraAddress": "0x00433280",
+        "decompilationSha256": "54c47f40870be018a316df3e4de23210bdebd4118776f4de7fa28bb987c650ed",
+        "purpose": "Ranking137 sender starts wire offset at0 and chunks the requested prefix at native count ceiling200. Assembly0x00433446 clears EBX;0x00433464 writes that initial offset."
+      },
+      {
+        "ghidraAddress": "0x00511790",
+        "decompilationSha256": "388fc6f0c6eb65c9c5169d45d5bcfcf2ef0fcc3bdb9311ef81d564f478a3c20b",
+        "purpose": "Lua SetButtonClickDelay adapter builds a task carrying the third argument."
+      },
+      {
+        "ghidraAddress": "0x00509ff0",
+        "decompilationSha256": "08941838b1e78740d5c1a2496619c18bd24723e46674f6f4273ded56292ae546",
+        "purpose": "Task passes the stored click-delay argument to the native setter."
+      },
+      {
+        "ghidraAddress": "0x0048d6d0",
+        "decompilationSha256": "cea7aafc62a38cd31982c9bf6f12e7b710335577f551762af98b7330210f6ec6",
+        "purpose": "Stores click delay as(float)argument/1000.0, confirming the Lua500 argument means500ms between repeat button clicks."
+      }
+    ],
+    "decompilationHashEncoding": "SHA256 of UTF-8 returned pseudocode, preserving CRLF.",
+    "observedClientBehavior": {
+      "visibleRows": 6,
+      "lookaheadRows": 1,
+      "initialRequestedRows": 7,
+      "laterRequestedPrefixes": [
+        13,
+        19
+      ],
+      "wireInitialOffset": 0,
+      "nativeRankingBatchCeiling": 200,
+      "pageButtonDebounceMilliseconds": 500,
+      "serverRateLimitEstablished": false
+    },
+    "collectorPolicy": {
+      "steamRankingBatchRows": 200,
+      "steamBatchMinimumGapSeconds": 1.0,
+      "pacedOutgoingOpcodes": [
+        137,
+        15,
+        20
+      ],
+      "offsetProgression": "Advance by actual returned count and request only new rows; continue through short pages until a successful empty reply.",
+      "relationToClient": "Uses the native ranking batch ceiling of200 for fewer full-scan requests than seven-row pages, while advancing the offset to avoid repeated growing-prefix reads. The200-row/one-second policy was explicitly selected by the user; it is not exact UI traffic reproduction or an inferred server rate limit.",
+      "mobileRankingBatchRows": 200,
+      "mobileBatchMinimumGapSeconds": 0.25,
+      "nicknameFallbackMaximumGroup": 10,
+      "nicknameFallbackPauseSeconds": 0.25,
+      "overlapCheck": "After at least201 collected rows, compare offset199/count2 with the corresponding rows.",
+      "steamPublicVehicles": "Disabled; exported vehiclesStatus=not_collected and vehicles=null.",
+      "timeoutsAndBudgets": "Steam session capacity ceiling 10,800 seconds; mobile session ceiling 3,600 seconds; shared collection default/workflow budget 18,000 seconds. Existing bounded reply waits remain unchanged, and incomplete scans cannot replace snapshots. These are capacity ceilings, not completion promises.",
+      "completeSnapshotVerifiedBackends": [
+        "SteamUSAVA",
+        "SteamBonn",
+        "SteamJP"
+      ],
+      "pendingCompleteSnapshotBackends": [],
+      "allSteamBackendsCompleteSnapshotsVerified": true
+    }
+  },
+  "boundedSteamGentleCheck": {
+    "recordedAtUtc": "2026-10-23T21:45:37Z",
+    "dateUtc": "2026-10-23",
+    "scope": "Bounded live read-only ranking/name checks and separate bounded ranking-population estimates. No complete Steam ranking enumeration or snapshot is established by these probes. No credentials, player IDs, account IDs or raw packets are included.",
+    "batchGapSeconds": 1.0,
+    "results": {
+      "SteamJP": {
+        "firstRankingRows": 7,
+        "nextRankingRows": 7,
+        "initialNamesRequested": 7,
+        "initialNamesResolved": 7,
+        "primaryNameTimeouts": 0,
+        "nicknameFallbackRequests": 0,
+        "top7DurationSeconds": 2.22,
+        "estimatedExposedRankingRows": 98516,
+        "populationEstimateRankingRequests": 18
+      },
+      "SteamBonn": {
+        "firstRankingRows": 7,
+        "nextRankingRows": 7,
+        "initialNamesRequested": 7,
+        "initialNamesResolved": 7,
+        "primaryNameTimeouts": 0,
+        "nicknameFallbackRequests": 0,
+        "top7DurationSeconds": 2.01,
+        "estimatedExposedRankingRows": 37913,
+        "populationEstimateRankingRequests": 18
+      },
+      "SteamUSAVA": {
+        "firstRankingRows": 7,
+        "nextRankingRows": 7,
+        "initialNamesRequested": 7,
+        "initialNamesResolved": 7,
+        "primaryNameTimeouts": 0,
+        "nicknameFallbackRequests": 0,
+        "top7DurationSeconds": 2.82,
+        "estimatedExposedRankingRows": 10054,
+        "populationEstimateRankingRequests": 16
+      }
+    },
+    "populationEstimateCaveat": "Counts are estimates from bounded ranking queries, not complete enumeration, an atomic snapshot or a census of registered commanders.",
+    "finalCollectionPolicy": {
+      "rankingBatchRows": 200,
+      "minimumBatchGapSeconds": 1.0,
+      "rationale": "Use the native batch ceiling to reduce request count for a full scan; keep one-second pacing across batch requests."
+    },
+    "steamPublicVehicles": "Disabled; vehiclesStatus=not_collected and vehicles=null.",
+    "completeSnapshotEstablishedByThisProbe": false,
+    "observationScope": "Historical bounded probes only; later complete-snapshot verification is recorded separately in completeSteamSnapshotVerification."
+  },
+  "collectionCapacity": {
+    "recordedAtUtc": "2026-10-23T21:55:05Z",
+    "steamSessionCeilingSeconds": 10800,
+    "mobileSessionCeilingSeconds": 3600,
+    "sharedCollectionDefaultSeconds": 18000,
+    "workflowCollectionArgumentSeconds": 18000,
+    "buildJobTimeoutMinutes": 330,
+    "nominalBuildOverheadMinutes": 30,
+    "interpretation": "Capacity ceilings only, not expected running times or completion promises. Every session is additionally bounded by the remaining shared budget. Setup, checks, validation, storage and upload share the nominal30-minute reserve; it is not a guaranteed reserve after collection ends.",
+    "measurementTrigger": {
+      "steamRowsInMeasuredInterval": 5000,
+      "intervalElapsedSecondsGreaterThan": 390,
+      "estimatedAsiaExposedRankingRows": 98516,
+      "previousSteamSessionCeilingSeconds": 3600,
+      "inference": "At the measured pace, a one-hour Steam session could not enumerate the estimated Asia ranking; the extension provides capacity without claiming a completed scan or a guaranteed duration.",
+      "additionalMeasurementStatus": "Full live Steam measurement remained in progress under the old session ceiling when the capacity review was recorded. No complete Steam snapshot had yet been verified at that time; later verification is recorded separately in completeSteamSnapshotVerification."
+    },
+    "unchangedPolicy": {
+      "steamRankingBatchRows": 200,
+      "steamBatchMinimumGapSeconds": 1.0,
+      "pacedOutgoingOpcodes": [
+        137,
+        15,
+        20
+      ],
+      "requiredReplyWaitSeconds": 30,
+      "initialPrimaryNameWaitSeconds": 12,
+      "additionalRetries": false,
+      "registrationOrCommanderCreationAdded": false,
+      "allowlist": "Production outgoing allowlist unchanged.",
+      "steamPublicVehicles": "Disabled; vehiclesStatus=not_collected and vehicles=null."
+    },
+    "deadlineOutcome": "After shared-budget expiry, unfinished and unvisited backends receive failure metadata without further logins; completed refreshes and prior last-good snapshots are retained. Only a complete validated enumeration can replace a snapshot.",
+    "githubHostedJobLimit": {
+      "minutes": 360,
+      "sourceUrl": "https://docs.github.com/en/actions/reference/limits",
+      "verifiedDateUtc": "2026-10-23"
+    },
+    "completeSnapshotVerifiedBackends": [
+      "SteamUSAVA",
+      "SteamBonn",
+      "SteamJP"
+    ],
+    "pendingCompleteSnapshotBackends": [],
+    "allSteamBackendsCompleteSnapshotsVerified": true
+  },
+  "nicknamePrimaryFallbackAndPreparationEvidence": {
+    "recordedDateUtc": "2026-10-23",
+    "scope": "Read-only static analysis of the pinned Steam Sherman.exe through local Ghidra. This section adds no live game observations, credentials, account or player identifiers, packet contents, or decompilation text.",
+    "nativeBinarySha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724",
+    "decompilationHashEncoding": "SHA256 of the exact UTF-8 pseudocode string in the cached Ghidra JSON response, preserving its line endings; hashes are not taken from newline-translated .c cache files.",
+    "functions": [
+      {
+        "ghidraAddress": "0x005b0930",
+        "decompilationSha256": "74eb2ea291aa5332aa7b48666de3ec768e374b450f50ea36df6addb1fc2cf7c5",
+        "purpose": "Nickname loader filters existing cache entries and pending queries, then requests social mask 5."
+      },
+      {
+        "ghidraAddress": "0x005ae670",
+        "decompilationSha256": "d66568d8d93f5fdd878efb10ea2c88c5650239fda4abedd1400674c31a70ca78",
+        "purpose": "Request 15 sender flushes each 200 ID/mask records and sends the residual batch."
+      },
+      {
+        "ghidraAddress": "0x005aa370",
+        "decompilationSha256": "e88ecfeefde34eaaf910a2b602acd0a2188292cb3dc27e83818580e595791be7",
+        "purpose": "Request 15 serializer requires fewer than 256 records and emits u8 count followed by u32 player ID and u8 mask."
+      },
+      {
+        "ghidraAddress": "0x005ac9d0",
+        "decompilationSha256": "1f11ef8c9b16c06cf309d1a558a24a9cfe1887d7153b32c1ff540a4f49f022ad",
+        "purpose": "Reply 380 handler parses the vector and applies its records."
+      },
+      {
+        "ghidraAddress": "0x005aa290",
+        "decompilationSha256": "3b96c5817b465ed2b327ca4f17170357b35efaa8421f8fc32dae1d75579b6d7d",
+        "purpose": "Reply 380 vector reader consumes a u8 count and that many social descriptors."
+      },
+      {
+        "ghidraAddress": "0x005ad8d0",
+        "decompilationSha256": "1c4c1fe4296466bb65d6a6e64da2ebaa2657c78f9794afe2d8c7668db560070d",
+        "purpose": "Social descriptor reader treats mask bits 1 and 4 independently; bit 4 carries the bounded nickname and one extra byte."
+      },
+      {
+        "ghidraAddress": "0x005ae230",
+        "decompilationSha256": "f63d2a97566754172cf9123fe9bf6068a84b0211c4f3593e1a6cfa255d960834",
+        "purpose": "A mask-4 descriptor caches the nickname, including an empty string, and completes its nickname transaction; descriptors without mask 4 skip that completion."
+      },
+      {
+        "ghidraAddress": "0x005afd00",
+        "decompilationSha256": "515912c67833f81f8211a754e061fb67eef6cfe4841c03804daad8e9e01d3011",
+        "purpose": "Completes pending nickname transaction requirements for one ID and clears the pending query group."
+      },
+      {
+        "ghidraAddress": "0x005b0c00",
+        "decompilationSha256": "9537c1ee8eb60f03fa951658566c6b7822e94767f041fb0a71474b455f5a9639",
+        "purpose": "Dispatches generic social-field updates according to the descriptor mask; it is not a whole-batch nickname completion marker."
+      },
+      {
+        "ghidraAddress": "0x005acbe0",
+        "decompilationSha256": "0524048f206f560b7b432dd160b30a7219f6be4a4bc8b7e68cc38d19639a49b7",
+        "purpose": "Primary social miss handler reads the vector of IDs and invokes the primary fallback loop."
+      },
+      {
+        "ghidraAddress": "0x005ae600",
+        "decompilationSha256": "d5207832776109d06911e28dc9846475d29e82195580955533a35381a56a050c",
+        "purpose": "Loops primary social miss IDs and immediately invokes the request-16 path for each one."
+      },
+      {
+        "ghidraAddress": "0x005adeb0",
+        "decompilationSha256": "fe188902d6262e4462996b59631df2f1284fa6a91f3a5a624919e3294d157c18",
+        "purpose": "Request 16 sender emits only the u32 ID and enforces a per-ID last-request-plus-10-seconds throttle."
+      },
+      {
+        "ghidraAddress": "0x00433600",
+        "decompilationSha256": "2c747372371c26e6f787b46434c5087d577aafec4f22d378f80e20e154431bde",
+        "purpose": "Ranking preparation gathers newly returned nickname and detail requirements and creates the preparation task with delay equal to their count divided by 50 plus 5, or zero when none exist."
+      },
+      {
+        "ghidraAddress": "0x004a1c80",
+        "decompilationSha256": "73ac5b1c4a776fe69c03f33e79d0b8f98de4de26fd57b55a05de82289a4c07f3",
+        "purpose": "Constructs the transaction task and its delay task using the caller-provided delay."
+      },
+      {
+        "ghidraAddress": "0x004a1f10",
+        "decompilationSha256": "10a22230e927601e3732c1d9ccf002f12498be53e996c50cdabdf8fef8dfb86f",
+        "purpose": "Delay-task update records its start time and invokes the completion callback when the delay expires."
+      },
+      {
+        "ghidraAddress": "0x004a2160",
+        "decompilationSha256": "28e94b38d6b0dc3c32cb65708e7f01e058c2a8731c3bd8b66609f16cfc1148a9",
+        "purpose": "Sets the transaction delay to zero once its outstanding requirement count reaches zero."
+      },
+      {
+        "ghidraAddress": "0x004a1eb0",
+        "decompilationSha256": "8cd39dc286843ad772f7a17acd7c66744c4d080bfe265bbc427794a93ba5c214",
+        "purpose": "Invokes the ranking preparation callback when the task completes or its delay expires; it does not initiate nickname request 16."
+      },
+      {
+        "ghidraAddress": "0x004322f0",
+        "decompilationSha256": "a601646446d020a72c8d95a625442f2936b9ad41d1b9e2c30548fcd7eda99f75",
+        "purpose": "FundRankingPrepareCall callback emits EvLoadFundRankingMsg 0x427; no game network request is sent here."
+      }
+    ],
+    "request15": {
+      "nativeNicknameMask": 5,
+      "nativeBatchCeiling": 200,
+      "serializerMaximumRecords": 255,
+      "wireFields": "u8 count, count * (u32 player ID, u8 mask).",
+      "fiftyRecordDistinction": "The 50-record ceiling found in the separate public-detail request-20 path does not cap request 15."
+    },
+    "reply380": {
+      "completionUnit": "Each keyed nickname field, not the complete request batch.",
+      "mask4": "Presence of mask bit 4 caches the supplied nickname and completes that ID nickname transaction, even when the supplied string is empty.",
+      "emptyMask4Fallback": "The native mask-4 update path does not automatically send request 16 for an empty nickname.",
+      "bit1OnlyOrMissing4": "Mask bit 1 is parsed and dispatched independently. A descriptor without bit 4 does not complete the nickname transaction in the reply-380 updater and does not directly initiate request 16 there.",
+      "wholeBatchMarker": "No whole-batch completion marker is parsed by the reply-380 handler.",
+      "offlineInference": "The inspected paths do not establish that a missing nickname field, bit-1-only record, empty name, or slow response identifies an offline, deleted, or inactive player."
+    },
+    "primary14Fallback": {
+      "opcodeRegistrationAddress": "0x0071e1c0",
+      "dispatch": "Opcode 14 -> 0x005acbe0 -> 0x005ae600 -> 0x005adeb0.",
+      "whenSent": "The native handler loops the IDs in the primary miss reply and invokes request 16 immediately for each ID, without waiting for every other primary response or a separate 12-second batch timer.",
+      "perIdThrottleSeconds": 10,
+      "throttleCondition": "Native send condition is last_request_seconds + 10 < current_seconds; a suppressed send does not bypass that per-ID throttle.",
+      "globalPacingProof": "No global ten-ID grouping or quarter-second batch pause appears in this native miss loop."
+    },
+    "nativeRankingPreparationTimer": {
+      "creationFunction": "0x00433600",
+      "requirementCount": "Number of newly returned nickname requirement objects plus newly returned native detail requirement objects, rather than the number of visible ranking rows alone.",
+      "delayFormulaSeconds": "new_requirement_count / 50.0 + 5.0 when count > 0; 0 when count == 0.",
+      "earlyCompletion": "When the outstanding requirement count becomes zero, 0x004a2160 sets the delay to zero so the next task update can complete preparation.",
+      "expirationEffect": "The preparation callback 0x004322f0 emits EvLoadFundRankingMsg 0x427 to release the UI preparation task. This timer does not initiate request 16 or prove that every nickname was recovered.",
+      "nicknameOnlyExample": "200 new nickname requirements alone would contribute a 9-second delay. The native ranking preparation also includes its new detail requirements in the actual count.",
+      "universalPrimaryTimeout": "This is a ranking UI preparation timeout; it is not evidence of a universal 12-second primary nickname timeout or a timeout-then-16 retry rule."
+    },
+    "collectorRecoveryPolicyDistinction": {
+      "primaryMaximumWaitSeconds": 12,
+      "completionCondition": "The collector waits for each requested ID to have mask bit 4 or a primary-14 miss, and may finish this wait before 12 seconds when all IDs satisfy that condition.",
+      "fallbackPolicy": "After that bounded primary wait completes or expires, the collector may issue a single bounded request-16 fallback for still-unresolved IDs, including an empty mask-4 field; it does not retry request 15.",
+      "nativeRelation": "The 12-second primary wait followed by bounded fallback is the collector recovery policy, not exact native UI retry behavior. Native primary-14 misses can initiate request 16 immediately, while an empty mask-4 field completes natively without automatically requesting 16.",
+      "implementationChangeInThisSection": false,
+      "serverAcceptanceOrPerformanceInference": "Static client code does not establish why a Steam response omits bit 4, the server latency for a cold lookup, or an optimal request rate or timeout."
+    }
+  },
+  "completeSteamSnapshotVerification": {
+    "recordedAtUtc": "2026-10-23T22:18:58Z",
+    "scope": "Completed sequential public-ranking/name enumeration and validation, distinct from the earlier bounded population estimates. No account IDs, player IDs, credentials or raw protocol packets are recorded.",
+    "policy": {
+      "rankingBatchRows": 200,
+      "minimumBatchGapSeconds": 1.0,
+      "steamPublicVehiclesEnabled": false
+    },
+    "verifiedBackends": [
+      "SteamUSAVA",
+      "SteamBonn",
+      "SteamJP"
+    ],
+    "pendingBackends": [],
+    "allSteamBackendsVerified": true,
+    "results": {
+      "SteamUSAVA": {
+        "status": "complete_verified",
+        "file": "SteamUSAVA.rankings.json",
+        "rows": 10054,
+        "namesResolved": 10054,
+        "namesMissing": 0,
+        "bytes": 1207315,
+        "sha256": "db2e2748236c16447fb61a95f44edb2b16952ef4ebc7eb659ff8591040e33c8d",
+        "startedAtUtc": "2026-10-23T21:57:07.588015Z",
+        "completedAtUtc": "2026-10-23T22:05:57.924638Z",
+        "durationSeconds": 530.336623,
+        "rankingEnumerationComplete": true,
+        "allRows": {
+          "vehiclesStatus": "not_collected",
+          "vehicles": null
+        },
+        "validation": {
+          "independentPythonPublicationValidation": "passed against the coherent actual 10-entry index and all 11 public data files",
+          "independentNodeBrowserValidation": "validateIndex and validateSnapshot passed for all three actual Steam files; each SHA-256 independently recomputed and matched",
+          "liveBrowserPreview": "passed",
+          "publicFieldAllowlists": "passed; exact public snapshot/row fields, no protocol identifier fields",
+          "rankAndScoreOrder": "passed; contiguous ranks and descending Grandeur",
+          "namesAndTotals": "passed; 10,054 resolved, 0 missing",
+          "publicVehicles": "passed; all 10,054 rows explicitly not_collected with null vehicles",
+          "stableFilesDuringIndependentValidation": true,
+          "revalidatedAtUtc": "2026-10-24T00:23:56Z"
+        },
+        "aliases": [
+          "SteamUSAVA"
+        ]
+      },
+      "SteamBonn": {
+        "status": "complete_verified",
+        "file": "SteamBonn.rankings.json",
+        "rows": 37913,
+        "namesResolved": 37913,
+        "namesMissing": 0,
+        "bytes": 4606796,
+        "sha256": "66c6f655b6b2be02a0e85e29e8e540f9a3d17e4cdeeb0187bdd761e4081aec12",
+        "startedAtUtc": "2026-10-23T22:05:58.073179Z",
+        "completedAtUtc": "2026-10-23T22:25:49.113775Z",
+        "durationSeconds": 1191.040596,
+        "verifiedAtUtc": "2026-10-23T22:26:52Z",
+        "rankingEnumerationComplete": true,
+        "allRows": {
+          "vehiclesStatus": "not_collected",
+          "vehicles": null
+        },
+        "validation": {
+          "independentPythonPublicationValidation": "passed against the coherent actual 10-entry index and all 11 public data files",
+          "independentNodeBrowserValidation": "validateIndex and validateSnapshot passed for all three actual Steam files; each SHA-256 independently recomputed and matched",
+          "publicFieldAllowlists": "passed; exact public snapshot/row fields, no protocol identifier fields",
+          "rankAndScoreOrder": "passed; contiguous ranks and descending Grandeur",
+          "namesAndTotals": "passed; 37,913 resolved, 0 missing",
+          "publicVehicles": "passed; all 37,913 rows explicitly not_collected with null vehicles",
+          "stableFilesDuringIndependentValidation": true,
+          "revalidatedAtUtc": "2026-10-24T00:23:56Z"
+        },
+        "aliases": [
+          "SteamBonn"
+        ]
+      },
+      "SteamJP": {
+        "status": "complete_verified",
+        "aliases": [
+          "SteamJP",
+          "SteamTEST"
+        ],
+        "file": "SteamJP.rankings.json",
+        "rows": 98516,
+        "namesResolved": 98516,
+        "namesMissing": 0,
+        "bytes": 12050900,
+        "sha256": "5bd0b2739a825ee8a69324d5e28a4cbc6a229a28983f8e9b16fd3a23db5234ff",
+        "startedAtUtc": "2026-10-23T22:25:49.743622Z",
+        "completedAtUtc": "2026-10-24T00:21:46.314406Z",
+        "durationSeconds": 6956.570784,
+        "rankingEnumerationComplete": true,
+        "allRows": {
+          "vehiclesStatus": "not_collected",
+          "vehicles": null
+        },
+        "validation": {
+          "independentPythonPublicationValidation": "passed against the coherent actual 10-entry index and all 11 public data files",
+          "independentNodeBrowserValidation": "validateIndex and validateSnapshot passed for all three actual Steam files; each SHA-256 independently recomputed and matched",
+          "publicFieldAllowlists": "passed; exact public snapshot/row fields, no protocol identifier fields",
+          "rankAndScoreOrder": "passed; contiguous ranks and descending Grandeur",
+          "namesAndTotals": "passed; 98,516 resolved, 0 missing",
+          "publicVehicles": "passed; all 98,516 rows explicitly not_collected with null vehicles",
+          "stableFilesDuringIndependentValidation": true,
+          "revalidatedAtUtc": "2026-10-24T00:23:56Z",
+          "liveBrowserPreview": "passed after canonical index formatting: 98,516 rows/names, full coverage, shared Hong Kong description, JSON/CSV links enabled, no error notice or console errors, literal U+3000 retained, final-rank pagination and return to page 1 passed",
+          "literalWhitespaceName": "passed; one exact returned U+3000 name remains resolved in raw JSON, Node validation and actual browser DOM; snapshot bytes unchanged by the browser fix"
+        },
+        "verifiedAtUtc": "2026-10-24T00:23:56Z"
+      }
+    },
+    "availableArchiveTotals": {
+      "rows": 299193,
+      "namesResolved": 297740,
+      "namesMissing": 1453,
+      "completeBackends": 10,
+      "configuredBackends": 10,
+      "scope": "Ten complete snapshots captured at different times: seven mobile backends on 22 October 2026 UTC, Steam USA and Europe on 23 October 2026 UTC, and Steam Asia/Hong Kong begun 23 October and completed 24 October 2026 UTC."
+    },
+    "limitation": "A complete sequential scan is not an atomic snapshot or a census of registered commanders. All three Steam backends are verified; historical bounded probes remain separate estimates, and Steam public-vehicle collection remains disabled.",
+    "updatedAtUtc": "2026-10-24T00:25:14Z",
+    "steamTotals": {
+      "rows": 146483,
+      "namesResolved": 146483,
+      "namesMissing": 0,
+      "completeBackends": 3
+    },
+    "finalArchiveValidation": {
+      "validatedAtUtc": "2026-10-24T00:23:56Z",
+      "pythonPublicationValidation": "passed",
+      "nodeBrowserValidation": "passed",
+      "indexBackends": 10,
+      "publicDataFiles": 11,
+      "snapshotHashesIndependentlyMatched": true,
+      "strictPublicFieldsAndNoProtocolIdentifierFields": true,
+      "allSteamRowsVehiclesNotCollectedAndNull": true,
+      "stableIndexAndSnapshotBytesBeforeIndexPresentationFormatting": true,
+      "actualAsiaBrowserPreview": "passed after index formatting",
+      "mobilePreservation": "Root independently confirmed byte equality against HEAD for all seven pre-existing mobile snapshot files.",
+      "finalIndexPresentation": "Canonical mobile-then-Steam ordering and pretty formatting only; snapshot bytes unchanged. Final build validated ten snapshots.",
+      "nodeInterfaceAndArtworkTests": {
+        "passed": 26,
+        "failed": 0,
+        "source": "Final complete suite reported by root after the literal-name compatibility fix."
+      }
+    }
+  },
+  "updatedAtUtc": "2026-10-24T00:25:14Z",
+  "publicNameContract": {
+    "source": "Actual completed Steam Asia/Hong Kong snapshot and independent cross-validator/browser integration checks.",
+    "nonemptyRule": "A resolved name is the exact nonempty returned UTF-8 string; whitespace is not trimmed for resolution, replaced with a synthesized name or converted to null.",
+    "observedIdeographicSpaceName": {
+      "codePoint": "U+3000",
+      "utf8Bytes": 3,
+      "occurrences": 1,
+      "nameStatus": "resolved",
+      "browserDomCodePoints": [
+        12288
+      ]
+    },
+    "initialBrowserMismatch": "The earlier browser hasName trim() check rejected this legitimate nonempty value while Python accepted it.",
+    "resolution": "The browser nonempty-string contract now matches Python. Independent Node validation passed all three actual Steam snapshots, and the live Asia browser DOM retained the exact returned character.",
+    "rawSnapshotUnchangedByBrowserFix": true
+  }
+}

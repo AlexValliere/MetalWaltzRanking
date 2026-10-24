@@ -1,0 +1,170 @@
+{
+  "schema": "metal-waltz.steam-native-transport-evidence.v1",
+  "scope": "Read-only static native inspection of installed Steam binary; no live game verification.",
+  "program": "Sherman.exe",
+  "language": "x86:LE:32:default",
+  "imageBase": "0x00400000",
+  "librarySha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724",
+  "maskByteVerification": "Ghidra read_memory bytes compared equal to installed PE file bytes at the recorded offsets.",
+  "directions": {
+    "c2g": {
+      "bytes": 621,
+      "sha256": "1a1c187d6098c377e1c248a157001e9893191b993f793912b737a070321acf8f",
+      "ghidraAddress": "0x00750768",
+      "peOffset": "0x0034f368",
+      "constructor": "0x00650320"
+    },
+    "g2c": {
+      "bytes": 621,
+      "sha256": "30db288e559222530326c5920a6b7a5cabe52814d1d52f90686b748f9c4a74a7",
+      "ghidraAddress": "0x007504f0",
+      "peOffset": "0x0034f0f0",
+      "constructor": "0x006502e0"
+    }
+  },
+  "decompilationSha256": {
+    "00497960": "30c4e55f2a5345ca88e2dc9e4e714db48fea4816fff069f85a9bcccc453558a7",
+    "00650320": "8119c37984a78597e7d23fe2e77fecb58e49bd8374db29f5b1bbf2e3b4023aed",
+    "006502e0": "c6ee092e0da046f38a945d14105ad56ec0dc1ba76d3f6345f82004fc5b711f50",
+    "0064e4a0": "fb62708691ddbaea781c37320406a2860c80223b1d341d0fd9ced08f00d2f499",
+    "0064e5f0": "2364a37b2aa3a557a6b799e3d03a39e39256d7caa8ff5491334c512ec6719d0d",
+    "0064ecb0": "48c5741a1143632c6c16339f21c1f5e3c0fc8289ba21c44b54ade8900ac6073c",
+    "0064ece0": "8a150a4d62cc0bea4ea055fa76cf10a41db6f2f3ad9d4b8b051fb743f22b4b0b",
+    "0064f240": "25eb281ae4edea35fcc81009cc1b1e7ba2639fd0e7e6a1c558ec08e6d5794f2d",
+    "0064f0a0": "ef1fbf540229531c97a836a3883c1b9c4fcb3e932f179a7af31ccee669885080",
+    "0064def0": "8ff17d5ea2015cd5c0f554a9d2668f4421c3491a21b4e39b23706202a28a817f",
+    "0064dd20": "2adaae9e8804f7fb95736b470c975aa10e61e46f5a6cd60e6b5fa8b1544f1d85",
+    "00695be0": "a44ec1266f7173cac5c1f5caa370768c04cecafff2abf91e6c5f637277d7a6c2",
+    "00695b20": "49c7e75d3cb51b9bb4b2650d06c4fdb7fba0fa3e3ecfbc5f3e9ee1f55b7d8bc8",
+    "006965c0": "e90b3b2c2579a20cfc297699ef5d48044e90d4a311468be4d40cbfd09d1915a0",
+    "00697c00": "7cbc259a3b0f5d3d550904b922370a713fd5278f7712bbc727bd19747f6db84b"
+  },
+  "defaultFrame": {
+    "length": "LE u16 total frame length, excluded from XOR and DES; total frame length = 3 mod 8.",
+    "body": "One XOR-masked pad-count byte followed by DES-CBC ciphertext; plaintext begins LE u16 opcode.",
+    "padding": "Native zero-fill of final DES block; pad count 0..7.",
+    "material": "Each frame consumes 16 mask bytes from an independent per-direction cipher cursor; first 8 IV, next 8 key.",
+    "xor": "Continuous independent per-direction mask cursor over pad-count plus ciphertext, not length header.",
+    "cursorInitialization": "All mask cursors initialized to 0.",
+    "maxNativeBuffer": "0x4000 bytes in native owner scratch packet."
+  },
+  "optionalDictionary": {
+    "initialState": "NULL dictionary; initial inbound pipeline is XOR then DES.",
+    "negotiation": "Native receive class supports an optional dictionary path. Transition control packets and dictionary compression have not been validated or implemented.",
+    "collectorLimit": "A server requiring dictionary transport after login would need additional implementation; native static similarity alone is not live interoperability.",
+    "compiledCallers": "All direct calls to the dictionary installation function FUN_0064e8a0 are constructors or reset routines passing NULL. No compiled non-null installation was found."
+  },
+  "nativeCipherKnownAnswer": {
+    "method": "Ghidra P-code emulation in isolated memory overlays; no native process, binary, or project mutation.",
+    "keyScheduleFunction": "0x00697c00",
+    "cbcFunction": "0x006965c0",
+    "keyHex": "133457799bbcdff1",
+    "ivHex": "0102030405060708",
+    "plaintextHex": "0123456789abcdef",
+    "ciphertextHex": "e61690cc695580f6",
+    "keyScheduleEmulationSteps": 1538,
+    "cbcEmulationSteps": 847,
+    "bothEmulationsReachedReturn": true,
+    "inputScope": "Synthetic one-block interoperability vector, no account credentials or captured traffic."
+  },
+  "nativeFrameKnownAnswers": {
+    "method": "Synthetic plaintext CBC is computed by native key schedule and CBC P-code emulation; pad-count, XOR, and length follow the separately verified native strategy pipeline.",
+    "direction": "c2g",
+    "vectors": [
+      {
+        "opcode": 137,
+        "payloadHex": "0500c7000000c8",
+        "wireHex": "13007ed25b8aa9e26059304375318be4315ebf",
+        "cipherCursor": 0,
+        "xorCursor": 0
+      },
+      {
+        "opcode": 15,
+        "payloadHex": "02e903000005ea03000005",
+        "wireHex": "130056c4e2c64c8a950fd365ee8ea41175c8b0",
+        "cipherCursor": 16,
+        "xorCursor": 17
+      },
+      {
+        "opcode": 65531,
+        "payloadHex": "",
+        "wireHex": "0b006ae3f7c66d83226f48",
+        "cipherCursor": 32,
+        "xorCursor": 34
+      }
+    ]
+  },
+  "maskBoundaryVerification": {
+    "method": "Isolated native P-code emulation of FUN_0064ece0 on synthetic zero-byte input confirms byte-by-byte wrap within each 16-byte sample, including the final byte at offset 620.",
+    "samplerFunction": "0x0064ece0",
+    "sampleBytes": 16,
+    "directions": [
+      "c2g",
+      "g2c"
+    ],
+    "samples": [
+      {
+        "direction": "c2g",
+        "initialCursor": 608,
+        "expectedHex": "f1e13ef5c80a797f2b5d3d2200795a13",
+        "actualHex": "f1e13ef5c80a797f2b5d3d2200795a13",
+        "finalCursor": 3
+      },
+      {
+        "direction": "c2g",
+        "initialCursor": 620,
+        "expectedHex": "00795a139722997c9cdac6784682a76c",
+        "actualHex": "00795a139722997c9cdac6784682a76c",
+        "finalCursor": 15
+      },
+      {
+        "direction": "g2c",
+        "initialCursor": 608,
+        "expectedHex": "7fe537ea9c275cae9487786d00df6e34",
+        "actualHex": "7fe537ea9c275cae9487786d00df6e34",
+        "finalCursor": 3
+      },
+      {
+        "direction": "g2c",
+        "initialCursor": 620,
+        "expectedHex": "00df6e34f6675ed985ba73132f417d0e",
+        "actualHex": "00df6e34f6675ed985ba73132f417d0e",
+        "finalCursor": 15
+      }
+    ],
+    "allEmulationsReachedReturn": true,
+    "frameRegression": {
+      "method": "Native DES key schedule and CBC emulation generated the ciphertext independently; framing follows the verified native length, padding and XOR pipeline.",
+      "direction": "c2g",
+      "opcode": 137,
+      "payloadHex": "0500c7000000c8",
+      "repeatCount": 40,
+      "frameIndexBase": 0,
+      "xorBoundaryFrameIndex": 36,
+      "cipherMaterialBoundaryFrameIndex": 38,
+      "vectors": [
+        {
+          "frameIndex": 36,
+          "cipherCursor": 576,
+          "xorCursor": 612,
+          "materialHex": "e6147abded75659b503f39ac45f08377",
+          "wireHex": "1300cfb7bd865de98cea20d44c7a3658a1f8fa"
+        },
+        {
+          "frameIndex": 38,
+          "cipherCursor": 608,
+          "xorCursor": 25,
+          "materialHex": "f1e13ef5c80a797f2b5d3d2200795a13",
+          "wireHex": "130023f76e9e96d42986d72b7afb2a217e3da5"
+        },
+        {
+          "frameIndex": 39,
+          "cipherCursor": 3,
+          "xorCursor": 42,
+          "materialHex": "9722997c9cdac6784682a76cbb9f5523",
+          "wireHex": "1300eff9d352a1cae9d5527ce4625dc7a65fd5"
+        }
+      ]
+    }
+  }
+}

@@ -19,7 +19,10 @@ const {
   validateVehicleCatalog,
   publicVehicles,
   vehicleDisplayData,
-} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  serverDescription,
+  displayServerName,
+  browserApp,
+} = await import(`data:text/javascript;base64,${Buffer.from(`${source}\nexport { browserApp };`).toString('base64')}`);
 const rows = [
   { rank: 1, name: 'Ａｌｅｘ', grandeur: 900, nameStatus: 'resolved' },
   { rank: 2, name: 'タンク少女', grandeur: 800, nameStatus: 'resolved' },
@@ -50,7 +53,9 @@ test('search normalizes Unicode width, canonical accents and letter case', () =>
   assert.deepEqual(filterRows(rows, 'CAFE\u0301'), [rows[2]]);
   assert.deepEqual(filterRows(rows, 'missing'), []);
   assert.equal(filterRows(rows, '  '), rows);
-  assert.equal(hasName({ name: '  ' }), false);
+  assert.equal(hasName({ name: '  ' }), true);
+  assert.equal(hasName({ name: '' }), false);
+  assert.equal(hasName({}), false);
   assert.equal(hasName(rows[3]), false);
 });
 
@@ -136,6 +141,254 @@ const snapshot = {
   namesComplete: false,
   rows,
 };
+
+test('a resolved ideographic-space name keeps its exact value and resolved count', () => {
+  const nativeRow = { rank: 1, name: '\u3000', grandeur: 900, nameStatus: 'resolved' };
+  const nativeServer = { ...server, rows: 1, namesResolved: 1, namesMissing: 0 };
+  const nativeSnapshot = { ...snapshot, namesComplete: true, rows: [nativeRow] };
+  assert.equal(hasName(nativeRow), true);
+  assert.equal(validateSnapshot(nativeSnapshot, nativeServer), nativeSnapshot);
+  assert.equal(filterRows(nativeSnapshot.rows, ''), nativeSnapshot.rows);
+  assert.deepEqual(filterRows(nativeSnapshot.rows, 'missing'), []);
+  assert.equal(rowsToCsv(nativeSnapshot.rows),
+    '\uFEFFrank,commander,grandeur,name_status\r\n"1","\u3000","900","resolved"\r\n');
+  for (const name of ['', null, undefined]) {
+    assert.equal(hasName({ name }), false);
+    assert.throws(() => validateSnapshot({
+      ...nativeSnapshot, rows: [{ ...nativeRow, name }],
+    }, nativeServer));
+  }
+});
+
+const unavailableServer = {
+  key: 'SteamBonn',
+  name: 'Steam Europe',
+  aliases: ['SteamBonn'],
+  file: null,
+  rows: 0,
+  namesResolved: 0,
+  namesMissing: 0,
+  startedAtUtc: null,
+  completedAtUtc: null,
+  refreshStatus: 'failed',
+  errorCode: 'snapshot_unavailable',
+  sha256: null,
+};
+const unavailableSteamAsia = {
+  ...unavailableServer,
+  key: 'SteamJP',
+  name: 'Steam / Asia / Steam / Asia (Hong Kong)',
+  aliases: ['SteamJP', 'SteamTEST'],
+};
+
+test('Steam Asia has a concise display name without changing native server metadata', () => {
+  const shared = Object.freeze({ ...unavailableSteamAsia });
+  assert.equal(displayServerName(shared), 'Steam Asia / Hong Kong');
+  assert.equal(shared.name, 'Steam / Asia / Steam / Asia (Hong Kong)');
+  for (const native of [server, unavailableServer, { key: 'JP', name: 'N°1 イジェフスク' }])
+    assert.equal(displayServerName(native), native.name);
+});
+
+test('shared Steam and mobile backends describe their verified regional aliases separately', () => {
+  assert.equal(serverDescription({ key: 'SteamJP', aliases: ['SteamJP', 'SteamTEST'] }),
+    'One shared Steam leaderboard for Asia and Hong Kong.');
+  assert.equal(serverDescription({ key: 'JKMIX', aliases: ['JKMIX', 'MIXKJ'] }),
+    'One shared leaderboard for Japan №2 and Korea №2.');
+  for (const key of ['Bonn', 'SteamBonn', 'SteamUSAVA', 'future'])
+    assert.equal(serverDescription({ key, aliases: [key, 'alternate'] }),
+      'PvP standings, ordered by Grandeur.');
+});
+
+test('a backend without a snapshot requires explicit failure and entirely absent snapshot metadata', () => {
+  const unavailableIndex = { ...index, servers: [server, unavailableServer] };
+  assert.equal(validateIndex(unavailableIndex), unavailableIndex);
+  for (const change of [
+    { refreshStatus: 'ok' }, { refreshStatus: 'seed' },
+    { rows: 1, namesMissing: 1 }, { rows: 1, namesResolved: 1 },
+    { file: 'SteamBonn.rankings.json' }, { file: undefined },
+    { sha256: '0'.repeat(64) }, { sha256: undefined },
+    { startedAtUtc: server.startedAtUtc }, { startedAtUtc: undefined },
+    { completedAtUtc: server.completedAtUtc }, { completedAtUtc: undefined },
+  ]) assert.throws(() => validateIndex({
+    ...index, servers: [{ ...unavailableServer, ...change }],
+  }), JSON.stringify(change));
+  // A successfully collected empty leaderboard remains a real snapshot.
+  assert.doesNotThrow(() => validateIndex({
+    ...index, servers: [{ ...server, rows: 0, namesResolved: 0, namesMissing: 0 }],
+  }));
+});
+
+test('an unavailable backend reports its state without requesting a null snapshot path', async () => {
+  const unavailableIndex = { ...index, servers: [server, unavailableServer] };
+  let requests = 0;
+  await assert.rejects(fetchServerSnapshot(unavailableIndex, unavailableServer.key, async () => {
+    requests++;
+    throw new Error('No snapshot fetch should occur');
+  }), (error) => {
+    assert.match(error.message, /No complete ranking snapshot.*Steam Europe/);
+    assert.equal(error.server, unavailableServer);
+    assert.equal(error.index, unavailableIndex);
+    return true;
+  });
+  assert.equal(requests, 0);
+  const paths = [];
+  await assert.rejects(fetchServerSnapshot(index, unavailableServer.key, async (path) => {
+    paths.push(path);
+    return unavailableIndex;
+  }, { refreshIndex: true }), /No complete ranking snapshot/);
+  assert.deepEqual(paths, ['./data/index.json']);
+});
+
+test('the unavailable Steam Asia error uses its display name and preserves the source entry', async () => {
+  const unavailableIndex = { ...index, servers: [unavailableSteamAsia] };
+  await assert.rejects(fetchServerSnapshot(unavailableIndex, 'SteamJP', async () => {
+    assert.fail('An unavailable snapshot must not be requested');
+  }), (error) => {
+    assert.equal(error.message, 'No complete ranking snapshot is available for Steam Asia / Hong Kong yet.');
+    assert.equal(error.server, unavailableSteamAsia);
+    assert.equal(error.server.name, 'Steam / Asia / Steam / Asia (Hong Kong)');
+    return true;
+  });
+});
+
+for (const unavailable of [unavailableServer, unavailableSteamAsia]) {
+  const displayName = unavailable.key === 'SteamJP' ? 'Steam Asia / Hong Kong' : 'Steam Europe';
+  test(`selecting uncollected ${unavailable.key} clears prior standings and can load its first snapshot later`, async () => {
+    class Element {
+      constructor(tagName = 'div') {
+        this.tagName = tagName.toUpperCase();
+        this.children = [];
+        this.attributes = new Map();
+        this.listeners = new Map();
+        this.dataset = {};
+        this.value = '';
+        this.text = '';
+        this.classList = { toggle() {} };
+      }
+      set textContent(text) { this.text = String(text); this.children = []; }
+      get textContent() { return this.text + this.children.map((child) => child.textContent).join(''); }
+      append(...children) {
+        for (const child of children)
+          this.children.push(...(child.tagName === '#FRAGMENT' ? child.children : [child]));
+      }
+      replaceChildren(...children) { this.text = ''; this.children = []; this.append(...children); }
+      setAttribute(key, value) { this.attributes.set(key, String(value)); }
+      getAttribute(key) { return this.attributes.get(key) ?? null; }
+      removeAttribute(key) { this.attributes.delete(key); delete this[key]; }
+      addEventListener(type, listener) { this.listeners.set(type, listener); }
+      async dispatch(type) { await this.listeners.get(type)?.({ target: this }); }
+      querySelector() { return this.button ??= new Element('button'); }
+    }
+    const elements = new Map();
+    const element = (id) => {
+      if (!elements.has(id)) elements.set(id, new Element());
+      return elements.get(id);
+    };
+    const location = { hash: '#server=Bonn', pathname: '/', search: '' };
+    const document = {
+      getElementById: element,
+      createElement: (tag) => new Element(tag),
+      createDocumentFragment: () => new Element('#fragment'),
+      createTextNode: (text) => { const node = new Element('#text'); node.textContent = text; return node; },
+      addEventListener() {},
+    };
+    const loadedSnapshot = {
+      ...snapshot,
+      rows: rows.map((row) => row.rank === 3 ? { ...row, name: '\u3000' } : row),
+    };
+    let currentIndex = { ...index, servers: [server, unavailable] };
+    let failNextSnapshot = false;
+    let rejectSnapshot;
+    const paths = [];
+    const replacements = {
+      document, location,
+      window: { addEventListener() {} },
+      history: { replaceState(_state, _title, url) { location.hash = url.slice(url.indexOf('#')); } },
+      fetch: async (path) => {
+        paths.push(path);
+        if (failNextSnapshot && path === './data/Bonn.rankings.json')
+          return new Promise((_resolve, reject) => { rejectSnapshot = reject; });
+        const value = path === './data/index.json' ? currentIndex :
+          path === './assets/vehicles/catalog.json' ? {
+            schema: 'metal-waltz.vehicle-art.v1', models: {}, units: {},
+          } : path === './data/Bonn.rankings.json' ? loadedSnapshot :
+            path === `./data/${unavailable.key}.rankings.json` ? { ...loadedSnapshot, serverKey: unavailable.key } : null;
+        assert.notEqual(value, null, `Unexpected request: ${path}`);
+        return { ok: true, json: async () => value };
+      },
+    };
+    const previous = Object.fromEntries(Object.keys(replacements).map((key) => [
+      key, Object.getOwnPropertyDescriptor(globalThis, key),
+    ]));
+    try {
+      for (const [key, value] of Object.entries(replacements))
+        Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+      await browserApp();
+      assert.equal(element('entries-count').textContent, '4');
+      assert.equal(element('names-count').textContent, '3');
+      assert.equal(element('ranking-rows').children[2].children[1].textContent, '\u3000');
+      assert.equal(element('ranking-rows').children[3].children[1].textContent, 'Name unavailable');
+      assert.equal(element('download-json').href, './data/Bonn.rankings.json');
+      const steamTab = element('server-tabs').children.find((button) => button.dataset.key === unavailable.key);
+      assert.equal(steamTab.textContent, `${displayName}Not collected`);
+      assert.equal(steamTab.getAttribute('aria-label'), `${displayName}, no snapshot available`);
+      const option = element('server-select').children.find((choice) => choice.value === unavailable.key);
+      assert.equal(option.textContent, `${displayName} · Not collected`);
+      const selecting = steamTab.dispatch('click');
+      assert.equal(element('load-notice').textContent, `Loading ${displayName}… The displayed standings are still Europe №1.`);
+      await selecting;
+      assert.equal(element('standings-title').textContent, displayName);
+      assert.equal(document.title, `${displayName} · Metal Waltz Rankings`);
+      assert.equal(element('table-caption').textContent, `${displayName} ranking snapshot unavailable`);
+      assert.match(element('load-notice').textContent, new RegExp(`No complete ranking snapshot is available for ${displayName} yet`));
+      assert.equal(element('entries-count').textContent, '—');
+      assert.equal(element('names-count').textContent, '—');
+      assert.equal(element('snapshot-date').textContent, '—');
+      assert.equal(element('results-label').textContent, 'No snapshot available');
+      assert.match(element('ranking-rows').textContent, /not been collected/);
+      assert.doesNotMatch(element('ranking-rows').textContent, /Ａｌｅｘ/);
+      assert.equal(element('download-json').hidden, true);
+      assert.equal(element('download-json').href, undefined);
+      for (const id of ['commander-search', 'page-size', 'rank-number', 'download-csv', 'next-page'])
+        assert.equal(element(id).disabled, true, id);
+      assert.equal(steamTab.getAttribute('aria-current'), 'true');
+      assert.equal(location.hash, `#server=${unavailable.key}`);
+      assert.deepEqual(paths, [
+        './data/index.json', './assets/vehicles/catalog.json', './data/Bonn.rankings.json',
+      ]);
+
+      currentIndex = { ...index, servers: [server, {
+        ...server, key: unavailable.key, name: unavailable.name, aliases: unavailable.aliases,
+        file: `${unavailable.key}.rankings.json`, refreshStatus: 'ok',
+      }] };
+      const checkAgain = element('load-notice').children.find((child) => child.tagName === 'BUTTON');
+      await checkAgain.dispatch('click');
+      assert.equal(element('standings-title').textContent, displayName);
+      assert.equal(document.title, `${displayName} · Metal Waltz Rankings`);
+      assert.ok(element('table-caption').textContent.startsWith(`${displayName} PvP standings,`));
+      assert.equal(currentIndex.servers[1].name, unavailable.name);
+      assert.equal(element('entries-count').textContent, '4');
+      assert.equal(element('download-json').hidden, false);
+      assert.equal(element('download-json').href, `./data/${unavailable.key}.rankings.json`);
+      assert.equal(element('commander-search').disabled, false);
+      assert.deepEqual(paths.slice(-2), ['./data/index.json', `./data/${unavailable.key}.rankings.json`]);
+
+      failNextSnapshot = true;
+      const bonnTab = element('server-tabs').children.find((button) => button.dataset.key === 'Bonn');
+      const loading = bonnTab.dispatch('click');
+      assert.equal(element('load-notice').textContent, `Loading Europe №1… The displayed standings are still ${displayName}.`);
+      rejectSnapshot(new Error('Fixture snapshot request failed'));
+      await loading;
+      assert.match(element('error-notice').textContent, new RegExp(`Showing the last loaded ${displayName} snapshot`));
+      assert.equal(element('standings-title').textContent, displayName);
+    } finally {
+      for (const [key, descriptor] of Object.entries(previous)) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else delete globalThis[key];
+      }
+    }
+  });
+}
 
 test('manifest and snapshot validation catch mixed or misleading data', () => {
   assert.equal(validateIndex(index), index);

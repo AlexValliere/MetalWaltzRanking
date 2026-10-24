@@ -30,11 +30,12 @@ class RecordingSocket:
 
 
 class BatchPacingTests(unittest.TestCase):
-    def connection(self, deadline=None):
+    def connection(self, deadline=None, gap=0.25, session_seconds=3600):
         clock = Clock()
         sock = RecordingSocket(clock)
         connection = CollectorConnection(sock, load_masks(), GameDes(), b"invented-login",
-                                         deadline=deadline, clock=clock.monotonic, sleeper=clock.sleep)
+                                         deadline=deadline, clock=clock.monotonic, sleeper=clock.sleep,
+                                         batch_request_gap_seconds=gap, session_seconds=session_seconds)
         return connection, clock, sock
 
     def test_mixed_ranking_name_and_vehicle_batches_share_250ms_gap(self):
@@ -77,6 +78,46 @@ class BatchPacingTests(unittest.TestCase):
         self.assertEqual(clock.value, 1.1)
         self.assertEqual(len(sock.writes), 1)
         self.assertEqual(connection.sent, {137: 1})
+
+    def test_one_second_gap_counts_elapsed_reply_time_and_respects_deadline(self):
+        connection, clock, sock = self.connection(deadline=2.5, gap=1.0)
+        connection.send(137, struct.pack("<HIB", 5, 0, 7))
+        clock.value += 0.4
+        connection.send(137, struct.pack("<HIB", 5, 7, 7))
+        self.assertEqual([at for at, _ in sock.writes], [1.0, 2.0])
+        with self.assertRaises(CollectionDeadline):
+            connection.send(137, struct.pack("<HIB", 5, 14, 7))
+        self.assertEqual(clock.value, 2.5)
+        self.assertEqual(len(sock.writes), 2)
+
+    def test_invalid_gap_is_rejected_before_any_request(self):
+        for gap in (0, -1, float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                self.connection(gap=gap)
+
+    def test_session_deadline_clamps_gap_and_prevents_the_next_request(self):
+        connection, clock, sock = self.connection(deadline=10, gap=1.0, session_seconds=0.1)
+        connection.send(137, struct.pack("<HIB", 5, 0, 200))
+        clock.value += 0.05
+        with self.assertRaises(TimeoutError):
+            connection.send(137, struct.pack("<HIB", 5, 200, 200))
+        self.assertAlmostEqual(clock.value, connection.started + connection.session_seconds)
+        self.assertAlmostEqual(clock.sleeps[0], 0.05)
+        self.assertEqual(len(sock.writes), 1)
+        self.assertEqual(connection.sent, {137: 1})
+
+    def test_shorter_shared_deadline_still_preempts_session_during_gap(self):
+        connection, clock, sock = self.connection(deadline=1.1, gap=1.0, session_seconds=10800)
+        connection.send(137, struct.pack("<HIB", 5, 0, 200))
+        with self.assertRaises(CollectionDeadline):
+            connection.send(137, struct.pack("<HIB", 5, 200, 200))
+        self.assertEqual(clock.value, 1.1)
+        self.assertEqual(len(sock.writes), 1)
+
+    def test_invalid_session_duration_is_rejected_before_any_request(self):
+        for duration in (0, -1, float("nan"), float("inf"), -float("inf")):
+            with self.assertRaises(ValueError):
+                self.connection(session_seconds=duration)
 
 
 if __name__ == "__main__":

@@ -9,11 +9,14 @@ import unittest
 from unittest.mock import Mock, patch
 
 from collector.__main__ import main
+from collector.cipher import GameDes
 from collector.collect import error_code, open_socket, run_collection
-from collector.configuration import load_servers
+from collector.configuration import load_masks, load_servers
+from collector.connection import CollectorConnection
 from collector.snapshots import SNAPSHOT_SCHEMA, SCOPE, atomic_json
 from collector.timing import CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_duration
-from test_connection import ScriptedConnection, primary_failure, fallback_name
+from test_connection import Clock, SyntheticSocket, ScriptedConnection, primary_failure, fallback_name
+from test_fallback_pacing import PacedConnection
 
 
 def snapshot(server, name="Invented old"):
@@ -25,8 +28,15 @@ def snapshot(server, name="Invented old"):
 
 
 class DeadlineTests(unittest.TestCase):
-    def test_duration_is_positive_finite_with_150_minute_default(self):
-        self.assertEqual(DEFAULT_MAX_DURATION_SECONDS, 9000)
+    @staticmethod
+    def connection(session_seconds=3600, deadline=None):
+        clock = Clock()
+        return CollectorConnection(SyntheticSocket(clock), load_masks(), GameDes(), b"invented-login",
+                                   clock=clock.monotonic, sleeper=clock.sleep,
+                                   session_seconds=session_seconds, deadline=deadline), clock
+
+    def test_duration_is_positive_finite_with_300_minute_default(self):
+        self.assertEqual(DEFAULT_MAX_DURATION_SECONDS, 18000)
         self.assertEqual(positive_duration("1.5"), 1.5)
         for value in ("nan", "inf", "-inf", "0", "-1"):
             with self.assertRaises(ValueError):
@@ -44,6 +54,76 @@ class DeadlineTests(unittest.TestCase):
         with patch("collector.__main__.run_collection", return_value=0) as runner:
             self.assertEqual(main(["collect", "--max-duration-seconds", "12.5"]), 0)
         self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 12.5)
+
+    def test_cli_default_passes_five_hour_budget_for_all_backends(self):
+        with patch("collector.__main__.run_collection", return_value=0) as runner:
+            self.assertEqual(main(["collect"]), 0)
+        self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 18000)
+        self.assertEqual(runner.call_args.args[2], {server["key"] for server in load_servers()})
+
+    def test_steam_session_survives_one_hour_but_stops_at_three_hours(self):
+        connection, clock = self.connection(session_seconds=10800)
+        clock.value = connection.started + 3600
+        connection.send(65531)
+        clock.value = connection.started + 10800 - 0.1
+        connection.send(65531)
+        clock.value = connection.started + 10800
+        connection.base_notification = b"cached"
+        with self.assertRaises(TimeoutError):
+            connection.send(65531)
+        with self.assertRaises(TimeoutError):
+            connection.receive(362)
+        self.assertEqual(connection.sent, {65531: 2})
+        self.assertEqual(len(connection.socket.writes), 2)
+
+    def test_mobile_session_still_stops_at_one_hour(self):
+        connection, clock = self.connection()
+        self.assertEqual(connection.session_seconds, 3600)
+        clock.value = connection.started + 3600
+        with self.assertRaises(TimeoutError):
+            connection.send(65531)
+        self.assertFalse(connection.socket.writes)
+
+    def test_shared_deadline_preempts_mobile_and_steam_sessions(self):
+        for duration in (3600, 10800):
+            with self.subTest(session_seconds=duration):
+                connection, clock = self.connection(session_seconds=duration, deadline=2)
+                clock.value = 2
+                connection.base_notification = b"cached"
+                with self.assertRaises(CollectionDeadline):
+                    connection.send(65531)
+                with self.assertRaises(CollectionDeadline):
+                    connection.receive(362)
+                self.assertFalse(connection.socket.writes)
+
+    def test_steam_primary_timeout_can_recover_after_one_hour(self):
+        connection = ScriptedConnection(fallback=(fallback_name(1, "Invented A"),), fallback_count=1)
+        connection.session_seconds = 10800
+        connection.fake_clock.value = connection.started + 3600
+        connection.fetch_names([1])
+        self.assertEqual(connection.primary_name_timeouts, 1)
+        self.assertEqual(connection.sent, {15: 1, 16: 1})
+        self.assertTrue(connection.name_resolved(1))
+
+    def test_nickname_pause_stops_at_steam_session_deadline_without_next_burst(self):
+        connection = PacedConnection()
+        connection.session_seconds = 10800
+        connection.fake_clock.value = connection.started + connection.session_seconds - 0.1
+        with self.assertRaises(TimeoutError):
+            connection.fetch_nickname_fallback(list(range(1, 12)))
+        self.assertAlmostEqual(connection.fake_clock.value, connection.started + connection.session_seconds)
+        self.assertAlmostEqual(connection.fake_clock.sleeps[0], 0.1)
+        self.assertEqual(connection.sent, {16: 10})
+        self.assertEqual(connection.received[17], 10)
+
+    def test_shared_deadline_preempts_steam_nickname_pause(self):
+        connection = PacedConnection(deadline=1.1)
+        connection.session_seconds = 10800
+        with self.assertRaises(CollectionDeadline):
+            connection.fetch_nickname_fallback(list(range(1, 12)))
+        self.assertAlmostEqual(connection.fake_clock.value, 1.1)
+        self.assertEqual(connection.sent, {16: 10})
+        self.assertEqual(connection.received[17], 10)
 
     def test_expired_budget_never_connects(self):
         with patch("collector.collect.socket.create_connection") as connector:

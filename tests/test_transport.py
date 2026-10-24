@@ -69,8 +69,8 @@ class TransportTests(unittest.TestCase):
 
     def test_shared_backend_is_fetched_once(self):
         servers = load_servers()
-        self.assertEqual(len(servers), 7)
-        self.assertEqual(sum(len(s["aliases"]) for s in servers), 8)
+        self.assertEqual(len(servers), 10)
+        self.assertEqual(sum(len(s["aliases"]) for s in servers), 12)
         self.assertEqual(next(s for s in servers if s["key"] == "JKMIX")["aliases"], ["JKMIX", "MIXKJ"])
 
 

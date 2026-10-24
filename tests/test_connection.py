@@ -5,7 +5,7 @@ from collections import Counter
 
 from collector.cipher import GameDes
 from collector.configuration import load_masks
-from collector.connection import CollectorConnection, LIMITS, SESSION_SECONDS
+from collector.connection import CollectorConnection, LIMITS, PRIMARY_NAME_SECONDS, SESSION_SECONDS
 from collector.records import login_payload, ranking_records, social_records
 
 
@@ -85,9 +85,42 @@ class ConnectionTests(unittest.TestCase):
 
     def test_mask4_completes_without_optional_online_bit(self):
         connection = ScriptedConnection(primary=(primary_name(1, "Invented 名"), primary_name(2, "Invented B")))
+        started = connection.fake_clock.value
         connection.fetch_names([1, 2])
         self.assertEqual(connection.sent, Counter({15: 1}))
+        self.assertEqual(connection.primary_name_timeouts, 0)
+        self.assertEqual(connection.fake_clock.value, started)
         self.assertTrue(all(connection.name_resolved(p) for p in (1, 2)))
+
+    def test_empty_primary_name_field_enters_fallback_immediately(self):
+        for fallback, resolved in ((fallback_name(1, "Recovered"), True),
+                                   ((17, struct.pack("<H", 48)), False)):
+            connection = ScriptedConnection(
+                primary=(primary_name(1, ""), primary_name(2, "Invented B")),
+                fallback=(fallback,), fallback_count=1)
+            started = connection.fake_clock.value
+            with self.subTest(resolved=resolved):
+                connection.fetch_names([1, 2])
+                self.assertEqual(connection.fake_clock.value, started)
+                self.assertEqual(connection.primary_name_timeouts, 0)
+                self.assertEqual(connection.sent, {15: 1, 16: 1})
+                self.assertEqual(connection.fallback_sent, {1})
+                self.assertEqual(connection.name_masks, {1: 4, 2: 4})
+                self.assertEqual(connection.name_resolved(1), resolved)
+                self.assertTrue(connection.name_resolved(2))
+                self.assertEqual(connection.names.get(1), "Recovered" if resolved else None)
+
+    def test_online_field_without_name_still_waits_then_recovers_once(self):
+        connection = ScriptedConnection(primary=((380, struct.pack("<BIBB", 1, 1, 1, 0)),),
+            fallback=(fallback_name(1, "Recovered"),), fallback_count=1)
+        started = connection.fake_clock.value
+        connection.fetch_names([1])
+        self.assertGreaterEqual(connection.fake_clock.value - started, PRIMARY_NAME_SECONDS)
+        self.assertEqual(connection.primary_name_timeouts, 1)
+        self.assertEqual(connection.sent, {15: 1, 16: 1})
+        self.assertEqual(connection.fallback_sent, {1})
+        self.assertEqual(connection.name_masks[1], 5)
+        self.assertTrue(connection.name_resolved(1))
 
     def test_split_masks_unicode_and_failure(self):
         connection = ScriptedConnection()

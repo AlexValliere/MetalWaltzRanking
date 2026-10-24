@@ -12,7 +12,7 @@ import time
 
 from .binary import Reader
 from .records import detail_records, ranking_records, require_zero, social_records, validate_outgoing
-from .timing import CollectionDeadline, remaining_seconds
+from .timing import CollectionDeadline, positive_duration, remaining_seconds
 from .transport import TransportDecoder, TransportEncoder
 
 MAX_ROWS = 1_000_000
@@ -28,8 +28,12 @@ NICKNAME_BATCH_GAP_SECONDS = 0.25
 
 class CollectorConnection:
     def __init__(self, sock, masks, cipher, expected_login, *, deadline=None,
-                 clock=time.monotonic, sleeper=time.sleep):
+                 clock=time.monotonic, sleeper=time.sleep,
+                 batch_request_gap_seconds=BATCH_REQUEST_GAP_SECONDS,
+                 session_seconds=SESSION_SECONDS):
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
+        self.batch_request_gap_seconds = positive_duration(batch_request_gap_seconds)
+        self.session_seconds = positive_duration(session_seconds)
         self.encoder = TransportEncoder(masks["c2g"], cipher.encrypt)
         self.decoder = TransportDecoder(masks["g2c"], cipher.decrypt)
         self.messages = deque()
@@ -50,7 +54,7 @@ class CollectorConnection:
 
     def check_deadlines(self):
         remaining_seconds(self.collection_deadline, self.clock)
-        if self.clock() - self.started >= SESSION_SECONDS:
+        if self.clock() - self.started >= self.session_seconds:
             raise TimeoutError("Collector session deadline")
 
     def send(self, opcode, payload=b""):
@@ -63,8 +67,10 @@ class CollectorConnection:
         if opcode == 16:
             self.fallback_sent.add(struct.unpack("<I", payload)[0])
         if opcode in (137, 15, 20):
-            delay = BATCH_REQUEST_GAP_SECONDS - (self.clock() - self.last_request_at)
+            delay = self.batch_request_gap_seconds - (self.clock() - self.last_request_at)
             if delay > 0:
+                session_remaining = self.session_seconds - (self.clock() - self.started)
+                delay = max(0.0, min(delay, session_remaining))
                 remaining = remaining_seconds(self.collection_deadline, self.clock)
                 self.sleeper(min(delay, remaining) if remaining is not None else delay)
                 self.check_deadlines()
@@ -95,6 +101,10 @@ class CollectorConnection:
             for player, mask, vehicles in detail_records(payload):
                 if player not in self.vehicle_pending:
                     raise ValueError("Uncorrelated public vehicle reply")
+                if not mask:
+                    # Native19 can carry a descriptor with no field updates.
+                    # Correlation is still required; it does not complete a read.
+                    continue
                 if player in self.vehicle_failures or self.vehicle_masks[player] & mask:
                     raise ValueError("Repeated public vehicle reply")
                 self.vehicle_masks[player] |= mask
@@ -168,7 +178,9 @@ class CollectorConnection:
         self.name_failures.difference_update(players)
         self.send(15, bytes([len(players)]) + b"".join(struct.pack("<IB", player, 5) for player in players))
         try:
-            self.receive(until=lambda: all(self.name_resolved(p) or p in self.name_failures for p in players),
+            # Mask4 completes the primary field even when its name is empty.
+            # Only a nonempty name resolves it; empty fields enter fallback now.
+            self.receive(until=lambda: all(self.name_masks[p] & 4 or p in self.name_failures for p in players),
                          timeout=PRIMARY_NAME_SECONDS)
         except CollectionDeadline:
             raise  # The whole-run budget never permits a recovery read.
@@ -177,7 +189,7 @@ class CollectorConnection:
             # may recover names while observing late primary packets. No 15
             # retry, transport/layout recovery or repeated fallback is allowed.
             self.primary_name_timeouts += 1
-            if self.clock() - self.started >= SESSION_SECONDS:
+            if self.clock() - self.started >= self.session_seconds:
                 raise
         missing = [p for p in players if not self.name_resolved(p) and p not in self.fallback_sent]
         if missing:
@@ -193,7 +205,7 @@ class CollectorConnection:
                 # Reduce the burst of public database lookups. Each prior
                 # unkeyed17 group must be fully drained before another is sent.
                 self.check_deadlines()
-                session_remaining = SESSION_SECONDS - (self.clock() - self.started)
+                session_remaining = self.session_seconds - (self.clock() - self.started)
                 delay = max(0.0, min(NICKNAME_BATCH_GAP_SECONDS, session_remaining))
                 remaining = remaining_seconds(self.collection_deadline, self.clock)
                 self.sleeper(min(delay, remaining) if remaining is not None else delay)

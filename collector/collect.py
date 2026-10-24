@@ -8,7 +8,8 @@ import time
 
 from .binary import Reader
 from .cipher import GameDes
-from .connection import CollectorConnection, MAX_ROWS
+from .connection import CollectorConnection, MAX_ROWS, SESSION_SECONDS
+from .configuration import load_masks
 from .records import login_payload, login_reply, player_list, require_zero, ServerRejection
 from .snapshots import (INDEX_SCHEMA, SNAPSHOT_SCHEMA, SCOPE, atomic_json, now,
                         previous_attempts, snapshot_entry, validate_snapshot)
@@ -29,24 +30,25 @@ class CollectionStopped(Exception):
 def open_socket(server, *, deadline=None, clock=time.monotonic):
     # Try another reviewed port only if no connection has been established.
     # Authentication, reads and ambiguous responses are never replayed.
-    for port in server["ports"]:
-        remaining = remaining_seconds(deadline, clock)
-        try:
-            sock = socket.create_connection((server["address"], port),
-                                            timeout=min(5, remaining) if remaining is not None else 5)
-        except OSError:
-            remaining_seconds(deadline, clock)
-            continue
-        try:
-            remaining_seconds(deadline, clock)
-        except CollectionDeadline:
-            sock.close()
-            raise
-        return sock
+    for route in (server, *server.get("alternateRoutes", [])):
+        for port in route["ports"]:
+            remaining = remaining_seconds(deadline, clock)
+            try:
+                sock = socket.create_connection((route["address"], port),
+                                                timeout=min(5, remaining) if remaining is not None else 5)
+            except OSError:
+                remaining_seconds(deadline, clock)
+                continue
+            try:
+                remaining_seconds(deadline, clock)
+            except CollectionDeadline:
+                sock.close()
+                raise
+            return sock
     raise ConnectionError("No reviewed endpoint could be reached")
 
 
-def enumerate_rankings(connection, *, progress=None):
+def enumerate_rankings(connection, *, progress=None, collect_vehicles=True):
     rows, seen, overlap_checked = [], set(), False
     while True:
         page = connection.fetch_rank_page(len(rows))
@@ -59,7 +61,8 @@ def enumerate_rankings(connection, *, progress=None):
         seen.update(player for player, _ in page)
         rows.extend(page)
         connection.fetch_names([player for player, _ in page])
-        connection.fetch_vehicles([player for player, _ in page])
+        if collect_vehicles:
+            connection.fetch_vehicles([player for player, _ in page])
         if not overlap_checked and len(rows) >= 201:
             overlap = connection.fetch_rank_page(199, 2)
             if [p for p, _ in overlap] != [p for p, _ in rows[199:201]]:
@@ -78,9 +81,13 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
         remaining_seconds(deadline, clock)
         started = now()
         request = login_payload(*credentials)
+        if server.get("protocolProfile", "mobile") != "mobile":
+            masks = load_masks(server["protocolProfile"])
         with open_socket(server, deadline=deadline, clock=clock) as sock:
             sock.settimeout(0.4)
-            connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock)
+            connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock,
+                                             batch_request_gap_seconds=server.get("batchRequestGapSeconds", 0.25),
+                                             session_seconds=server.get("sessionSeconds", SESSION_SECONDS))
             connection.read_phase = "login"
             connection.send(324, request)
             status, account = login_reply(connection.receive(331))
@@ -121,14 +128,17 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             connection.read_phase = "achievements"
             connection.send(436)
             connection.receive(438)
-            rows = enumerate_rankings(connection, progress=progress)
+            collect_vehicles = server.get("collectVehicles", True)
+            rows = enumerate_rankings(connection, progress=progress, collect_vehicles=collect_vehicles)
             public_rows = []
             for rank, (identity, score) in enumerate(rows, 1):
                 resolved = connection.name_resolved(identity)
                 public_rows.append({"rank": rank, "name": connection.names[identity] if resolved else None,
                                     "grandeur": score, "nameStatus": "resolved" if resolved else "unavailable",
-                                    "vehiclesStatus": "unavailable" if identity in connection.vehicle_failures else "resolved",
-                                    "vehicles": None if identity in connection.vehicle_failures else connection.vehicles[identity]})
+                                    "vehiclesStatus": ("not_collected" if not collect_vehicles else
+                                                       "unavailable" if identity in connection.vehicle_failures else "resolved"),
+                                    "vehicles": (None if not collect_vehicles or identity in connection.vehicle_failures
+                                                 else connection.vehicles[identity])})
             snapshot = {"schema": SNAPSHOT_SCHEMA, "serverKey": server["key"], "aliases": server["aliases"],
                         "serverNames": server["serverNames"], "fund": 5, "startedAtUtc": started,
                         "completedAtUtc": now(), "rankingEnumerationComplete": True,

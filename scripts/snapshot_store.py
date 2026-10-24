@@ -9,9 +9,10 @@ import re
 import shutil
 import subprocess
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
-from build_site import MAX_FILE_BYTES, MAX_TOTAL_BYTES, ValidationError, require, validate_data
+from build_site import LEGACY_SERVER_KEYS, MAX_FILE_BYTES, MAX_TOTAL_BYTES, ValidationError, require, validate_data
 
 BRANCH = "snapshots"
 REF = f"refs/heads/{BRANCH}"
@@ -44,8 +45,8 @@ def remote_head(repo: Path) -> str | None:
     return text.split()[0]
 
 
-def inspect_remote(repo: Path, expected: str, destination: Path) -> None:
-    """Extract only a schema-checked own branch, refusing unrelated branches."""
+def inspect_remote(repo: Path, expected: str, destination: Path) -> bool:
+    """Extract a validated owned branch; return whether its data needs migration."""
     git(repo, "fetch", "--quiet", "--no-tags", "--depth=1", "origin", REF)
     actual = git(repo, "rev-parse", "FETCH_HEAD").decode("ascii").strip()
     require(actual == expected, "snapshot branch changed while loading")
@@ -75,7 +76,34 @@ def inspect_remote(repo: Path, expected: str, destination: Path) -> None:
         target = destination / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(raw)
-    validate_data(destination / "data")
+    validate_data(destination / "data", allow_legacy_snapshot_branch=True)
+    index = json.loads((destination / "data" / "index.json").read_text(encoding="utf-8"))
+    return {entry["key"] for entry in index["servers"]} == LEGACY_SERVER_KEYS
+
+
+def migrate_legacy(incoming: Path, seed: Path, destination: Path) -> Path:
+    """Keep all validated remote backends and add only the new local seed entries."""
+    validate_data(seed)
+    remote_index = json.loads((incoming / "index.json").read_text(encoding="utf-8"))
+    seed_index = json.loads((seed / "index.json").read_text(encoding="utf-8"))
+    remote_entries = {entry["key"]: entry for entry in remote_index["servers"]}
+    shutil.copytree(incoming, destination)
+    entries = []
+    for entry in seed_index["servers"]:
+        if entry["key"] in LEGACY_SERVER_KEYS:
+            entries.append(remote_entries[entry["key"]])
+        else:
+            entries.append(entry)
+            if entry["file"] is not None:
+                shutil.copyfile(seed / entry["file"], destination / entry["file"])
+    seed_index["servers"] = entries
+    seed_index["generatedAtUtc"] = max(
+        seed_index["generatedAtUtc"], remote_index["generatedAtUtc"],
+        key=lambda value: datetime.fromisoformat(value[:-1] + "+00:00"),
+    )
+    (destination / "index.json").write_text(json.dumps(seed_index, ensure_ascii=False) + "\n", encoding="utf-8")
+    validate_data(destination)
+    return destination
 
 
 def restore(repo: Path, data_dir: Path, state_path: Path) -> None:
@@ -83,8 +111,10 @@ def restore(repo: Path, data_dir: Path, state_path: Path) -> None:
     if head is not None:
         with tempfile.TemporaryDirectory(prefix="mw-rankings-restore-") as temporary:
             extracted = Path(temporary)
-            inspect_remote(repo, head, extracted)
+            legacy = inspect_remote(repo, head, extracted)
             incoming = extracted / "data"
+            if legacy:
+                incoming = migrate_legacy(incoming, data_dir, extracted / "merged-data")
             # Validation precedes replacement, so damaged remote data cannot erase the seed.
             if data_dir.exists():
                 require(data_dir.is_dir() and not data_dir.is_symlink(), "data destination must be a directory")

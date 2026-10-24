@@ -1,6 +1,6 @@
 {
   "schema": "metal-waltz.rankings-index.v1",
-  "generatedAtUtc": "2026-10-22T20:09:23.007307Z",
+  "generatedAtUtc": "2026-10-24T00:21:47.001378Z",
   "servers": [
     {
       "key": "Bonn",
@@ -19,7 +19,7 @@
     },
     {
       "key": "YaleAndroid",
-      "name": "Harrisburg · Android",
+      "name": "Harrisburg[Android]",
       "aliases": [
         "YaleAndroid"
       ],
@@ -34,7 +34,7 @@
     },
     {
       "key": "YaleIOS",
-      "name": "Columbus · iOS",
+      "name": "Columbus[IOS]",
       "aliases": [
         "YaleIOS"
       ],
@@ -49,7 +49,7 @@
     },
     {
       "key": "JP",
-      "name": "Japan №1",
+      "name": "N°1 イジェフスク",
       "aliases": [
         "JP"
       ],
@@ -64,7 +64,7 @@
     },
     {
       "key": "KOREA",
-      "name": "Korea",
+      "name": "N°1 솜 강",
       "aliases": [
         "KOREA"
       ],
@@ -79,7 +79,7 @@
     },
     {
       "key": "JKMIX",
-      "name": "Japan/Korea №2",
+      "name": "N°2 ノヴォシビルスク / N°2 노보시비르스크",
       "aliases": [
         "JKMIX",
         "MIXKJ"
@@ -95,7 +95,7 @@
     },
     {
       "key": "BANGKOK",
-      "name": "Thailand",
+      "name": "NEW THAI",
       "aliases": [
         "BANGKOK"
       ],
@@ -107,6 +107,55 @@
       "completedAtUtc": "2026-10-22T20:09:23.007307Z",
       "refreshStatus": "seed",
       "sha256": "9fea66f129ef6584c6289e632be8e67e79a0eea31403308c6b1c10dbac108aeb"
+    },
+    {
+      "key": "SteamJP",
+      "name": "Steam / Asia / Steam / Asia (Hong Kong)",
+      "aliases": [
+        "SteamJP",
+        "SteamTEST"
+      ],
+      "file": "SteamJP.rankings.json",
+      "rows": 98516,
+      "namesResolved": 98516,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-23T22:25:49.743622Z",
+      "completedAtUtc": "2026-10-24T00:21:46.314406Z",
+      "refreshStatus": "ok",
+      "sha256": "5bd0b2739a825ee8a69324d5e28a4cbc6a229a28983f8e9b16fd3a23db5234ff",
+      "lastAttemptAtUtc": "2026-10-23T22:25:49.743142Z"
+    },
+    {
+      "key": "SteamBonn",
+      "name": "Steam / Europe",
+      "aliases": [
+        "SteamBonn"
+      ],
+      "file": "SteamBonn.rankings.json",
+      "rows": 37913,
+      "namesResolved": 37913,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-23T22:05:58.073179Z",
+      "completedAtUtc": "2026-10-23T22:25:49.113775Z",
+      "refreshStatus": "ok",
+      "sha256": "66c6f655b6b2be02a0e85e29e8e540f9a3d17e4cdeeb0187bdd761e4081aec12",
+      "lastAttemptAtUtc": "2026-10-23T22:05:58.072959Z"
+    },
+    {
+      "key": "SteamUSAVA",
+      "name": "Steam / USA",
+      "aliases": [
+        "SteamUSAVA"
+      ],
+      "file": "SteamUSAVA.rankings.json",
+      "rows": 10054,
+      "namesResolved": 10054,
+      "namesMissing": 0,
+      "startedAtUtc": "2026-10-23T21:57:07.588015Z",
+      "completedAtUtc": "2026-10-23T22:05:57.924638Z",
+      "refreshStatus": "ok",
+      "sha256": "db2e2748236c16447fb61a95f44edb2b16952ef4ebc7eb659ff8591040e33c8d",
+      "lastAttemptAtUtc": "2026-10-23T21:57:07.587763Z"
     }
   ]
 }

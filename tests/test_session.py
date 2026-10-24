@@ -20,6 +20,7 @@ class InventedGameSocket:
         self.decoder = TransportDecoder(masks["c2g"], cipher.decrypt)
         self.encoder = TransportEncoder(masks["g2c"], cipher.encrypt)
         self.pending, self.sent = bytearray(), Counter()
+        self.rank_requests = []
         self.login_status, self.commanders, self.closed = login_status, commanders, False
         self.ranks = [(101, 900), (102, 800), (103, 700)]
 
@@ -53,6 +54,7 @@ class InventedGameSocket:
             elif opcode == 137:
                 fund, offset, count = struct.unpack("<HIB", payload)
                 assert fund == 5
+                self.rank_requests.append((offset, count))
                 page = self.ranks[offset:offset + count]
                 self.reply(131, struct.pack("<HB", 0, len(page)) +
                            b"".join(struct.pack("<Ii", player, score) for player, score in page) + struct.pack("<I", 999))

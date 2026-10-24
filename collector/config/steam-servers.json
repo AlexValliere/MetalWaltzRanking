@@ -1,0 +1,51 @@
+{
+  "reviewedAt": "2026-10-23",
+  "sourceUrl": "http://steamversion.metalwaltz.com/sherman_steam/win32/patch/2017041201/serverlist",
+  "sourceFileSha256": "0d86da17bfe0fb10afb8d055e276d4b04e2cdbfec2cfec19d778655b2a6d0c3b",
+  "servers": [
+    {
+      "key": "SteamJP",
+      "name": "Steam / Asia",
+      "address": "54.250.239.190",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "STEAM"
+    },
+    {
+      "key": "SteamBonn",
+      "name": "Steam / Europe",
+      "address": "54.93.200.178",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "STEAM"
+    },
+    {
+      "key": "SteamUSAVA",
+      "name": "Steam / USA",
+      "address": "54.242.218.25",
+      "ports": [
+        37000,
+        37001
+      ],
+      "description": "hotdouble",
+      "label": "STEAM"
+    },
+    {
+      "key": "SteamTEST",
+      "name": "Steam / Asia (Hong Kong)",
+      "address": "54.169.167.235",
+      "ports": [
+        37002,
+        37003
+      ],
+      "description": "hotdouble",
+      "label": "STEAM"
+    }
+  ]
+}

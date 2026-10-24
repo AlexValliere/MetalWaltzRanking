@@ -63,7 +63,7 @@ class PublicVehicleTests(unittest.TestCase):
     def test_malformed_unknown_duplicate_or_trailing_data_rejected(self):
         good = reply(descriptor(99))[1]
         cases = [good[:-1], good + b"x", reply(descriptor(99), descriptor(99))[1],
-                 struct.pack("<BIB", 1, 99, 0), struct.pack("<BIB", 1, 99, 0x10),
+                 struct.pack("<BIB", 1, 0, 0), struct.pack("<BIB", 1, 99, 0x10),
                  reply(descriptor(99, vehicles=[(1, 1, []), (1, 2, [])]))[1],
                  reply(descriptor(99, vehicles=[(1, 1, [(1, 1, 10), (1, 2, 11)])]))[1]]
         for body in cases:
@@ -84,6 +84,88 @@ class PublicVehicleTests(unittest.TestCase):
         self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
         self.assertFalse(connection.vehicle_pending)
         self.assertEqual(connection.sent, {20: 1, 16: 1})
+
+    def test_disjoint_masks_for_one_player_can_share_one_reply_packet(self):
+        for masks in ((4, 8), (8, 4)):
+            packet = reply(*(descriptor(1, mask, vehicles=[(8311, 3, [(1, 1, 75)])],
+                                        tactics=[(123, 456)]) for mask in masks))
+            with self.subTest(masks=masks):
+                parsed = detail_records(packet[1])
+                self.assertEqual([(player, mask) for player, mask, _ in parsed],
+                                 [(1, mask) for mask in masks])
+                connection = VehicleConnection([(packet,)])
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_masks, {1: 12})
+                self.assertEqual(connection.vehicles[1], [
+                    {"capsuleTypeId": 8311, "phase": 3, "level": 75, "fate": False}])
+                self.assertFalse(connection.vehicle_pending)
+                self.assertEqual(connection.sent, {20: 1})
+
+    def test_overlapping_masks_for_one_player_in_one_packet_stop_without_retry(self):
+        for masks in ((4, 4), (8, 8), (4, 12), (12, 8), (8, 4, 4)):
+            packet = reply(*(descriptor(1, mask) for mask in masks))
+            with self.subTest(masks=masks):
+                with self.assertRaises(ValueError):
+                    detail_records(packet[1])
+                connection = VehicleConnection([(packet,)])
+                with self.assertRaises(ValueError):
+                    connection.fetch_vehicles([1])
+                self.assertFalse(connection.vehicles)
+                self.assertEqual(connection.sent, {20: 1})
+
+    def test_zero_mask_before_or_between_fields_waits_for_the_complete_profile(self):
+        for masks in ((0, 4, 8), (4, 0, 8)):
+            packet = reply(*(descriptor(1, mask, vehicles=[(8311, 3, [(1, 1, 75)])])
+                             for mask in masks))
+            with self.subTest(masks=masks):
+                parsed = detail_records(packet[1])
+                self.assertEqual(next(record for record in parsed if record[1] == 0),
+                                 (1, 0, None))
+                connection = VehicleConnection([(packet,)])
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_masks, {1: 12})
+                self.assertEqual(connection.vehicles[1], [
+                    {"capsuleTypeId": 8311, "phase": 3, "level": 75, "fate": False}])
+                self.assertFalse(connection.vehicle_failures)
+                self.assertEqual(connection.sent, {20: 1})
+
+    def test_zero_mask_alone_times_out_without_retry_or_an_available_profile(self):
+        connection = VehicleConnection([(reply(descriptor(1, 0)),)])
+        with self.assertRaises(TimeoutError):
+            connection.fetch_vehicles([1])
+        self.assertEqual(connection.vehicle_masks, {1: 0})
+        self.assertFalse(connection.vehicles)
+        self.assertFalse(connection.vehicle_failures)
+        self.assertFalse(connection.fallback_sent)
+        self.assertEqual(connection.sent, {20: 1})
+
+    def test_uncorrelated_zero_mask_stops_without_retry(self):
+        connection = VehicleConnection([(reply(descriptor(9, 0)),)])
+        with self.assertRaises(ValueError):
+            connection.fetch_vehicles([1])
+        self.assertEqual(connection.vehicle_masks, {1: 0})
+        self.assertFalse(connection.vehicles)
+        self.assertFalse(connection.vehicle_failures)
+        self.assertEqual(connection.sent, {20: 1})
+
+    def test_zero_mask_preserves_existing_observations_and_does_not_complete_fields(self):
+        connection = VehicleConnection()
+        connection.vehicle_pending = {1}
+        connection.vehicle_masks = {1: 0}
+        connection.observe(*reply(descriptor(1, 0)))
+        self.assertEqual(connection.vehicle_masks, {1: 0})
+        self.assertFalse(connection.vehicles)
+        self.assertFalse(connection.vehicle_failures)
+        connection.observe(*reply(descriptor(1, 4, vehicles=[(8311, 3, [])])))
+        observed = list(connection.vehicles[1])
+        connection.observe(*reply(descriptor(1, 0)))
+        self.assertEqual(connection.vehicle_masks, {1: 4})
+        self.assertEqual(connection.vehicles[1], observed)
+        self.assertFalse(connection.vehicle_failures)
+        connection.observe(*reply(descriptor(1, 8)))
+        connection.observe(*reply(descriptor(1, 0)))
+        self.assertEqual(connection.vehicle_masks, {1: 12})
+        self.assertEqual(connection.vehicles[1], observed)
 
     def test_native_detail_miss_warms_once_and_requeries_after_successful17(self):
         connection = VehicleConnection([

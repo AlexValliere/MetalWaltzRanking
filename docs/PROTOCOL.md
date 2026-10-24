@@ -29,6 +29,61 @@ records aggregate checks and public export hashes.
 | `KOREA`       | Korea                                                         |
 | `JKMIX`       | Shared Japanese/Korean №2; `MIXKJ` is the other visible alias |
 | `BANGKOK`     | Thailand                                                      |
+| `SteamJP`     | Steam Asia; `SteamTEST` is its Hong Kong connection route       |
+| `SteamBonn`   | Steam Europe                                                  |
+| `SteamUSAVA`  | Steam USA                                                     |
+
+The Steam directory and installed `Sherman.exe` were inspected on **23 October
+2026**. Its SHA-256 is
+`15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724`.
+The [Steam client evidence](research/steam-client-2026-10-23.json) records the
+public directory, native login/ranking functions and live observations. The
+[transport evidence](research/steam-transport-evidence.json) records both
+621-byte directional masks, their exact PE locations and native cipher fixtures.
+Steam keeps its own profile; mobile masks are never sent to a Steam route.
+
+Steam Asia and Hong Kong returned the same newly created collector commander
+and exactly matching first 200 ranking records. They are one collection target.
+The alternate gateway is tried only when no connection has been established;
+login failures, malformed replies and timeouts never replay a session there.
+
+Bounded checks on 23 October 2026 used a one-second batch gap on all three Steam
+backends. Each returned seven initial ranking rows and seven at the next offset,
+resolved all seven initial names, and had no primary-name timeouts or nickname
+fallbacks. Separate bounded ranking probes estimated 98,516 exposed rows for
+Steam Asia, 37,913 for Steam Europe and 10,054 for Steam USA, using 18, 18 and 16
+ranking requests respectively. Those bounded probes established estimates, not
+completed enumerations or verified complete snapshots. Timings and probe counts are recorded in the
+[Steam client evidence](research/steam-client-2026-10-23.json).
+
+A subsequent complete Steam USA scan returned 10,054 ranking rows and resolved
+all 10,054 names, with no missing names. It started at
+`2026-10-23T21:57:07.588015Z` and completed at `2026-10-23T22:05:57.924638Z`,
+taking 530.336623 seconds. Its 1,207,315-byte export has SHA-256
+`db2e2748236c16447fb61a95f44edb2b16952ef4ebc7eb659ff8591040e33c8d`.
+Independent Python publication validation, Node browser validation and the live
+browser preview passed. Every vehicle list remains `not_collected` with null
+vehicles.
+
+Steam Europe subsequently completed with 37,913 ranking rows and all 37,913 names
+resolved, with none missing. It started at `2026-10-23T22:05:58.073179Z` and
+completed at `2026-10-23T22:25:49.113775Z`, taking 1191.040596 seconds. Its
+4,606,796-byte export has SHA-256
+`66c6f655b6b2be02a0e85e29e8e540f9a3d17e4cdeeb0187bdd761e4081aec12`.
+Independent Python publication and Node browser validation passed; every vehicle
+list remains `not_collected` with null vehicles.
+
+Steam Asia / Hong Kong completed with 98,516 ranking rows and all 98,516 names
+resolved, with none missing. It started at `2026-10-23T22:25:49.743622Z` and
+completed at `2026-10-24T00:21:46.314406Z`, taking 6956.570784 seconds. Its
+12,050,900-byte export has SHA-256
+`5bd0b2739a825ee8a69324d5e28a4cbc6a229a28983f8e9b16fd3a23db5234ff`.
+Independent Python publication and Node browser validation passed all three
+Steam files against the complete ten-backend index; the actual Asia browser
+preview also passed. All 146,483 Steam names are resolved. The archive now has
+299,193 rows and 297,740 resolved names across ten complete snapshots captured at
+different times. All Steam vehicle lists remain `not_collected` with null
+vehicles. The earlier bounded estimates remain separate observations.
 
 Europe registration was observed to work for the US and Thai logins. Japan
 registration made the same credentials usable on Korea and the shared №2
@@ -63,13 +118,44 @@ rewards are implemented. Names, account IDs and session IDs are not taken from
 local saved game logins. Request limits, row limits, time limits and a strict
 outgoing-message allowlist bound the session.
 
-Ranking (137), primary-name (15) and public-vehicle (20) batch requests share a
-minimum 250 ms start-to-start gap. Their batch ceilings remain 200 ranking rows,
-200 name lookups and 50 vehicle profiles. Keepalive replies are not delayed by
-this batch pacing. Production collection runs at most once per backend in the
-first attempt of each daily schedule or manual dispatch with `fetch_rankings`
-enabled. Other manual runs, pushes and reruns publish stored data. Failed backends
-retain their last-good snapshot until the next scheduled or opted-in manual attempt.
+On mobile backends, ranking (137), primary-name (15) and public-vehicle (20) batch
+requests share a minimum 250 ms start-to-start gap. Mobile ranking batches allow
+200 rows; primary-name and public-vehicle batch ceilings remain 200 and 50.
+Steam ranking batches request at most 200 new rows, and Steam batch requests
+137, 15 and 20 share a minimum one-second start-to-start gap. Steam public-vehicle
+collection is currently disabled, so the 20 pacing rule applies only if those
+reads are enabled in a separately verified change. Keepalive replies are not
+delayed by batch pacing.
+
+The Steam Lua interface displays six ranking rows and checks one extra row to
+enable its next-page button. It passes ranges 1–7, 7–13, 13–19 and so on to the
+native adapter. The adapter subtracts one from the start and passes the end
+unchanged, while the native sender requests growing prefixes from offset zero:
+counts 7, 13, 19 and so on, split at the native 200-record ceiling. For full scans,
+the collector uses that 200-record ceiling and advances the wire offset by each
+returned count. This needs fewer requests than seven-row pages and avoids
+repeatedly reading earlier prefixes. The Lua page buttons use a 500 ms debounce;
+that is not a proven network interval or server rate limit. The collector's
+200-row batches and one-second gap are the selected policy. Source paths, lines
+and hashes are recorded in the [Steam client evidence](research/steam-client-2026-10-23.json).
+
+Production collection runs at most once per backend in the first attempt of each
+daily schedule or manual dispatch with `fetch_rankings` enabled. Other manual
+runs, pushes and reruns publish stored data. Failed backends retain their last-good
+snapshot until the next scheduled or opted-in manual attempt. All three Steam
+backends have complete verified snapshots under this policy.
+
+Steam sessions have a 10,800-second capacity ceiling; mobile sessions retain
+3,600 seconds. The collector default and workflow allow 18,000 seconds across all
+requested backends, so the remaining shared budget can stop a session earlier.
+These are capacity ceilings, not completion promises or expected running times.
+A measured 5,000-row Steam interval exceeding 6.5 minutes showed that the old
+one-hour session ceiling was insufficient for the estimated Asia ranking at that
+pace. The extension changes time allowances only: 200-row Steam batches,
+one-second batch gaps, bounded reply waits and the outgoing allowlist remain in
+force. It adds no retries or account-setup actions. After shared-budget expiry,
+unfinished and unvisited backends retain last-good data and receive failure
+status; only completed enumerations can replace snapshots.
 
 Ranking request 137 contains `u16 fund`, `u32 offset`, `u8 count` with native
 count limit 200. Reply 131 contains `u16 status`, then `u8 count` and that many
@@ -89,7 +175,16 @@ proof that every registered commander appears.
 Public name request 15 contains up to 200 `u32 playerID, u8 mask` records. Reply
 380 can split requested masks across records. A nonempty UTF-8 name from mask
 bit 4 establishes resolution. Online-state bit 1 is not required for publication.
+Nonempty means the literal returned string has content; it is never trimmed or
+replaced with a synthesized name. The completed Steam Asia response includes a
+resolved name consisting of the single character U+3000 IDEOGRAPHIC SPACE
+(three UTF-8 bytes). It remains resolved and unchanged in the export and browser.
+Browser validation follows the same nonempty-string contract as Python; a
+whitespace-only returned value is not converted to null or marked unavailable.
 A 14 response is a primary lookup miss, not proof that the name is unavailable.
+An explicit empty mask-4 name completes the primary field without resolving it;
+the collector starts its single nickname fallback immediately. A missing name
+field still waits for the original bounded primary deadline.
 
 The native 14 handler at `0x007f8090` calls the nickname lookup path. Its sender at
 `0x007fa2f0` sends request 16 with one `u32 playerID`. Reply 17 begins with
@@ -118,7 +213,7 @@ nickname batches. Explicit completed nickname failures export `name: null` and
 ## Public export contract
 
 `site/data/index.json` has schema `metal-waltz.rankings-index.v1`,
-`generatedAtUtc`, and seven `servers` entries. Each entry has:
+`generatedAtUtc`, and ten `servers` entries. Each entry has:
 
 ```text
 key, name, aliases, file, rows, namesResolved, namesMissing,
@@ -130,6 +225,10 @@ sanitized `errorCode`. `refreshStatus` is `seed`, `ok` or `failed`. The SHA-256
 covers the exact referenced file bytes. A failure preserves the previous good
 file and successful timestamps. Without any previous snapshot, `file`/hash/
 snapshot times are null and counts are zero.
+
+The browser accepts this absent-snapshot state only for an explicitly failed
+backend with all snapshot metadata null and all counts zero. It clears previously
+displayed standings and offers a fresh index check without fetching a null path.
 
 `<key>.rankings.json` has schema `maiden-waltz.public-ranking-snapshot.v1` and:
 
@@ -165,6 +264,14 @@ without converting them into a guessed formation. Unknown masks, conflicting
 duplicates and incomplete transactions stop the backend rather than publishing
 a fabricated or partial list. Native evidence and read-only pilot aggregates are
 recorded in [the public-vehicle trace](research/public-vehicles-protocol.json).
+
+Disjoint mask-4 and mask-8 records for one player may occur inside the same 19
+packet, as well as in separate packets. The Steam native handler dispatches each
+record's fields independently. The collector accepts that grouping while rejecting
+any repeated field, invalid identity or unsupported mask.
+A correlated mask-zero record updates no fields and does not complete the
+transaction or establish an empty/unavailable profile. The original deadline
+still applies while actual fields or an explicit failure remain outstanding.
 
 Response 18 is a keyed primary-detail miss. Native handling requests identity
 lookup 16, and successful 17 clears the pending identity transaction and reissues

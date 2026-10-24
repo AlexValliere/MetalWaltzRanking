@@ -21,8 +21,12 @@ publish stored data without a game login; use a new dispatch for a fresh attempt
 
 ## Data coverage
 
-The included seed was verified on **22 October 2026**. Eight server entries map to
-seven distinct backends; the Japanese and Korean №2 entries share a ranking.
+The mobile seed was verified on **22 October 2026 (UTC)**. The first complete
+Steam USA and Steam Europe snapshots were verified on **23 October 2026 (UTC)**.
+Steam Asia / Hong Kong completed on **24 October 2026 (UTC)**. The collector supports
+the Steam directory reviewed on **23 October 2026**: Steam Asia / Hong Kong,
+Steam Europe and Steam USA. Twelve visible server entries map to ten backends;
+the Japanese/Korean №2 entries and Steam Asia/Hong Kong routes each share a ranking.
 
 | Server                | Ranking entries | Names resolved |
 | --------------------- | --------------: | -------------: |
@@ -33,20 +37,46 @@ seven distinct backends; the Japanese and Korean №2 entries share a ranking.
 | Korea                 |          13,765 |         13,765 |
 | Japan/Korea №2 shared |           8,324 |          8,324 |
 | Thailand              |          35,169 |         35,169 |
-| **Total**             |     **152,710** |    **151,257** |
+| Steam Asia / Hong Kong |          98,516 |         98,516 |
+| Steam Europe           |          37,913 |         37,913 |
+| Steam USA              |          10,054 |         10,054 |
+| **Total available**     |     **299,193** |    **297,740** |
 
-These are all rows exposed by each server during its sequential scan. They are
-not an atomic snapshot or a census of every registered commander. The initial
-Columbus scan has 1,453 unavailable names: its native nickname query returned
-status 48. Those entries retain their rank and Grandeur; names are never guessed.
+Available totals combine mobile snapshots from 22 October, Steam USA and Europe
+from 23 October, and Steam Asia / Hong Kong completed on 24 October, all in UTC.
+These ten complete snapshots were collected at different times. Steam uses a separately
+fingerprinted native transport profile and the same dedicated collector
+credentials. A Steam backend with no complete snapshot shows **Not collected**;
+it does not appear as an empty leaderboard. Steam Asia's Hong Kong route is a
+connection alternative, so its shared ranking is collected once.
+Steam public vehicle lists are currently **not collected**. Bounded native
+profile probes reached incomplete responses. A Steam refresh can publish only a
+complete ranking with completed public-name lookups; vehicle lists remain marked
+`not_collected`. All three Steam backends have complete snapshots with all
+146,483 names resolved, passing independent publication and browser validation. See the
+[Steam verification record](docs/research/steam-client-2026-10-23.json)
+for its timestamps, file hash and checks.
 
-Fresh dedicated commanders retrieved these rankings with **0 Clash wins**. The
+Steam collection requests **up to 200 new ranking rows at a time**, with at least
+**one second between batch requests**. The game interface shows six rows plus one
+lookahead and requests growing prefixes of 7, 13, 19 and so on. The collector
+uses the native 200-record batch ceiling and advances its offset, so a full scan
+needs fewer requests than seven-row pages or repeated prefixes. The one-second
+gap is the selected collector policy, not an established server rate limit.
+Mobile scans retain their 200-row ranking batches and 250 ms batch gap.
+
+The mobile totals cover all rows exposed during each original sequential scan.
+They are not an atomic snapshot or a census of every registered commander. The
+initial Columbus scan has 1,453 unavailable names: its native nickname query
+returned status 48. Those entries retain their rank and Grandeur; names are never guessed.
+
+The mobile verification used fresh dedicated commanders with **0 Clash wins**. The
 game client's 460-win interface unlock was not required for the verified reads.
 
 Vehicle portraits appear beside commanders on desktop and beneath their names
 on mobile. Hover, focus or select a portrait for its vehicle and Maiden names;
-selecting it also shows the returned level and Fate Pin. The collector requests
-the actual public vehicle list for every ranked commander. Empty, unavailable
+selecting it also shows the returned level and Fate Pin. The mobile collector
+requests the actual public vehicle list for every ranked commander. Empty, unavailable
 and not-yet-collected lists remain distinct, and longer lists remain accessible.
 These are public profiles in server order; a current Attack/Defense formation
 or equipped costume is not established by this response.
@@ -72,14 +102,18 @@ source pins and portrait hashes are checked before publication.
    collection time on the site.
 
 The workflow has a single concurrency group. Do not run another collector with
-these credentials at the same time. It serializes the seven backend sessions and
+these credentials at the same time. It serializes the ten backend sessions and
 never creates an account or commander, battles, claims rewards or purchases items.
 
-Each collection has a shared **9,000-second (150-minute) budget** across all
-requested backends. When that budget expires, completed refreshes are retained;
-unfinished backends keep their last-good snapshots and show a failed refresh.
-The 180-minute build job reserves its remaining time for setup, validation,
-snapshot storage and publication upload.
+Each collection has a shared **18,000-second (five-hour) budget** across all
+requested backends. Each Steam session has a **10,800-second (three-hour) ceiling**;
+mobile sessions retain their **3,600-second (one-hour) ceiling**. These are capacity
+ceilings, not promises of completion or expected running times. When the shared
+budget expires, completed refreshes are retained; unfinished and unvisited
+backends keep their last-good snapshots and show a failed refresh. The 330-minute
+build job leaves approximately 30 minutes in total for setup, validation,
+snapshot storage and publication upload. Longer capacity allowances add no retries
+or account-setup actions and keep Steam's 200-row, one-second pacing.
 
 Validated last-good snapshots live on the dedicated `snapshots` branch. It has
 one latest root commit and an ownership marker; collection updates replace that
@@ -109,11 +143,13 @@ diagnostics, set the two collector environment variables in your shell without
 writing them into tracked files, then run:
 
 ```sh
-python -m collector collect --output site/data --max-duration-seconds 9000
+python -m collector collect --output site/data --max-duration-seconds 18000
 python scripts/build_site.py
 ```
 
-`--server Bonn` (or another backend key) limits a refresh to one server. The
+`--server Bonn` (or another backend key) limits a refresh to one server;
+`--server steam` selects only the three Steam backends, and `--server SteamTEST`
+selects the shared Steam Asia backend. The
 collector uses the reviewed game protocol directly; it needs no Android emulator,
 Windows DLL, game installation, Ghidra session or laptop hosting.
 

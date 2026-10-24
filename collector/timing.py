@@ -3,7 +3,7 @@
 import math
 import time
 
-DEFAULT_MAX_DURATION_SECONDS = 150 * 60
+DEFAULT_MAX_DURATION_SECONDS = 300 * 60
 
 
 class CollectionDeadline(TimeoutError):

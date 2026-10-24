@@ -102,7 +102,8 @@ export function normalizeSearch(value) {
 }
 
 export function hasName(row) {
-  return typeof row?.name === 'string' && row.name.trim().length > 0;
+  // Native names are exact strings; even whitespace is a resolved name.
+  return typeof row?.name === 'string' && row.name.length > 0;
 }
 
 export function filterRows(rows, query) {
@@ -190,15 +191,21 @@ export function validateIndex(data) {
       !Number.isSafeInteger(server.namesMissing) ||
       server.namesMissing < 0 ||
       server.namesResolved + server.namesMissing !== server.rows ||
-      !['ok', 'failed', 'seed'].includes(server.refreshStatus) ||
-      !validTime(server.startedAtUtc) ||
-      !validTime(server.completedAtUtc) ||
-      Date.parse(server.startedAtUtc) > Date.parse(server.completedAtUtc) ||
-      typeof server.sha256 !== 'string' ||
-      !/^[a-f0-9]{64}$/i.test(server.sha256)
+      !['ok', 'failed', 'seed'].includes(server.refreshStatus)
     )
       throw new Error('The archive index contains an invalid server record.');
-    safeSnapshotPath(server.file);
+    if (server.file === null) {
+      if (server.refreshStatus !== 'failed' || server.rows !== 0 ||
+          server.namesResolved !== 0 || server.namesMissing !== 0 ||
+          server.sha256 !== null || server.startedAtUtc !== null || server.completedAtUtc !== null)
+        throw new Error('The archive index contains an invalid unavailable snapshot.');
+    } else {
+      if (!validTime(server.startedAtUtc) || !validTime(server.completedAtUtc) ||
+          Date.parse(server.startedAtUtc) > Date.parse(server.completedAtUtc) ||
+          typeof server.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(server.sha256))
+        throw new Error('The archive index contains an invalid snapshot record.');
+      safeSnapshotPath(server.file);
+    }
     keys.add(server.key);
   }
   return data;
@@ -237,12 +244,26 @@ export function validateSnapshot(data, server) {
   return data;
 }
 
+export function displayServerName(server) {
+  return server.key === 'SteamJP' ? 'Steam Asia / Hong Kong' : server.name;
+}
+
+class SnapshotUnavailableError extends Error {
+  constructor(index, server) {
+    super(`No complete ranking snapshot is available for ${displayServerName(server)} yet.`);
+    this.name = 'SnapshotUnavailableError';
+    this.index = index;
+    this.server = server;
+  }
+}
+
 export async function fetchServerSnapshot(index, key, fetchData, options = {}) {
   const nextIndex = options.refreshIndex
     ? validateIndex(await fetchData('./data/index.json', options.signal))
     : index;
   const server = nextIndex.servers.find((entry) => entry.key === key);
   if (!server) throw new Error('The requested server is absent from the archive index.');
+  if (server.file === null) throw new SnapshotUnavailableError(nextIndex, server);
   const snapshot = validateSnapshot(
     await fetchData(safeSnapshotPath(server.file), options.signal),
     server,
@@ -264,6 +285,12 @@ function utcClock(value) {
     minute: '2-digit',
     hourCycle: 'h23',
   }).format(new Date(value));
+}
+
+export function serverDescription(server) {
+  if (server.key === 'JKMIX') return 'One shared leaderboard for Japan №2 and Korea №2.';
+  if (server.key === 'SteamJP') return 'One shared Steam leaderboard for Asia and Hong Kong.';
+  return 'PvP standings, ordered by Grandeur.';
 }
 
 function browserApp() {
@@ -291,6 +318,9 @@ function browserApp() {
     KOREA: 'Korea',
     JKMIX: 'Japan / Korea №2',
     BANGKOK: 'Thailand',
+    SteamJP: 'Steam Asia / Hong Kong',
+    SteamBonn: 'Steam Europe',
+    SteamUSAVA: 'Steam US',
   };
   const inputIds = ['commander-search', 'page-size', 'rank-number', 'download-csv'];
 
@@ -322,6 +352,7 @@ function browserApp() {
     const tabs = document.createDocumentFragment();
     const options = document.createDocumentFragment();
     for (const server of state.index.servers) {
+      const displayName = displayServerName(server);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'server-tab';
@@ -329,20 +360,20 @@ function browserApp() {
       button.setAttribute('aria-current', 'false');
       button.setAttribute(
         'aria-label',
-        `${server.name}, ${numberFormat.format(server.rows)} ranking entries`,
+        `${displayName}, ${server.file === null ? 'no snapshot available' : `${numberFormat.format(server.rows)} ranking entries`}`,
       );
       const name = document.createElement('span');
       name.className = 'server-tab-name';
-      name.textContent = shortLabels[server.key] || server.name;
+      name.textContent = shortLabels[server.key] || displayName;
       const detail = document.createElement('span');
       detail.className = 'server-tab-detail';
-      detail.textContent = `${numberFormat.format(server.rows)} entries`;
+      detail.textContent = server.file === null ? 'Not collected' : `${numberFormat.format(server.rows)} entries`;
       button.append(name, detail);
       button.addEventListener('click', () => loadServer(server.key));
       tabs.append(button);
       const option = document.createElement('option');
       option.value = server.key;
-      option.textContent = server.name;
+      option.textContent = `${displayName}${server.file === null ? ' · Not collected' : ''}`;
       options.append(option);
     }
     $('server-tabs').replaceChildren(tabs);
@@ -371,14 +402,10 @@ function browserApp() {
 
   function renderSummary() {
     const server = state.server;
+    const displayName = displayServerName(server);
     const nameCoverage = server.rows ? (server.namesResolved / server.rows) * 100 : 100;
-    setText('standings-title', server.name);
-    setText(
-      'server-description',
-      server.aliases.length > 1
-        ? 'One shared leaderboard for Japan №2 and Korea №2.'
-        : 'PvP standings, ordered by Grandeur.',
-    );
+    setText('standings-title', displayName);
+    setText('server-description', serverDescription(server));
     setText('entries-count', numberFormat.format(server.rows));
     setText('names-count', numberFormat.format(server.namesResolved));
     setText(
@@ -403,7 +430,7 @@ function browserApp() {
     $('download-json').hidden = false;
     setText(
       'table-caption',
-      `${server.name} PvP standings, ordered by Grandeur, collected ${utcDate(server.completedAtUtc, true)} UTC`,
+      `${displayName} PvP standings, ordered by Grandeur, collected ${utcDate(server.completedAtUtc, true)} UTC`,
     );
     $('rank-number').max = String(server.rows);
     setText(
@@ -418,11 +445,11 @@ function browserApp() {
       ? `Public vehicle lists available for ${numberFormat.format(vehicleLists)} of ${numberFormat.format(server.rows)} entries. `
       : 'Public vehicle lists are not yet available in this snapshot. ';
     setText('vehicle-note', `${vehicleCoverage}Vehicles follow the returned server order; this does not establish a current attack or defence formation.${vehicleLists && !state.catalog ? ' Vehicle names and artwork could not be loaded.' : ''}`);
-    document.title = `${server.name} · Metal Waltz Rankings`;
+    document.title = `${displayName} · Metal Waltz Rankings`;
     if (server.refreshStatus === 'failed') {
       showNotice(
         'load-notice',
-        `The latest scheduled refresh for ${server.name} failed. These rankings are the last successful snapshot, collected ${utcDate(server.completedAtUtc, true)} UTC.`,
+        `The latest scheduled refresh for ${displayName} failed. These rankings are the last successful snapshot, collected ${utcDate(server.completedAtUtc, true)} UTC.`,
         'warning',
       );
     } else if (server.refreshStatus === 'seed') {
@@ -446,6 +473,49 @@ function browserApp() {
     }
     tr.append(td);
     return tr;
+  }
+
+  function renderUnavailable(server) {
+    const displayName = displayServerName(server);
+    clearTimeout(state.searchTimer);
+    hideVehicleTooltip();
+    if ($('vehicle-dialog').open) $('vehicle-dialog').close();
+    setText('standings-title', displayName);
+    setText('server-description', 'A complete ranking snapshot has not been collected for this server.');
+    setText('entries-count', '—');
+    setText('names-count', '—');
+    setText('names-detail', 'No snapshot available');
+    $('names-detail').classList.toggle('warning', false);
+    setText('snapshot-date', '—');
+    $('snapshot-date').removeAttribute('title');
+    setText('snapshot-detail', 'No successful collection yet');
+    $('snapshot-detail').classList.toggle('warning', true);
+    $('download-json').hidden = true;
+    $('download-json').removeAttribute('href');
+    $('download-json').removeAttribute('download');
+    inputIds.forEach((id) => { $(id).disabled = true; });
+    $('rank-number').removeAttribute('max');
+    $('rank-jump').querySelector('button').disabled = true;
+    for (const id of ['first-page', 'previous-page', 'next-page', 'last-page']) $(id).disabled = true;
+    setText('page-label', 'Page — of —');
+    setText('current-page', '—');
+    $('current-page').setAttribute('aria-label', 'No current page');
+    setText('results-label', 'No snapshot available');
+    setText('table-caption', `${displayName} ranking snapshot unavailable`);
+    $('ranking-rows').replaceChildren(messageRow(
+      'Rankings have not been collected for this server yet.',
+      'Choose another server, or check again after a successful collection.',
+    ));
+    $('missing-note').hidden = true;
+    setText('missing-note', '');
+    setText('vehicle-note', 'Public vehicle lists have not been collected for this server.');
+    document.title = `${displayName} · Metal Waltz Rankings`;
+    showNotice('load-notice', `No complete ranking snapshot is available for ${displayName} yet.`, 'warning');
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.textContent = 'Check for snapshot';
+    retry.addEventListener('click', () => loadServer(server.key, state.query, true));
+    $('load-notice').append(retry);
   }
 
   function hideVehicleTooltip() {
@@ -662,6 +732,7 @@ function browserApp() {
   }
 
   function applySearch() {
+    if (!state.snapshot) return;
     state.query = $('commander-search').value.slice(0, 512);
     state.filtered = filterRows(state.snapshot.rows, state.query);
     state.page = 0;
@@ -683,7 +754,7 @@ function browserApp() {
   async function loadServer(key, query, refreshIndex = false) {
     const requestedServer = state.index.servers.find((entry) => entry.key === key);
     if (!requestedServer) return;
-    if (state.server?.key === key && !state.loading && !refreshIndex) {
+    if (state.server?.key === key && state.snapshot && !state.loading && !refreshIndex) {
       if (query !== undefined) {
         $('commander-search').value = query;
         applySearch();
@@ -701,7 +772,7 @@ function browserApp() {
     showNotice('error-notice', '');
     showNotice(
       'load-notice',
-      `Loading ${requestedServer.name}…${hadSnapshot ? ` The displayed standings are still ${state.server.name}.` : ''}`,
+      `Loading ${displayServerName(requestedServer)}…${hadSnapshot ? ` The displayed standings are still ${displayServerName(state.server)}.` : ''}`,
     );
     const timeout = setTimeout(() => controller.abort(), 45000);
     try {
@@ -730,10 +801,26 @@ function browserApp() {
       updateLocation();
     } catch (error) {
       if (sequence !== state.sequence) return;
+      if (error instanceof SnapshotUnavailableError) {
+        if (error.index !== state.index) {
+          state.index = error.index;
+          renderIndex();
+        }
+        state.server = error.server;
+        state.snapshot = null;
+        state.filtered = [];
+        state.page = 0;
+        state.query = query !== undefined ? query : $('commander-search').value.slice(0, 512);
+        $('commander-search').value = state.query;
+        setServerChoice(key);
+        renderUnavailable(error.server);
+        updateLocation();
+        return;
+      }
       const suffix = hadSnapshot
-        ? ` Showing the last loaded ${state.server.name} snapshot.`
+        ? ` Showing the last loaded ${displayServerName(state.server)} snapshot.`
         : ' Please try again shortly.';
-      showNotice('error-notice', `Could not load ${requestedServer.name}.${suffix}`, 'error');
+      showNotice('error-notice', `Could not load ${displayServerName(requestedServer)}.${suffix}`, 'error');
       const retry = document.createElement('button');
       retry.type = 'button';
       retry.textContent = 'Retry';
@@ -897,7 +984,7 @@ function browserApp() {
       clearTimeout(timeout);
     }
   }
-  initialize();
+  return initialize();
 }
 
 if (typeof document !== 'undefined') browserApp();

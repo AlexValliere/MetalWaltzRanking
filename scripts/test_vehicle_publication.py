@@ -8,7 +8,7 @@ import tempfile
 import unittest
 import zlib
 
-from build_site import ValidationError, build_site, validate_data, validate_vehicle_art
+from build_site import SERVER_KEYS, ValidationError, build_site, validate_data, validate_vehicle_art
 from test_publication import fixture, write_index
 
 
@@ -58,7 +58,7 @@ class VehiclePublicationTests(unittest.TestCase):
                 directory = Path(folder)
                 index = fixture(directory)
                 observed_row(directory, index, **profile)
-                self.assertEqual(len(validate_data(directory)), 8)
+                self.assertEqual(len(validate_data(directory)), len(SERVER_KEYS) + 1)
 
     def test_private_instance_fields_and_fabricated_unavailable_vehicles_are_rejected(self):
         examples = [
@@ -84,7 +84,7 @@ class VehiclePublicationTests(unittest.TestCase):
             (source / "index.html").write_text("<h1>Rankings</h1>", encoding="utf-8")
             directory, _, filename = portrait_fixture(source)
             self.assertEqual(len(validate_vehicle_art(source)), 2)
-            self.assertEqual(build_site(source, base / "public"), 7)
+            self.assertEqual(build_site(source, base / "public"), len(SERVER_KEYS))
             self.assertEqual((directory / filename).read_bytes(), (base / "public" / "assets" / "vehicles" / filename).read_bytes())
 
     def test_tampered_portrait_bytes_and_dimensions_block_publication(self):

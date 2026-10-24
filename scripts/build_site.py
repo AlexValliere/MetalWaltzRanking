@@ -11,7 +11,8 @@ import struct
 from datetime import datetime
 from pathlib import Path
 
-SERVER_KEYS = {"Bonn", "YaleAndroid", "YaleIOS", "JP", "KOREA", "JKMIX", "BANGKOK"}
+LEGACY_SERVER_KEYS = frozenset({"Bonn", "YaleAndroid", "YaleIOS", "JP", "KOREA", "JKMIX", "BANGKOK"})
+SERVER_KEYS = LEGACY_SERVER_KEYS | {"SteamJP", "SteamBonn", "SteamUSAVA"}
 MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_TOTAL_BYTES = 192 * 1024 * 1024
 STATIC_EXTENSIONS = {".html", ".css", ".js", ".mjs", ".svg", ".png", ".webp", ".ico", ".woff2", ".txt"}
@@ -71,22 +72,24 @@ def public_json(path: Path) -> tuple[dict, bytes]:
     return value, raw
 
 
-def validate_data(data_dir: Path) -> list[Path]:
-    """Return the exact allowed data file list; never expose IDs or captures."""
+def validate_data(data_dir: Path, *, allow_legacy_snapshot_branch: bool = False) -> list[Path]:
+    """Validate the full export, or the exact old set during remote branch inspection."""
     require(data_dir.is_dir() and not data_dir.is_symlink(), "data directory missing or symbolic link")
     index, raw_index = public_json(data_dir / "index.json")
     fields(index, INDEX_FIELDS, INDEX_FIELDS, "index")
     require(index["schema"] == "metal-waltz.rankings-index.v1", "unsupported index schema")
     timestamp(index["generatedAtUtc"], "index generatedAtUtc")
     entries = index["servers"]
-    require(isinstance(entries, list) and len(entries) == len(SERVER_KEYS), "expected seven backends")
+    require(isinstance(entries, list), "expected backend list")
+    expected_keys = LEGACY_SERVER_KEYS if allow_legacy_snapshot_branch and len(entries) == len(LEGACY_SERVER_KEYS) else SERVER_KEYS
+    require(len(entries) == len(expected_keys), f"expected {len(expected_keys)} backends")
     seen: set[str] = set()
     paths = [data_dir / "index.json"]
     total_bytes = len(raw_index)
     for entry in entries:
         fields(entry, ENTRY_FIELDS, ENTRY_FIELDS - {"errorCode", "lastAttemptAtUtc"}, "server entry")
         key = entry["key"]
-        require(isinstance(key, str) and key in SERVER_KEYS and key not in seen, "unexpected or duplicate backend")
+        require(isinstance(key, str) and key in expected_keys and key not in seen, "unexpected or duplicate backend")
         seen.add(key)
         require(isinstance(entry["name"], str) and bool(entry["name"]), "server name missing")
         strings(entry["aliases"], "server aliases")
@@ -157,7 +160,7 @@ def validate_data(data_dir: Path) -> list[Path]:
         require(resolved == entry["namesResolved"], "resolved name count mismatch")
         require(type(snapshot["namesComplete"]) is bool and snapshot["namesComplete"] == (resolved == len(rows)), "name completeness mismatch")
         paths.append(path)
-    require(seen == SERVER_KEYS, "backend list incomplete")
+    require(seen == expected_keys, "backend list incomplete")
     require({path.name for path in data_dir.iterdir()} == {path.name for path in paths}, "unexpected files in public data directory")
     return paths
 

@@ -1,0 +1,45 @@
+{
+  "schema": "metal-waltz.native-transport.v1",
+  "librarySha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724",
+  "provenance": {
+    "source": "Installed Steam x86 native client built-in directional masks; verified Ghidra memory against installed PE bytes.",
+    "imageBase": "0x00400000",
+    "ghidraProgram": "/Sherman.exe",
+    "constructor": "0x00497960",
+    "frameCompatibility": "Native default transport is LE u16 total length, continuous XOR on a padding byte plus DES-CBC body; initial inbound dictionary is null. Optional dictionary control mode exists and is not implemented by the collector.",
+    "decompilations": {
+      "00497960": "30c4e55f2a5345ca88e2dc9e4e714db48fea4816fff069f85a9bcccc453558a7",
+      "00650320": "8119c37984a78597e7d23fe2e77fecb58e49bd8374db29f5b1bbf2e3b4023aed",
+      "006502e0": "c6ee092e0da046f38a945d14105ad56ec0dc1ba76d3f6345f82004fc5b711f50",
+      "0064e4a0": "fb62708691ddbaea781c37320406a2860c80223b1d341d0fd9ced08f00d2f499",
+      "0064e5f0": "2364a37b2aa3a557a6b799e3d03a39e39256d7caa8ff5491334c512ec6719d0d",
+      "0064ecb0": "48c5741a1143632c6c16339f21c1f5e3c0fc8289ba21c44b54ade8900ac6073c",
+      "0064ece0": "8a150a4d62cc0bea4ea055fa76cf10a41db6f2f3ad9d4b8b051fb743f22b4b0b",
+      "0064f240": "25eb281ae4edea35fcc81009cc1b1e7ba2639fd0e7e6a1c558ec08e6d5794f2d",
+      "0064f0a0": "ef1fbf540229531c97a836a3883c1b9c4fcb3e932f179a7af31ccee669885080",
+      "0064def0": "8ff17d5ea2015cd5c0f554a9d2668f4421c3491a21b4e39b23706202a28a817f",
+      "0064dd20": "2adaae9e8804f7fb95736b470c975aa10e61e46f5a6cd60e6b5fa8b1544f1d85",
+      "00695be0": "a44ec1266f7173cac5c1f5caa370768c04cecafff2abf91e6c5f637277d7a6c2",
+      "00695b20": "49c7e75d3cb51b9bb4b2650d06c4fdb7fba0fa3e3ecfbc5f3e9ee1f55b7d8bc8",
+      "006965c0": "e90b3b2c2579a20cfc297699ef5d48044e90d4a311468be4d40cbfd09d1915a0"
+    }
+  },
+  "directions": {
+    "c2g": {
+      "base64": "eVoTlyKZfJzaxnhGgqdsu59VIyXrE4UICiRD9se425wzAmwyXlzp6YwN6EjZCPtH1wjlh5MM7/RKHoALrptNWVeuW+ff56rgtb+HbsYtAFMAb4WU7AuZ1fCijK86YgXOfDLRMbhBz6mtdj2sv01klcLnSruoTlspI5tyHBIoEaE4R3xa4Tyx/PsKM16nkj0Ly+mLxSl4kXV4GqEjxV/AxW47dnkUNvOM16YubtsWT8KAdZ/QI9z8MttSL/DLnvieJJ94pPu8NKK4mGVrwIRF860OfZOx9s+sKr5Lp9UCTYXq6l87QOC8gcbNv68mVUAOC6BcL1LBdt/wKc5yWH03V7KYGr6/uTq0y8OKdVBWVsyT1DvYPcT8QysxyfWZ/FD+Q3DmvsBcyXhmMLNKFdbYSeSSslPn6s63usm8izwrIEpxd/MC3c1GvE7xkuOERJRy6kh7wOM3c6ZsiAoZ8dWQT0MifpoO1iYNtFPrR+ZltBUTOXkENKCH7gKYdP6sT3Gwta3yswb4yKfrG2CXvYTEpXMtRDVGy0AXUBKAz688av1TgM93lRU5WjVo215sb+oRea1OlTyPBDvo9NyWOwidNE/bfTMcOGhmtIstQR+O4S+1QqsK2hB9IWW2fh31i8BOXSkIoLNaakKcAUdF/q+6IB9hl0ohmXXV8/ho7OowN4d0eDX5u+qgh4MWqZHsw4OF9EbWV43ZxJ2QsqGPFy16WigFQN48RpUwmJkEQnQiUEW8GQaM9dR6LEBNyyqhueuO5hR6ve11ZZtQPzmsRfCDd6ziSa9qBF0xKDahTvT/oIDx4T71yAp5fytdPSIA",
+      "bytes": 621,
+      "sha256": "1a1c187d6098c377e1c248a157001e9893191b993f793912b737a070321acf8f",
+      "ghidraAddress": "0x00750768",
+      "peOffset": "0x0034f368",
+      "constructor": "0x00650320"
+    },
+    "g2c": {
+      "base64": "32409mde2YW6cxMvQX0O0NImiOv2FpnrJK91S/9ia7TOXEMeKsnGICAfYl83B/yDdrFduWAfqS3rU8/1BivhTvAvo8ZwaVLQQJHjflV4TMCOAYs0QAfs0m7obZ7TuOwzwbWoiqs/EKkR/Q0epIu5jMjs/N75fCKCgT8YGbGo4g9N5EWrcctK/CVNZ+fEVNJ/3BS+wNxs8F47rFbD/G2Jk1i1+n/af0Zpc++6I3Lyf8MEo+sagvyzkTGxBi5yAjAN3j2W8mQ+4BIqiTQp6lDbrkmWcS2/xoMg4qZ2y4J+OJNk/jyPHB/C9O2N0Jmmbykan9KeM4lA3mioquYNdRCcks3KGvPmYnj5oBLUDuGgtcgR6vDI0E9hBjVy0FbKF2RCgA4a3PgTPLE/hf2t81p/iXB+OB2ZPcoNCh6HPuUjn1oDcgVdfnRPJRQoV1CNv7OQtwOJ9EzyqizlkDq3VrvATCml1vWbL2I0eNxeb9TgYqa1KnWjQINTlSEjVYz+XQQP8iZnJ3FbtE4sbLOlKvjPFcM49/u5pBZ05n05NsHC4gkNRQSQ14cPKmxW1TiiQJoQPalOqbU4m83mic4yFSEaJoY8PoR0FzJfD2qlEbyyn9x1ZOf6ztvcwgnsYc5AkvB1lB3G5BIgizDhhjLkXZT5ZNblGvx1B+bM2a/gtWI84tka5hqf446pskbweTyG0bPvUEdkupmaJkmFeWHf1l/QTDWSmOfVFY7/E3S+Xqah+XdBuc+fpIyzuoNNLqepk3MYxNOUjb/ertFgPyeQtQkQf76MJG307yMoU97v65eujhl/5TfqnCdcrpSHeG0A",
+      "bytes": 621,
+      "sha256": "30db288e559222530326c5920a6b7a5cabe52814d1d52f90686b748f9c4a74a7",
+      "ghidraAddress": "0x007504f0",
+      "peOffset": "0x0034f0f0",
+      "constructor": "0x006502e0"
+    }
+  }
+}

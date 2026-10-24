@@ -24,7 +24,7 @@ jobs:
   build:
     if: github.repository == 'AlexValliere/MetalWaltzRanking' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 330
     permissions:
       contents: write # Only the validated, latest-only snapshots branch is updated.
       pages: read
@@ -59,7 +59,7 @@ jobs:
         env:
           MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
           MW_COLLECTOR_PASSWORD: ${{ secrets.MW_COLLECTOR_PASSWORD }}
-        run: python -m collector collect --output site/data --server all --max-duration-seconds 9000
+        run: python -m collector collect --output site/data --server all --max-duration-seconds 18000
       - name: Validate and build only public files
         run: python scripts/build_site.py
       - name: Save the validated latest snapshots

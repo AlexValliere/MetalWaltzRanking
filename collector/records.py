@@ -110,12 +110,14 @@ def detail_records(payload):
     is already the public phase; carried faculty levels need no XP conversion.
     Tactics are consumed for framing only and never interpreted as squad slots.
     """
-    r, rows, seen = Reader(payload), [], set()
+    r, rows, seen_masks = Reader(payload), [], {}
     for _ in range(r.u8()):
         player, mask, vehicles = r.u32(), r.u8(), None
-        if not player or player in seen or not mask or mask & ~0x0c:
+        if not player or mask & ~0x0c or seen_masks.get(player, 0) & mask:
             raise ValueError("Invalid public vehicle descriptor")
-        seen.add(player)
+        # Native19 dispatches each descriptor by its mask. Capsule and tactics
+        # fields for one identity may share a packet, as well as span packets.
+        seen_masks[player] = seen_masks.get(player, 0) | mask
         if mask & 4:
             vehicles, types = [], set()
             for _ in range(r.u8()):
