@@ -148,7 +148,7 @@ def validate_outgoing(opcode, payload, *, expected_login, selected_player, reque
     """Narrow the opcode allowlist to verified, current-session read payloads."""
     if not isinstance(payload, bytes):
         raise ValueError("Invalid outgoing payload")
-    if opcode in (396, 357, 374, 436, 65531):
+    if opcode in (396, 357, 374, 436, 65530, 65531):
         if payload:
             raise ValueError("Unexpected nonempty read")
     elif opcode == 324:

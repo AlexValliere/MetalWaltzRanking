@@ -8,7 +8,8 @@ run contacts the game servers. To collect manually, open **Actions → Refresh
 rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
 from the game servers before publishing** (`fetch_rankings`), and start a new run.
 The `collection_scope` input defaults to `all`. Choose `affected-mobile` to check
-only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`). Scheduled runs
+only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`), or `bonn` for
+Europe №1 alone. Scheduled runs
 always select all ten canonical backends.
 Each backend is attempted at most once per collection run; a failure retains its
 previous snapshot until the next scheduled or opted-in manual attempt.
@@ -81,6 +82,15 @@ a snapshot.
 
 Nickname fallback remains groups of 10, fully drained before a 250 ms pause and
 the next group. Heartbeat acknowledgements remain immediate.
+
+Mobile collection also follows the native receive-idle keep-alive sequence:
+empty probes at the 30-, 40- and 50-second thresholds, followed by the 60-second
+idle-failure stage. Any positive socket receive resets this sequence, including
+an incomplete frame. A timer check advances at most one stage; it never sends a
+catch-up burst. Existing reply, session and whole-run deadlines take precedence,
+so a required reply can time out before all idle stages are reached. Pings do not
+extend a read deadline or trigger a replay. This change enables proactive probes
+for mobile collection only; Steam retains its existing server-ping acknowledgements.
 
 Offline checks run once before any game login. Each selected backend then has its
 own collection job. The matrix uses `max-parallel: 1` and `fail-fast: false`, so
@@ -198,6 +208,16 @@ the public JSON separately; this repository does not promise a historical archiv
 Logs intentionally contain aggregate progress and fixed error codes. They do not
 identify players or include server packet bodies. Never paste collector secrets
 into an issue or workflow dispatch field.
+
+Failure diagnostics separate a server logout notification, socket EOF, reset,
+broken pipe and other socket failures where observed. They also report heartbeat
+counts, successfully sent acknowledgement counts, elapsed time and recent I/O ages.
+Heartbeat receive counts and ages refer to decoded-message dispatch, which can
+follow socket arrival; `lastReceiveAgeSeconds` measures the last positive socket
+receive. These values alone do not measure time spent waiting in the decoded queue.
+`attemptRowsFetched` and `attemptRowsCompleted` describe the failed attempt;
+the existing `rows` field describes the retained public snapshot. Diagnostic
+fields stay in logs and do not alter public snapshot or manifest schemas.
 
 ## Updating the application
 

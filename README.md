@@ -16,7 +16,7 @@ failed servers retain their previous data until the next attempt.
 To refresh manually, open **Actions → Refresh rankings and publish → Run workflow**,
 select `main`, check **Fetch fresh rankings from the game servers before publishing**,
 and start a new run. The scope defaults to `all`; `affected-mobile` checks only
-Europe №1, Korea and Thailand. Leave the checkbox unchecked to publish stored data. Pushes to `main`
+Europe №1, Korea and Thailand, and `bonn` checks only Europe №1. Leave the checkbox unchecked to publish stored data. Pushes to `main`
 and reruns of current workflows also
 publish stored data without a game login; use a new dispatch for a fresh attempt.
 

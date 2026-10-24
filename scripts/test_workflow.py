@@ -42,19 +42,33 @@ class WorkflowPlanTests(unittest.TestCase):
         scheduled = workflow_plan.collection_plan("schedule", 1, False, "affected-mobile")
         self.assertEqual(set(scheduled["matrix"]["server"]), workflow_plan.EXPECTED_BACKENDS)
 
+    def test_only_manual_bonn_scope_selects_exact_one_backend(self):
+        self.assertEqual(workflow_plan.collection_plan("workflow_dispatch", 1, True, "bonn"),
+                         {"collect": True, "matrix": {"server": ["Bonn"]}})
+        for event, collect in (("schedule", True), ("push", False)):
+            with self.subTest(event=event):
+                plan = workflow_plan.collection_plan(event, 1, False, "bonn")
+                self.assertIs(plan["collect"], collect)
+                self.assertEqual(set(plan["matrix"]["server"]), workflow_plan.EXPECTED_BACKENDS)
+
     def test_push_manual_no_fetch_and_all_reruns_never_collect(self):
         cases = [("push", 1, True), ("workflow_dispatch", 1, False)]
         cases += [(event, attempt, True) for event in ("schedule", "workflow_dispatch", "push")
                   for attempt in (2, 3)]
-        for event, attempt, fetch in cases:
-            with self.subTest(event=event, attempt=attempt, fetch=fetch):
-                plan = workflow_plan.collection_plan(event, attempt, fetch)
-                self.assertFalse(plan["collect"])
-                self.assertEqual(set(plan["matrix"]["server"]), workflow_plan.EXPECTED_BACKENDS)
+        for scope in ("all", "affected-mobile", "bonn"):
+            for event, attempt, fetch in cases:
+                with self.subTest(event=event, attempt=attempt, fetch=fetch, scope=scope):
+                    plan = workflow_plan.collection_plan(event, attempt, fetch, scope)
+                    self.assertFalse(plan["collect"])
+                    expected = (set(workflow_plan.MANUAL_SCOPES[scope])
+                                if event == "workflow_dispatch" and scope != "all"
+                                else workflow_plan.EXPECTED_BACKENDS)
+                    self.assertEqual(set(plan["matrix"]["server"]), expected)
 
     def test_invalid_scope_attempt_or_fetch_is_rejected(self):
         for kwargs in ({"attempt": 0}, {"attempt": True}, {"attempt": "1"},
-                       {"fetch": "true"}, {"scope": "Bonn"}, {"scope": "$(unreviewed)"}):
+                       {"fetch": "true"}, {"scope": "Bonn"}, {"scope": "bonn,KOREA"},
+                       {"scope": "$(unreviewed)"}):
             values = dict(event="workflow_dispatch", attempt=1, fetch=True)
             values.update(kwargs)
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
@@ -66,20 +80,21 @@ class WorkflowPlanTests(unittest.TestCase):
             with self.subTest(keys=bad), \
                     patch("workflow_plan.load_servers", return_value=[{"key": key} for key in bad]), \
                     self.assertRaises(ValueError):
-                workflow_plan.collection_plan("schedule", 1, False)
+                workflow_plan.collection_plan("workflow_dispatch", 1, True, "bonn")
 
     def test_main_writes_parseable_fixed_outputs(self):
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "outputs"
-            env = {"WORKFLOW_EVENT": "workflow_dispatch", "WORKFLOW_ATTEMPT": "1",
-                   "WORKFLOW_FETCH": "true", "WORKFLOW_SCOPE": "affected-mobile",
-                   "GITHUB_OUTPUT": str(output)}
-            with patch.dict(os.environ, env, clear=True):
-                self.assertEqual(workflow_plan.main(), 0)
-            values = dict(line.split("=", 1) for line in output.read_text().splitlines())
-        self.assertEqual(set(values), {"collect", "matrix"})
-        self.assertEqual(values["collect"], "true")
-        self.assertEqual(json.loads(values["matrix"]), {"server": ["Bonn", "KOREA", "BANGKOK"]})
+        for scope, expected in (("affected-mobile", ["Bonn", "KOREA", "BANGKOK"]), ("bonn", ["Bonn"])):
+            with self.subTest(scope=scope), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "outputs"
+                env = {"WORKFLOW_EVENT": "workflow_dispatch", "WORKFLOW_ATTEMPT": "1",
+                       "WORKFLOW_FETCH": "true", "WORKFLOW_SCOPE": scope,
+                       "GITHUB_OUTPUT": str(output)}
+                with patch.dict(os.environ, env, clear=True):
+                    self.assertEqual(workflow_plan.main(), 0)
+                values = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            self.assertEqual(set(values), {"collect", "matrix"})
+            self.assertEqual(values["collect"], "true")
+            self.assertEqual(json.loads(values["matrix"]), {"server": expected})
 
     def test_invalid_environment_emits_no_workflow_output(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -165,7 +180,10 @@ class WorkflowSafetyTests(unittest.TestCase):
         for action in actions:
             self.assertRegex(action, r"^actions/[a-z-]+@[0-9a-f]{40}$")
         self.assertIn("      collection_scope:\n", WORKFLOW)
-        self.assertIn("        default: all\n        options:\n          - all\n          - affected-mobile", WORKFLOW)
+        choices = re.search(r"      collection_scope:\n(.*?)(?=\n\S|\Z)", WORKFLOW, re.DOTALL).group(1)
+        self.assertIn("        default: all\n", choices)
+        self.assertEqual(re.findall(r"^          - (.+)$", choices, re.MULTILINE),
+                         ["all", "affected-mobile", "bonn"])
         self.assertNotIn("${{ inputs.collection_scope }}", job("collect"))
 
 

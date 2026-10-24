@@ -64,7 +64,7 @@ class ScriptedConnection(CollectorConnection):
 
 class ConnectionTests(unittest.TestCase):
     def test_only_reviewed_read_opcodes_exist(self):
-        self.assertEqual(set(LIMITS), {324, 396, 316, 357, 374, 436, 137, 15, 16, 20, 65531})
+        self.assertEqual(set(LIMITS), {324, 396, 316, 357, 374, 436, 137, 15, 16, 20, 65530, 65531})
         connection = ScriptedConnection()
         for opcode in (141, 313, 133, 238, 415, 446, 479, 488, 498):
             with self.assertRaises(ValueError):

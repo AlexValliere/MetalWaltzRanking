@@ -1,0 +1,220 @@
+{
+  "schema": "metal-waltz.heartbeat-disconnect-investigation.v1",
+  "recordedClientDate": "2026-10-24",
+  "scope": "Read-only native analysis, source review and existing aggregate observations. No new game session, game-server request, proactive ping, collector behavior change, raw identity or packet is included.",
+  "nativeProgram": {
+    "ghidraProgram": "/MaidenWaltzResearch/metal-waltz-libasgame-arm64-research.so",
+    "language": "AARCH64:LE:64:v8A",
+    "imageBase": "0x00100000",
+    "sha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+    "provenance": "The reopened historical mobile research program was identified by local Ghidra metadata. Its previously verified binary fingerprint is also recorded in mobile-vehicle-pending-queries-2026-10-24.json. This is not a fingerprint assertion about a different current extracted game library."
+  },
+  "nativeHeartbeat": {
+    "defaultThresholds": {
+      "function": "0x00771b08, _INIT_175",
+      "millisecondsSinceLastPositiveReceive": [
+        30000,
+        40000,
+        50000,
+        60000
+      ],
+      "proof": "The initializer allocates four uint32 entries containing 30000, 40000, 50000 and 60000. Session construction at 0x00ad1fe0 selects g_sysPingTime by default."
+    },
+    "scheduler": {
+      "function": "0x00ad2e00, Zoic::Session::routine; corresponding explicit check at 0x00ad2c14",
+      "behavior": "At each elapsed receive-idle threshold, increment the stage. The first three thresholds call SessionUnpackMethod::requestPing; the final threshold stores error -3 if no error is already present.",
+      "requestPath": "0x00ad38c0, SessionUnpackMethod::requestPing, calls 0x00ad7058, Zoic::doPingReq.",
+      "largeClockJump": "At most one threshold is processed per routine or pingCheck invocation. With stage 0 and more than 60 seconds idle, successive invocations process 30, 40, 50 and 60 seconds: three separate ping requests, then error -3. There is no catch-up loop within one invocation and no direct jump to the final stage.",
+      "ordering": "Session::routine first attempts a receive when marked readable; any positive bytes reset stage and timestamp. It then evaluates the idle threshold, flushes sends, and unpacks buffered messages. Decoding or dispatching an already-buffered message alone is not the positive-recv reset event."
+    },
+    "wire": {
+      "proactiveRequest": "0x00ad7058 constructs opcode 65530 (0xfffa) with an empty application payload.",
+      "responseToReceivedPing": "0x00ad6fa4, onSysPingReq, constructs opcode 65531 (0xfffb) with an empty application payload. It does not inspect the incoming body.",
+      "receivedAcknowledgment": "0x00ad710c, onSysPingAck, returns true without reading its incoming body.",
+      "limit": "These functions establish empty 65530/65531 messages. They do not establish a required opcode 65529 or a periodic client ping independent of receive inactivity."
+    },
+    "positiveReceiveCorrection": {
+      "function": "0x00ad2924, Zoic::Session::forceRecvData",
+      "behavior": "Whenever recv returns a positive byte count, the function resets the ping stage at Session+0x40 to zero and records the current clock at Session+0x38.",
+      "correction": "The reset is proven for any positive socket receive, even before message unpacking. The earlier INDEPENDENT_CONNECTION.md wording that complete messages reset inactivity is narrower than this inspected native condition. A ping acknowledgment is not the only traffic that resets receive inactivity."
+    }
+  },
+  "existingOriginalClientObservation": {
+    "source": "private/native-ranking-capture/capture-20261024T143541Z/report.json",
+    "sourceSha256": "53da9b79a427a4115b0b31b923c84afae6453df84779d65be7085196d00c7997",
+    "serverKey": "Bonn",
+    "nativeLibrarySha256": "fa43e196953cd594e54a01a2e315311618966b82744dc29e086ea0c3fed1bd43",
+    "serverToClient65530": 37,
+    "clientToServer65531": 37,
+    "clientToServer65530": 0,
+    "finished": true,
+    "routeRestored": true,
+    "wrapperInjectedRequests": 0,
+    "rawPayloadsStored": false,
+    "rawIdentityValuesStored": false,
+    "rawNamesStored": false,
+    "limit": "This completed passive original-client session observed server pings and corresponding client acknowledgments. It did not observe a proactive client ping and does not prove that proactive pings are unnecessary after an actual receive-idle interval."
+  },
+  "collectorSourceAudit": {
+    "reviewedCommit": "ce5dc06affc4a30dee464e273cfd8ca12473df84",
+    "source": "collector/connection.py",
+    "acknowledgment": "Both receive and the decoded-message drain use _dispatch_message. An actual received 65530 immediately calls send(65531) with an empty payload. ACKs do not use the 137/15/20 batch pacing delay or reset its timestamp.",
+    "quota": "Only the per-instance 65531 quota scales with the reviewed session duration. Bonn has a 19800-second session and a 5500-ACK ceiling; other request limits remain unchanged. Exceeding this quota raises ValueError, mapped to protocol_or_snapshot_invalid, not connection_failed.",
+    "waits": "Normal reply waits poll recv with a 0.4-second socket timeout and dispatch interleaved heartbeats. Primary-name waits have a 12-second transaction bound; normal reply waits have a 30-second transaction bound. Incoming heartbeats do not extend those transaction deadlines.",
+    "sendOnlyWindows": "There is no concurrent socket reader during synchronous serialization, a send, or the explicit pacing sleeps. Mobile batch and nickname-group sleeps are 0.25 seconds; nickname fallback sends at most ten requests before receiving that group. Normal ranking and detail requests are followed by receive. No intentional multi-minute send-only period was found. Host scheduling or unexpectedly expensive processing cannot be bounded from this source review alone.",
+    "queuedMessages": "receive can return once its predicate is satisfied, leaving already-decoded messages queued. Later receives and the vehicle recovery/finalization drains dispatch those messages normally. Drains consume only messages already decoded in memory and do not poll the socket.",
+    "establishedDifference": "The collector does not implement the native proactive empty 65530 request after receive inactivity. This is a native-fidelity difference; no proactive-ping behavior was added during this investigation.",
+    "offlineVerification": "Four focused tests passed: verified ACK-only dispatch, ACK bypass of batch pacing, queued heartbeat during vehicle recovery, and the exact scaled ACK quota boundary."
+  },
+  "hostedBonnFailure": {
+    "workflowRunId": 40108040041,
+    "workflowRunUrl": "https://github.com/AlexValliere/MetalWaltzRanking/actions/runs/40108040041",
+    "logProvenance": "Aggregate completed Bonn job log timestamps and status inspected by the coordinating agent; other backend jobs were still active during this read-only audit.",
+    "collectingAtUtc": "2026-10-24T15:41:53.882Z",
+    "progress5000AtUtc": "2026-10-24T15:47:06.932Z",
+    "failedAtUtc": "2026-10-24T15:52:35.813Z",
+    "elapsedSeconds": 641.931,
+    "errorCode": "connection_failed",
+    "readPhase": "public_vehicles",
+    "lastLoggedProgressRows": 5000,
+    "retainedPublicRows": 76797,
+    "retentionCaveat": "76797 is the retained last-good public snapshot count. It is not the number of rows completed by this failed fresh attempt. The 5000-row progress message is only its last periodic checkpoint; the failed-attempt final row count was not logged.",
+    "diagnosticLimit": "At this commit connection_failed combines explicit decoded opcode317, socket EOF, connection reset and other send/receive OSError paths. This log has no heartbeat counts, time since last receive, ACK timing, or fixed transport-failure subtype, so it cannot identify a missed keepalive or distinguish those causes."
+  },
+  "nativeSessionEndNotification": {
+    "handler": "0x007d0588, NetMessage::onMessage<317>, identifies the fixed P_MC_PlayerLogout_Ntf name, obtains Login_Set and returns true. It does not read Message/param2 or a reason/status field.",
+    "consumer": "0x007d3348, Login_Set::MC_PlayerLogout_Ntf, returns immediately.",
+    "diagnosticConsequence": "Opcode 317 can be distinguished from socket EOF/reset by a fixed received-notification label. No arbitrary payload, reason number, identity or text should be parsed or logged without separate wire evidence. The collector's existing abort on 317 is a conservative session policy; this inspected native consumer itself performs no close."
+  },
+  "conclusions": [
+    "The collector's response to a received server ping matches the inspected native empty 65531 behavior.",
+    "The missing proactive receive-idle 65530 behavior is established, but its causal role in this failure is unproven. The native trigger depends on time without received bytes, not total session age near ten minutes.",
+    "Ongoing replies would reset native receive inactivity. Existing transaction deadlines often stop a silent wait around the first proactive-ping threshold, so the difference must not be assumed to explain every connection failure.",
+    "Privacy-safe fixed transport subtypes, current-attempt aggregate row counts, heartbeat counters and elapsed time since successful receives/sends/ACKs are needed to distinguish a server session-end message, EOF/reset and possible ACK starvation on a subsequent authorized run.",
+    "No extra ping, retry, reconnect, game login or rate change was performed or authorized by this note."
+  ],
+  "nativeDecompileFingerprints": [
+    {
+      "address": "0x00771b08",
+      "name": "_INIT_175",
+      "utf8DecompileSha256": "ef41e95447e8a68031b1ce25f97a4651415be6b178eb2b44ab25fce3eb8d4b3f"
+    },
+    {
+      "address": "0x00ad1fe0",
+      "name": "Zoic::Session::Session",
+      "utf8DecompileSha256": "24d9cf9e6d02e6e45254e4fba179ccec303fe7b00b8c09b7c8980975faeaa711"
+    },
+    {
+      "address": "0x00ad2924",
+      "name": "Zoic::Session::forceRecvData",
+      "utf8DecompileSha256": "ece1a3291645e8fbe532011cb025b50baf6a125031d161cb3b8403227d8ecaed"
+    },
+    {
+      "address": "0x00ad2c14",
+      "name": "Zoic::Session::pingCheck",
+      "utf8DecompileSha256": "5d99de4e1f4e3547394daf8849b8a18060fe5074a1dd2222744af4f7b505328e"
+    },
+    {
+      "address": "0x00ad2e00",
+      "name": "Zoic::Session::routine",
+      "utf8DecompileSha256": "81f4b2daa1548942d51b4c563e96b7fb4ea560cf27c16296ac956a1ff8ffca19"
+    },
+    {
+      "address": "0x00ad38c0",
+      "name": "Zoic::SessionUnpackMethod::requestPing",
+      "utf8DecompileSha256": "17fcda688b01f312bfd6c8ecbb9a863112969710268709644007d0104200bb63"
+    },
+    {
+      "address": "0x00ad6fa4",
+      "name": "Zoic::onSysPingReq",
+      "utf8DecompileSha256": "93783ba9ac0eb426068943e57d882ddeb67a5259ed26a4de80d7b73fa54c70e9"
+    },
+    {
+      "address": "0x00ad7058",
+      "name": "Zoic::doPingReq",
+      "utf8DecompileSha256": "58b4ad5f2cef74ff76485674f51929b43b7096dedbc28a1a59721ead6070af3c"
+    },
+    {
+      "address": "0x00ad710c",
+      "name": "Zoic::onSysPingAck",
+      "utf8DecompileSha256": "4ef49c54576296ed3347f385274571127af52a5478e529ad0670b7fdabc1d50a"
+    },
+    {
+      "address": "0x007d0588",
+      "name": "NetMessage::onMessage<317>",
+      "utf8DecompileSha256": "7b04b4fd0fbef0d8b2230a920a1c2b8a2b3efa419c02fcafd478c17d5c56de47"
+    },
+    {
+      "address": "0x007d3348",
+      "name": "Login_Set::MC_PlayerLogout_Ntf",
+      "utf8DecompileSha256": "af3846b26999919b7a5b3bf9a20e6e055d5ba31ad65674f99076386366b02a32"
+    }
+  ],
+  "steamNativeHeartbeat": {
+    "binarySha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724",
+    "extraction": "Installed PE bytes hashed over explicit VA ranges; x86 instructions inspected using GNU objdump.",
+    "ranges": [
+      {
+        "name": "defaultTimer",
+        "startVa": "0x6893f0",
+        "endVaExclusive": "0x68948e",
+        "byteCount": 158,
+        "peOffset": "0x2887f0",
+        "bytesSha256": "09b0cc2bb0c63582855cb78d2254452be594c0b1eaafcdd3e1b4d12bc2d70492"
+      },
+      {
+        "name": "proactive65530",
+        "startVa": "0x689490",
+        "endVaExclusive": "0x689512",
+        "byteCount": 130,
+        "peOffset": "0x288890",
+        "bytesSha256": "3c14f7410e5e6036212d9a399f2c48c2bef1a5294fd23afb494d0456402dba3d"
+      },
+      {
+        "name": "response65531",
+        "startVa": "0x689520",
+        "endVaExclusive": "0x6895a2",
+        "byteCount": 130,
+        "peOffset": "0x288920",
+        "bytesSha256": "fb91d668a83f9f8f38c675a8a181f1625df61cfbbc51f1f8655d60f85bd45621"
+      },
+      {
+        "name": "requestPing",
+        "startVa": "0x686110",
+        "endVaExclusive": "0x68611f",
+        "byteCount": 15,
+        "peOffset": "0x285510",
+        "bytesSha256": "20488ea969aa71fc28280c3680a208898a11d7b7ea46ad9611fa1d3bd1c8ad57"
+      },
+      {
+        "name": "baseTimerSelection",
+        "startVa": "0x68522c",
+        "endVaExclusive": "0x685233",
+        "byteCount": 7,
+        "peOffset": "0x28462c",
+        "bytesSha256": "7debf09c176df5e00c7cced72bf2f3df39c4ba05a59018113482d6ccc221a7f5"
+      },
+      {
+        "name": "positiveReceiveReset",
+        "startVa": "0x685915",
+        "endVaExclusive": "0x685935",
+        "byteCount": 32,
+        "peOffset": "0x284d15",
+        "bytesSha256": "c5266d31912b2e5c6aeddfc28f2c91a75368ad638b47ed73641f838aa9a6c4d4"
+      },
+      {
+        "name": "oneStagePingCheck",
+        "startVa": "0x685ec0",
+        "endVaExclusive": "0x685f4f",
+        "byteCount": 143,
+        "peOffset": "0x2852c0",
+        "bytesSha256": "a808d7f0a822dcab91f39e84cedadfd9e4c3fba0453797e29f0e062ed5f7af28"
+      }
+    ],
+    "method": "Read-only GNU objdump analysis of the installed Steam PE; its Ghidra program was not open. Byte hashes cover the declared VA intervals, including explicit instruction ranges where identified.",
+    "timerProof": "FUN_006893f0 installs 30000/40000/50000/60000 ms. BaseSession selects that default table at 0x00c0ee50 at instruction 0x0068522c.",
+    "wireProof": "FUN_00689490 writes opcode 0xfffa at 0x006894c1 and sends an otherwise empty message; FUN_00689520 writes 0xfffb at 0x00689551 with the same empty application body. Thunk 0x00686110 invokes 0x00689490.",
+    "stageAndResetProof": "0x00685ec0 processes one timer stage per invocation; 0x00685915 tests a positive receive count, then 0x00685919 clears the stage and 0x0068592f/32 store the receive clock.",
+    "releaseScope": "Static support for Steam is established; proactive Steam idle pings remain disabled for this mobile release by explicit scope. No live Steam keepalive verification is claimed."
+  }
+}

@@ -12,15 +12,16 @@ sys.path.insert(0, str(ROOT))
 from collector.configuration import EXPECTED_BACKENDS, load_servers
 
 AFFECTED_MOBILE = ("Bonn", "KOREA", "BANGKOK")
+MANUAL_SCOPES = {"affected-mobile": AFFECTED_MOBILE, "bonn": ("Bonn",)}
 
 
 def collection_plan(event: str, attempt: int, fetch: bool, scope: str = "all") -> dict:
-    if type(attempt) is not int or attempt < 1 or type(fetch) is not bool or scope not in ("all", "affected-mobile"):
+    if type(attempt) is not int or attempt < 1 or type(fetch) is not bool or scope not in ("all", *MANUAL_SCOPES):
         raise ValueError("Invalid workflow collection selection")
     keys = [server["key"] for server in load_servers()]
     if len(keys) != len(EXPECTED_BACKENDS) or set(keys) != EXPECTED_BACKENDS:
         raise ValueError("Invalid workflow backend directory")
-    selected = list(AFFECTED_MOBILE) if event == "workflow_dispatch" and scope == "affected-mobile" else keys
+    selected = list(MANUAL_SCOPES[scope]) if event == "workflow_dispatch" and scope in MANUAL_SCOPES else keys
     fresh = attempt == 1 and (event == "schedule" or event == "workflow_dispatch" and fetch)
     # Keep a nonempty matrix even when the collection job is skipped.
     return {"collect": fresh, "matrix": {"server": selected}}

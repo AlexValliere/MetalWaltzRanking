@@ -6,6 +6,7 @@ Unkeyed ranking/17 replies are drained before a new transaction is started.
 """
 
 from collections import Counter, deque
+import errno
 import math
 import socket
 import struct
@@ -18,13 +19,33 @@ from .transport import TransportDecoder, TransportEncoder
 
 MAX_ROWS = 1_000_000
 LIMITS = {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
-          137: 10_000, 15: 10_000, 16: MAX_ROWS + 200, 20: 40_000, 65531: 1000}
+          137: 10_000, 15: 10_000, 16: MAX_ROWS + 200, 20: 40_000, 65530: 1000, 65531: 1000}
 REPLY_SECONDS = 30
 PRIMARY_NAME_SECONDS = 12
 SESSION_SECONDS = 3600
 BATCH_REQUEST_GAP_SECONDS = 0.25
 NICKNAME_BATCH_SIZE = 10
 NICKNAME_BATCH_GAP_SECONDS = 0.25
+NATIVE_IDLE_SECONDS = (30, 40, 50, 60)
+CONNECTION_FAILURE_REASONS = frozenset(("server_session_ended", "socket_eof", "socket_reset",
+                                        "socket_broken_pipe", "socket_other", "native_idle_timeout"))
+CONNECTION_FAILURE_OPERATIONS = frozenset(("send", "receive", "connect", "unknown"))
+
+
+def socket_failure_reason(error):
+    if (isinstance(error, ConnectionResetError) or error.errno == errno.ECONNRESET
+            or getattr(error, "winerror", None) == 10054):
+        return "socket_reset"
+    if isinstance(error, BrokenPipeError) or error.errno == errno.EPIPE:
+        return "socket_broken_pipe"
+    return "socket_other"
+
+
+def transport_failure(error, reason, operation):
+    """Attach fixed local diagnostic values without changing exception behavior."""
+    error.collector_connection_reason = reason
+    error.collector_connection_operation = operation
+    return error
 
 
 class CollectorConnection:
@@ -32,7 +53,9 @@ class CollectorConnection:
                  clock=time.monotonic, sleeper=time.sleep,
                  batch_request_gap_seconds=BATCH_REQUEST_GAP_SECONDS,
                  session_seconds=SESSION_SECONDS, vehicle_fields=0x0c, vehicle_batch_size=50,
-                 vehicle_zero_recovery=False, vehicle_partial_results=False):
+                 vehicle_zero_recovery=False, vehicle_partial_results=False, native_keepalive=False):
+        if type(native_keepalive) is not bool:
+            raise ValueError("Invalid native keepalive mode")
         if type(vehicle_fields) is not int or vehicle_fields not in (4, 0x0c):
             raise ValueError("Invalid public vehicle fields")
         if type(vehicle_batch_size) is not int or not 1 <= vehicle_batch_size <= 50:
@@ -45,6 +68,7 @@ class CollectorConnection:
         self.vehicle_batch_size = vehicle_batch_size
         self.vehicle_zero_recovery = vehicle_zero_recovery
         self.vehicle_partial_results = vehicle_partial_results
+        self.native_keepalive, self.keepalive_stage = native_keepalive, 0
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
         self.batch_request_gap_seconds = positive_duration(batch_request_gap_seconds)
         self.session_seconds = positive_duration(session_seconds)
@@ -53,6 +77,9 @@ class CollectorConnection:
         # Dispatch still sends an ACK only in response to an actual 65530.
         self.request_limits[65531] = max(LIMITS[65531],
                                         math.ceil(self.session_seconds / SESSION_SECONDS * LIMITS[65531]))
+        self.request_limits[65530] = (max(LIMITS[65530],
+                                         math.ceil(self.session_seconds / SESSION_SECONDS * LIMITS[65530]))
+                                      if native_keepalive else 0)
         self.encoder = TransportEncoder(masks["c2g"], cipher.encrypt)
         self.decoder = TransportDecoder(masks["g2c"], cipher.decrypt)
         self.messages = deque()
@@ -72,13 +99,65 @@ class CollectorConnection:
         self.achievements = None
         self.incoming_bytes = 0
         self.started, self.last_request_at = clock(), 0.0
+        self.last_receive_at = self.last_successful_send_at = None
+        self.last_heartbeat_receive_at = self.last_heartbeat_ack_at = None
+        self.heartbeat_acks_sent = 0
+        self.idle_pings_sent, self.last_idle_ping_at = 0, None
+        self.ranking_rows_fetched = self.ranking_rows_completed = 0
         self.collection_deadline = deadline
         self.read_phase = "connect"
+
+    def failure_diagnostics(self, error):
+        """Only aggregate counts, fixed categories and monotonic ages leave the session."""
+        current = self.clock()
+        def age(previous):
+            return None if previous is None else round(max(0.0, current - previous), 3)
+        result = {"sessionElapsedSeconds": age(self.started),
+                  "lastReceiveAgeSeconds": age(self.last_receive_at),
+                  "lastSuccessfulSendAgeSeconds": age(self.last_successful_send_at),
+                  "heartbeatsReceived": self.received[65530],
+                  "heartbeatAcksSent": self.heartbeat_acks_sent,
+                  "lastHeartbeatReceiveAgeSeconds": age(self.last_heartbeat_receive_at),
+                  "lastHeartbeatAckAgeSeconds": age(self.last_heartbeat_ack_at),
+                  "idlePingsSent": self.idle_pings_sent,
+                  "lastIdlePingAgeSeconds": age(self.last_idle_ping_at),
+                  "attemptRowsFetched": self.ranking_rows_fetched,
+                  "attemptRowsCompleted": self.ranking_rows_completed}
+        reason = getattr(error, "collector_connection_reason", None)
+        if isinstance(reason, str) and reason in CONNECTION_FAILURE_REASONS:
+            result["transportFailure"] = reason
+        elif isinstance(error, OSError) and not isinstance(error, TimeoutError):
+            result["transportFailure"] = socket_failure_reason(error)
+        operation = getattr(error, "collector_connection_operation", "unknown")
+        if ("transportFailure" in result and isinstance(operation, str)
+                and operation in CONNECTION_FAILURE_OPERATIONS):
+            result["transportOperation"] = operation
+        return result
 
     def check_deadlines(self):
         remaining_seconds(self.collection_deadline, self.clock)
         if self.clock() - self.started >= self.session_seconds:
             raise TimeoutError("Collector session deadline")
+
+    def _service_keepalive(self, *, reply_deadline=None):
+        """Advance at most one native idle stage; required deadlines always win."""
+        self.check_deadlines()
+        current = self.clock()
+        if reply_deadline is not None and current >= reply_deadline:
+            raise TimeoutError("Expected reply missing")
+        if not self.native_keepalive:
+            return
+        if self.keepalive_stage == len(NATIVE_IDLE_SECONDS):
+            raise transport_failure(ConnectionError("Native receive idle limit"),
+                                    "native_idle_timeout", "receive")
+        received_at = self.started if self.last_receive_at is None else self.last_receive_at
+        if current - received_at < NATIVE_IDLE_SECONDS[self.keepalive_stage]:
+            return
+        self.keepalive_stage += 1
+        if self.keepalive_stage == len(NATIVE_IDLE_SECONDS):
+            raise transport_failure(ConnectionError("Native receive idle limit"),
+                                    "native_idle_timeout", "receive")
+        self.send(65530)
 
     def send(self, opcode, payload=b""):
         if opcode not in self.request_limits or self.sent[opcode] >= self.request_limits[opcode]:
@@ -101,7 +180,18 @@ class CollectorConnection:
                 self.check_deadlines()
             self.last_request_at = self.clock()
         self.sent[opcode] += 1
-        self.socket.sendall(self.encoder.encode(opcode, payload))
+        wire = self.encoder.encode(opcode, payload)
+        try:
+            self.socket.sendall(wire)
+        except OSError as error:
+            raise transport_failure(error, socket_failure_reason(error), "send")
+        self.last_successful_send_at = self.clock()
+        if opcode == 65531:
+            self.heartbeat_acks_sent += 1
+            self.last_heartbeat_ack_at = self.last_successful_send_at
+        elif opcode == 65530:
+            self.idle_pings_sent += 1
+            self.last_idle_ping_at = self.last_successful_send_at
 
     def observe(self, opcode, payload):
         if opcode == 434 and self.achievements is not None:
@@ -186,6 +276,10 @@ class CollectorConnection:
 
     def _dispatch_message(self, opcode, payload, target=None):
         self.received[opcode] += 1
+        # Heartbeat counts/ages describe normal dispatch, not queued wire arrival.
+        # last_receive_at separately records any positive socket read.
+        if opcode == 65530:
+            self.last_heartbeat_receive_at = self.clock()
         if sum(self.received.values()) > MAX_ROWS * 2 + 10_000:
             raise ValueError("Incoming message limit")
         self.observe(opcode, payload)
@@ -196,7 +290,7 @@ class CollectorConnection:
         if opcode == 65530:
             self.send(65531)
         elif opcode == 317:
-            raise ConnectionError("Session ended")
+            raise transport_failure(ConnectionError("Session ended"), "server_session_ended", "receive")
         elif opcode in (131, 17) and opcode != target:
             raise ValueError("Uncorrelated read reply")
         elif opcode == target:
@@ -227,9 +321,16 @@ class CollectorConnection:
             try:
                 data = self.socket.recv(65536)
             except socket.timeout:
+                # Read bytes first, as the native routine does. A ready fragment
+                # resets inactivity; only a timed-out read services the timer.
+                self._service_keepalive(reply_deadline=deadline)
                 continue
+            except OSError as error:
+                raise transport_failure(error, socket_failure_reason(error), "receive")
             if not data:
-                raise ConnectionError("Connection closed")
+                raise transport_failure(ConnectionError("Connection closed"), "socket_eof", "receive")
+            self.last_receive_at = self.clock()
+            self.keepalive_stage = 0
             self.incoming_bytes += len(data)
             if self.incoming_bytes > 128 * 1024 * 1024:
                 raise ValueError("Incoming byte limit")

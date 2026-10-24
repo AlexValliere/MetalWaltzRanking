@@ -107,7 +107,7 @@ class DeadlineTests(unittest.TestCase):
             with self.subTest(session_seconds=duration):
                 connection, _ = self.connection(session_seconds=duration)
                 self.assertEqual(connection.request_limits,
-                                 {**LIMITS, 65531: quota})
+                                 {**LIMITS, 65530: 0, 65531: quota})
                 connection.sent[65531] = quota - 1
                 connection.messages.extend(((65532, b"ignored"), (65530, b""), (131, b"target")))
                 self.assertEqual(connection.receive(131), b"target")

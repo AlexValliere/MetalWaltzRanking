@@ -100,6 +100,17 @@ preserves frame boundaries, and closes the connection after malformed data or an
 uncertain unkeyed reply. Unsupported incoming frames are consumed without a
 speculative response. Incoming heartbeat 65530 receives empty 65531.
 
+Mobile collection enables the native empty 65530 receive-idle probes: thresholds
+30, 40 and 50 seconds, then the 60-second failure stage. Each timer check advances
+one stage. Any positive socket receive resets both timer and stage, including
+partial frame bytes. The timer is serviced without a second socket reader or
+extra polling from the decoded-message finalizer. Earlier required-reply,
+session and whole-run deadlines still terminate the read; keep-alives never
+extend those deadlines. Proactive probes are enabled only for mobile; Steam
+retains ACK-only behavior. Whether the missing idle probes caused the previous Bonn
+disconnect remains unproven. See the
+[heartbeat investigation](research/heartbeat-disconnect-investigation-2026-10-24.json).
+
 | Request / reply      | Purpose                                                               |
 | -------------------- | --------------------------------------------------------------------- |
 | 324 / 331            | Login using the configured collector credentials                      |
@@ -111,6 +122,7 @@ speculative response. Incoming heartbeat 65530 receives empty 65531.
 | 15 / 380, 14         | Request public social names, mask 5; 14 denotes primary lookup misses |
 | 16 / 17              | Native nickname fallback for unresolved public names                  |
 | 20 / 19, 18          | Read public vehicle/capsule details and consume tactics fields, mask 12 |
+| 65530 / 65531        | Empty mobile idle probe / peer acknowledgement; acknowledge server pings |
 
 Account registration 141 and commander creation 313 are not allowed outgoing
 messages. No battles, purchases, tutorial advancement, claims or automatic
