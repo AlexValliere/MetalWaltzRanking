@@ -11,6 +11,13 @@ on:
         description: Fetch fresh rankings from the game servers before publishing
         type: boolean
         default: false
+      collection_scope:
+        description: Servers to refresh when fresh collection is enabled
+        type: choice
+        default: all
+        options:
+          - all
+          - affected-mobile
 
 permissions:
   contents: read
@@ -21,17 +28,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  checks:
     if: github.repository == 'AlexValliere/MetalWaltzRanking' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 330
-    permissions:
-      contents: write # Only the validated, latest-only snapshots branch is updated.
-      pages: read
+    timeout-minutes: 10
     outputs:
-      collection_failed: ${{ steps.collect.outcome == 'failure' }}
+      collect: ${{ steps.plan.outputs.collect }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
@@ -46,20 +53,73 @@ jobs:
           python -m unittest discover -s tests -p 'test_*.py'
           python -m unittest discover -s scripts -p 'test_*.py'
           node --test tests/site.test.mjs tests/vehicle-art.test.mjs
+      - name: Select the reviewed collection scope
+        id: plan
+        env:
+          WORKFLOW_EVENT: ${{ github.event_name }}
+          WORKFLOW_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_FETCH: ${{ inputs.fetch_rankings || false }}
+          WORKFLOW_SCOPE: ${{ inputs.collection_scope || 'all' }}
+        run: python scripts/workflow_plan.py
+
+  collect:
+    name: Collect ${{ matrix.server }}
+    needs: checks
+    # Re-evaluate run_attempt here: a failed-jobs rerun may reuse old check outputs.
+    if: >-
+      !cancelled() && needs.checks.result == 'success' &&
+      github.run_attempt == '1' && needs.checks.outputs.collect == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      contents: write # Only the validated, latest-only snapshots branch is updated.
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.checks.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install the pinned collector dependency
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
       - name: Restore durable last-good public snapshots
         run: python scripts/snapshot_store.py restore
-      - name: Fetch fresh rankings with the dedicated account
+      - name: Fetch this backend with the dedicated account
         id: collect
-        # Manual collection is opt-in. Reruns only republish stored data.
-        if: >-
-          github.run_attempt == '1' &&
-          (github.event_name == 'schedule' ||
-           (github.event_name == 'workflow_dispatch' && inputs.fetch_rankings))
         continue-on-error: true
         env:
+          SERVER_KEY: ${{ matrix.server }}
           MW_COLLECTOR_USERNAME: ${{ secrets.MW_COLLECTOR_USERNAME }}
           MW_COLLECTOR_PASSWORD: ${{ secrets.MW_COLLECTOR_PASSWORD }}
-        run: python -m collector collect --output site/data --server all --max-duration-seconds 18000
+        run: python -m collector collect --output site/data --server "$SERVER_KEY" --max-duration-seconds 19800
+      - name: Validate the coherent public manifest
+        run: python scripts/build_site.py --check
+      - name: Save this backend before the next server starts
+        run: python scripts/snapshot_store.py save
+      - name: Report this backend's failed refresh after retaining last-good data
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo '::error::This backend refresh failed. Its validated last-good snapshot and refresh status were saved.'
+          exit 1
+
+  build:
+    needs: [checks, collect]
+    # Publish available data even when a collection child fails or collection is skipped.
+    if: ${{ !cancelled() && needs.checks.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Restore the latest validated snapshots from all completed server jobs
+        run: python scripts/snapshot_store.py restore
       - name: Validate and build only public files
         run: python scripts/build_site.py
       - name: Save the validated latest snapshots
@@ -75,6 +135,7 @@ jobs:
 
   deploy:
     needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -89,13 +150,13 @@ jobs:
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
   collection-status:
-    needs: [build, deploy]
-    if: always() && needs.build.outputs.collection_failed == 'true'
+    needs: [checks, collect, build, deploy]
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.collect.result == 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}
     steps:
       - name: Report any failed refresh after publishing available snapshots
         run: |
-          echo '::error::At least one ranking refresh failed. Validated last-good snapshots were retained. Check the per-server status on the site and the sanitized collector log.'
+          echo '::error::At least one backend refresh or persistence job failed. Available validated snapshots were retained. Check per-server status and the failed server jobs.'
           exit 1

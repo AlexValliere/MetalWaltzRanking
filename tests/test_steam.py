@@ -18,12 +18,23 @@ class SteamTests(unittest.TestCase):
         self.assertEqual({s["key"] for s in steam}, STEAM_BACKENDS)
         self.assertTrue(all(s["serverNames"][0].startswith("Steam / ") for s in steam))
         self.assertTrue(all(s["sessionSeconds"] == 10800 for s in steam))
-        self.assertTrue(all(s["sessionSeconds"] == 3600 for s in servers if s["protocolProfile"] == "mobile"))
         asia = next(s for s in steam if s["key"] == "SteamJP")
         self.assertEqual(asia["aliases"], ["SteamJP", "SteamTEST"])
         self.assertEqual(asia["alternateRoutes"], [{"address": "54.169.167.235", "ports": [37002, 37003]}])
         self.assertNotEqual(next(s for s in steam if s["key"] == "SteamJP")["address"],
                             next(s for s in servers if s["key"] == "JP")["address"])
+
+    def test_reviewed_per_backend_session_budgets_preserve_pacing_and_vehicle_policy(self):
+        servers = load_servers()
+        self.assertEqual({s["key"]: s["sessionSeconds"] for s in servers},
+                         {"Bonn": 19800, "YaleAndroid": 3600, "YaleIOS": 3600, "JP": 3600,
+                          "KOREA": 5400, "JKMIX": 3600, "BANGKOK": 10800,
+                          "SteamJP": 10800, "SteamBonn": 10800, "SteamUSAVA": 10800})
+        for server in servers:
+            with self.subTest(key=server["key"]):
+                mobile = server["protocolProfile"] == "mobile"
+                self.assertEqual(server["batchRequestGapSeconds"], 0.25 if mobile else 1.0)
+                self.assertEqual(server["collectVehicles"], mobile)
 
     def test_alternate_route_is_only_tried_before_a_connection_exists(self):
         server = next(s for s in load_servers() if s["key"] == "SteamJP")

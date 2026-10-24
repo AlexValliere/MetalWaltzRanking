@@ -1,0 +1,287 @@
+{
+  "schema": "metal-waltz.vehicle-partial-results-source-probes.v1",
+  "recordedAtUtc": "2026-10-24T15:38:14.245279Z",
+  "scope": "Independent aggregate-only review of three completed, authorized local bounded-prefix probes of committed partial-result source. The note author made no game connection, login or network fetch. No credentials, account/player identity values, names, cohort digests or raw packets are included.",
+  "sourceRevision": "2935e30a81c31fc69d57afa031019fd6b60b4dd6",
+  "collectorSourceSha256": {
+    "collector/__init__.py": "3c4d586a2c3664efb77005c6a304880699944feb6ea60cec671aedce5c3743f8",
+    "collector/__main__.py": "63b6fa686b5918d627b4736e1ed182b2c8704c7a1eb472677ec3b4c2eac82aa1",
+    "collector/binary.py": "e1ec83631d43c8f329ddefd745e7dcff692f7fa57a0ab27a1f2a43b400b8ef22",
+    "collector/cipher.py": "3bad20ccef8d99909d52d216d21ba6abd0d544f26faedb213cec78f0b8bcc561",
+    "collector/collect.py": "9aeec8b25945e8a053a40717d197582d966b9d85507d0cfbb3488192ba84506d",
+    "collector/configuration.py": "a441a26c896a8221c4ed2ab03e453ab516194c856402fb61623bef194a1894ae",
+    "collector/connection.py": "3fee3b46a29e5c1f5d3e6ca571a0d14913682a72357cd48f6aa862da8893d004",
+    "collector/records.py": "befae3b4225b2c07af0232f346665fbe376f42e9a666238503837fa0ea2efff5",
+    "collector/snapshots.py": "74a9a5df4c55c466d78621600315cd186a3d30c14ad79e9127c11a29ef88207d",
+    "collector/timing.py": "eb795f7473eae8090058b13be19583535e676a5290381b2f0ac0ab3bd83310ab",
+    "collector/transport.py": "5fc165a0048b894ebd7ce218cc33200d1b727c451194af4b6031eac48514f6f9",
+    "collector/config/protocol.json": "4affdb35b26903791770a36dabfaf9b1d2d2c467440555451716d2e2b7d60601",
+    "collector/config/servers.json": "48091a6948e0dd4a6f98704d34076e08e8729d4a8b8277e55d3f7c0dd156b517",
+    "collector/config/steam-protocol.json": "e4e44ca09c4923c478e38dcfa658470a3f05500ad3081129bf79a0d78a325cbf",
+    "collector/config/steam-servers.json": "e91c33218ebc1824b13eeab0f02150ae53076ec5b6fd3f4a88327d718cdb11ff"
+  },
+  "completedProbeCount": 3,
+  "pendingProbes": [],
+  "policyAtProbe": {
+    "initialVehicleMask": 12,
+    "initialVehicleBatchMaximum": 50,
+    "recoveryBatchMaximum": 50,
+    "oneSharedRecoveryAllowancePerProfile": true,
+    "partialResultsEnabledOnMobile": true,
+    "steamVehicleCollectionEnabled": false,
+    "productionQueryBehaviorUnchangedByHelper": true
+  },
+  "stateSemantics": {
+    "resolved": "Actual bit-4 list, including a real empty vector.",
+    "unavailable": "Explicit terminal capsule-field miss; null list.",
+    "unresolved": "Correlated zero-field reply leaves capsule fields unanswered after bounded processing; null list.",
+    "not_collected": "No vehicle observation attempted, including disabled Steam collection; null list."
+  },
+  "probes": [
+    {
+      "backend": "Bonn",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T151706747938Z-Bonn.json",
+      "sourceAggregateSha256": "c5422bc0902fa34e375b0ab7936faf13e890184b512b29916abdbf1c3ab0ee89",
+      "sourceAggregateBytes": 314542,
+      "startedAtUtc": "2026-10-24T15:15:15.234989+00:00",
+      "completedAtUtc": "2026-10-24T15:17:06.743399+00:00",
+      "elapsedWallSeconds": 111.50841,
+      "sourceRevision": "2935e30a81c31fc69d57afa031019fd6b60b4dd6",
+      "privateDriverSha256": "59fd67edb4fe58de1d01e8f7035583e8224bb933cbd102057692a729f7474f16",
+      "prefixDriverSha256": "65b6520706f473e94472d6e5e824aa849324d5d808d6b8bb04eaed939ac6e658",
+      "rowBound": 3000,
+      "secondsBound": 180,
+      "initialVehicleMask": 12,
+      "initialBatchSize": 50,
+      "recoveryBatchSize": 50,
+      "recoveryDelaySeconds": 0,
+      "productionQueryBehaviorUnchanged": true,
+      "terminalPhase": "source_partial_probe_complete",
+      "boundedPrefixOnly": true,
+      "rankingRowsReceived": 3000,
+      "lastRankingPageOffset": 2800,
+      "observationCounts": {
+        "profilesQueried": 3000,
+        "resolvedEmptyProfiles": 49,
+        "resolvedNonemptyProfiles": 2569,
+        "unavailableProfiles": 0,
+        "unresolvedProfiles": 382,
+        "unclassifiedProfiles": 0,
+        "retiredPending": 382,
+        "partialResultsEnabled": true
+      },
+      "categoriesDisjointAndCoverQueried": true,
+      "partitionEvidence": "The helper reports runtime disjoint identity-set/coverage checks; independent sanitized review verifies their count sum. No identity sets or identity digests are published.",
+      "zeroFieldProfilesObserved": 382,
+      "detailMaskHistogram": {
+        "12": 2618,
+        "0": 764
+      },
+      "detailAttemptHistogram": {
+        "1": 2618,
+        "2": 382
+      },
+      "profilesAboveTwoDetailAttempts": 0,
+      "successfulNicknameReplyProfiles": 382,
+      "failedNicknameReplyProfiles": 0,
+      "requestStageCounts": {
+        "initial": 60,
+        "requery": 8
+      },
+      "request20Packets": 68,
+      "nicknameRequest16Packets": 382,
+      "sessionRemainingSeconds": 68.513,
+      "runRemainingSeconds": 68.493,
+      "completionHookEvidence": {
+        "reportedCompletionHookValidated": true,
+        "reportedBeforeSocketClose": null,
+        "assessedBeforeSocketClose": false,
+        "openSocketFinalizerProof": false,
+        "terminalQueuedMessages": 0,
+        "terminalDecoderBufferedBytes": 0,
+        "sentOpcodeDeltaFromLastCompletedWait": {},
+        "receivedOpcodeDeltaFromLastCompletedWait": {},
+        "limitation": "This first helper version invoked finish_vehicles only after scan_server had closed its socket. The terminal decoded queue and decoder buffer were empty, and no opcode count changed from the last completed wait. Independent review accepted this as bounded retirement and page-continuation evidence, but it does not prove an open-socket finalizer or queued-heartbeat handling. The original aggregate is preserved unchanged."
+      },
+      "unresolvedRetirementObserved": true,
+      "zeroPathExercised": true,
+      "publicSnapshotPublished": false,
+      "fullBackendRankingEnumerationCompleted": false,
+      "interpretation": "The bounded prefix continued after retiring 382 correlated unanswered capsule fields as unresolved while preserving 2,618 actual capsule lists. The helper timing limitation above narrows its finalizer proof."
+    },
+    {
+      "backend": "KOREA",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T153129434725Z-KOREA.json",
+      "sourceAggregateSha256": "3a5a2ef502d95ceff5be2d0085e3ce895556f9c551ddec26431b67072703db24",
+      "sourceAggregateBytes": 187754,
+      "startedAtUtc": "2026-10-24T15:30:36.824756+00:00",
+      "completedAtUtc": "2026-10-24T15:31:29.433161+00:00",
+      "elapsedWallSeconds": 52.608405,
+      "sourceRevision": "2935e30a81c31fc69d57afa031019fd6b60b4dd6",
+      "privateDriverSha256": "b9cb7ea5e62134e2bbd10123684983519a43468103383d5f29ef498ad639018c",
+      "prefixDriverSha256": "65b6520706f473e94472d6e5e824aa849324d5d808d6b8bb04eaed939ac6e658",
+      "rowBound": 2000,
+      "secondsBound": 180,
+      "initialVehicleMask": 12,
+      "initialBatchSize": 50,
+      "recoveryBatchSize": 50,
+      "recoveryDelaySeconds": 0,
+      "productionQueryBehaviorUnchanged": true,
+      "terminalPhase": "source_partial_probe_no_zero",
+      "boundedPrefixOnly": true,
+      "rankingRowsReceived": 2000,
+      "lastRankingPageOffset": 1800,
+      "observationCounts": {
+        "profilesQueried": 2000,
+        "resolvedEmptyProfiles": 204,
+        "resolvedNonemptyProfiles": 1796,
+        "unavailableProfiles": 0,
+        "unresolvedProfiles": 0,
+        "unclassifiedProfiles": 0,
+        "retiredPending": 0,
+        "partialResultsEnabled": true
+      },
+      "categoriesDisjointAndCoverQueried": true,
+      "partitionEvidence": "The helper reports runtime disjoint identity-set/coverage checks; independent sanitized review verifies their count sum. No identity sets or identity digests are published.",
+      "zeroFieldProfilesObserved": 0,
+      "detailMaskHistogram": {
+        "12": 2000
+      },
+      "detailAttemptHistogram": {
+        "1": 2000
+      },
+      "profilesAboveTwoDetailAttempts": 0,
+      "successfulNicknameReplyProfiles": 0,
+      "failedNicknameReplyProfiles": 0,
+      "requestStageCounts": {
+        "initial": 40
+      },
+      "request20Packets": 40,
+      "nicknameRequest16Packets": 0,
+      "sessionRemainingSeconds": 127.663,
+      "runRemainingSeconds": 127.393,
+      "completionHookEvidence": {
+        "reportedCompletionHookValidated": true,
+        "reportedBeforeSocketClose": true,
+        "assessedBeforeSocketClose": true,
+        "openSocketFinalizerProof": true,
+        "terminalQueuedMessages": 0,
+        "terminalDecoderBufferedBytes": 0,
+        "sentOpcodeDeltaFromLastCompletedWait": {},
+        "receivedOpcodeDeltaFromLastCompletedWait": {},
+        "implementation": "Corrected helper runs the production completion hook at the pre-close prefix guard. Its recorder only verifies the saved completion result after close. Offline regression separately exercised a queued heartbeat before close; this live run ended with an empty queue."
+      },
+      "unresolvedRetirementObserved": false,
+      "zeroPathExercised": false,
+      "publicSnapshotPublished": false,
+      "fullBackendRankingEnumerationCompleted": false,
+      "interpretation": "This corrected-helper prefix completed with 2,000 actual capsule lists and no zero descriptors. It verifies the ordinary complete-field path and pre-close hook, but does not exercise unresolved retirement."
+    },
+    {
+      "backend": "BANGKOK",
+      "sourceAggregateFile": "private/vehicle-probes/prefix-20261024T153435345569Z-BANGKOK.json",
+      "sourceAggregateSha256": "0a4cd28cbc5897b440fc0357fe124554c1bf1d3dc4ccb6ad3ea6fdd8643e2530",
+      "sourceAggregateBytes": 218476,
+      "startedAtUtc": "2026-10-24T15:31:59.514352+00:00",
+      "completedAtUtc": "2026-10-24T15:34:35.342600+00:00",
+      "elapsedWallSeconds": 155.828248,
+      "sourceRevision": "2935e30a81c31fc69d57afa031019fd6b60b4dd6",
+      "privateDriverSha256": "b9cb7ea5e62134e2bbd10123684983519a43468103383d5f29ef498ad639018c",
+      "prefixDriverSha256": "65b6520706f473e94472d6e5e824aa849324d5d808d6b8bb04eaed939ac6e658",
+      "rowBound": 2000,
+      "secondsBound": 180,
+      "initialVehicleMask": 12,
+      "initialBatchSize": 50,
+      "recoveryBatchSize": 50,
+      "recoveryDelaySeconds": 0,
+      "productionQueryBehaviorUnchanged": true,
+      "terminalPhase": "source_partial_probe_complete",
+      "boundedPrefixOnly": true,
+      "rankingRowsReceived": 2000,
+      "lastRankingPageOffset": 1800,
+      "observationCounts": {
+        "profilesQueried": 2000,
+        "resolvedEmptyProfiles": 41,
+        "resolvedNonemptyProfiles": 1574,
+        "unavailableProfiles": 0,
+        "unresolvedProfiles": 385,
+        "unclassifiedProfiles": 0,
+        "retiredPending": 385,
+        "partialResultsEnabled": true
+      },
+      "categoriesDisjointAndCoverQueried": true,
+      "partitionEvidence": "The helper reports runtime disjoint identity-set/coverage checks; independent sanitized review verifies their count sum. No identity sets or identity digests are published.",
+      "zeroFieldProfilesObserved": 385,
+      "detailMaskHistogram": {
+        "12": 1615,
+        "0": 770
+      },
+      "detailAttemptHistogram": {
+        "1": 1615,
+        "2": 385
+      },
+      "profilesAboveTwoDetailAttempts": 0,
+      "successfulNicknameReplyProfiles": 385,
+      "failedNicknameReplyProfiles": 0,
+      "requestStageCounts": {
+        "initial": 40,
+        "requery": 8
+      },
+      "request20Packets": 48,
+      "nicknameRequest16Packets": 385,
+      "sessionRemainingSeconds": 24.374,
+      "runRemainingSeconds": 24.173,
+      "completionHookEvidence": {
+        "reportedCompletionHookValidated": true,
+        "reportedBeforeSocketClose": true,
+        "assessedBeforeSocketClose": true,
+        "openSocketFinalizerProof": true,
+        "terminalQueuedMessages": 0,
+        "terminalDecoderBufferedBytes": 0,
+        "sentOpcodeDeltaFromLastCompletedWait": {},
+        "receivedOpcodeDeltaFromLastCompletedWait": {},
+        "implementation": "Corrected helper runs the production completion hook at the pre-close prefix guard. Its recorder only verifies the saved completion result after close. Offline regression separately exercised a queued heartbeat before close; this live run ended with an empty queue."
+      },
+      "unresolvedRetirementObserved": true,
+      "zeroPathExercised": true,
+      "publicSnapshotPublished": false,
+      "fullBackendRankingEnumerationCompleted": false,
+      "interpretation": "The corrected helper continued through the 2,000-row prefix with 1,615 actual capsule lists and 385 unresolved capsule observations. Those 385 profiles each received two detail attempts; repeated zero descriptors were not turned into empty or unavailable lists."
+    }
+  ],
+  "aggregateAcrossSeparatePrefixes": {
+    "profilesQueried": 7000,
+    "resolvedEmptyProfiles": 294,
+    "resolvedNonemptyProfiles": 5939,
+    "unavailableProfiles": 0,
+    "unresolvedProfiles": 767,
+    "unclassifiedProfiles": 0
+  },
+  "verificationStatus": {
+    "boundedSourceRetirementAndContinuationObserved": true,
+    "correctedOpenSocketFinalizerRanOnKoreaAndThailand": true,
+    "koreaZeroRetirementExercised": false,
+    "fullBackendCollectionVerified": false,
+    "freshHostedCollectionVerified": false,
+    "newPublishedCoverageVerified": false
+  },
+  "reviewProvenance": {
+    "source": "Exact source commit and per-file hashes copied from completed aggregates. The parent supplied independent-review acceptance of the Europe limitation; corrected-helper offline/regression review was completed separately.",
+    "correctedHelperSha256": "b9cb7ea5e62134e2bbd10123684983519a43468103383d5f29ef498ad639018c",
+    "correctedHelperOfflineChecks": 6
+  },
+  "limits": [
+    "These are deliberate 3,000/2,000-row prefix stops under a 180-second private diagnostic ceiling, not complete backend rankings, new public snapshots, performance promises or full production-session duration measurements.",
+    "The Europe artifact used the older helper and its finish hook ran after socket close. Its empty queue/buffer and unchanged opcode counters support a narrow retirement/page-continuation result, not open-socket completion-hook proof. The source aggregate is unchanged and the limitation is not hidden.",
+    "The corrected Korea and Thailand helpers ran the real production completion hook before socket close. Their live terminal queues were empty; queued-heartbeat correctness was established by a separate invented offline regression, not by inventing a heartbeat in those live artifacts.",
+    "Korea observed no zero-field descriptor, unresolved profile or recovery request. Its successful complete-field prefix must not be presented as live proof of unresolved handling or a universal improvement over earlier cold cohorts.",
+    "Repeated zero descriptor totals count multiple replies for the same profiles. The Europe 764 and Thailand 770 zero descriptors concern 382 and 385 profiles twice, respectively, never 1,534 distinct unavailable profiles.",
+    "Actual empty vectors, explicit misses and unresolved capsule fields remain distinct. Actual capsule data survives when a separate tactics field remains pending; retired-context counts preserve late-response correlation and are not an extra public availability category.",
+    "Different backend cohorts, windows, elapsed time and prior client/probe activity prevent causal claims about tutorial activity, cached state, request rates or a server-internal reason for zero fields.",
+    "This note verifies source behavior at commit 2935e30 only. Later budget or workflow changes, any fresh hosted run and any published vehicle-coverage improvement require separate verification."
+  ],
+  "relatedEvidence": [
+    "docs/research/vehicle-cold-profile-experiments-2026-10-24.json",
+    "docs/research/zero-field-recovery-verification-2026-10-24.json"
+  ]
+}

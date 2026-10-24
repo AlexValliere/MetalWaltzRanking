@@ -15,7 +15,8 @@ not need to be running. Each server gets at most one collection attempt per run;
 failed servers retain their previous data until the next attempt.
 To refresh manually, open **Actions → Refresh rankings and publish → Run workflow**,
 select `main`, check **Fetch fresh rankings from the game servers before publishing**,
-and start a new run. Leave it unchecked to publish stored data. Pushes to `main`
+and start a new run. The scope defaults to `all`; `affected-mobile` checks only
+Europe №1, Korea and Thailand. Leave the checkbox unchecked to publish stored data. Pushes to `main`
 and reruns of current workflows also
 publish stored data without a game login; use a new dispatch for a fresh attempt.
 
@@ -110,15 +111,15 @@ The workflow has a single concurrency group. Do not run another collector with
 these credentials at the same time. It serializes the ten backend sessions and
 never creates an account or commander, battles, claims rewards or purchases items.
 
-Each collection has a shared **18,000-second (five-hour) budget** across all
-requested backends. Each Steam session has a **10,800-second (three-hour) ceiling**;
-mobile sessions retain their **3,600-second (one-hour) ceiling**. These are capacity
-ceilings, not promises of completion or expected running times. When the shared
-budget expires, completed refreshes are retained; unfinished and unvisited
-backends keep their last-good snapshots and show a failed refresh. The 330-minute
-build job leaves approximately 30 minutes in total for setup, validation,
-snapshot storage and publication upload. Longer capacity allowances add no retries
-or account-setup actions and keep Steam's 200-row, one-second pacing.
+Fresh collection runs one backend per job, with only one collection job active
+at a time. Each job saves its validated results before the next server starts;
+a failed job does not cancel the remaining servers. Europe №1 has a **5½-hour**
+session ceiling, Thailand and Steam **three hours**, Korea **90 minutes**, and
+the other mobile servers **one hour**. Every job has a **350-minute** limit,
+including setup and storage; the collector's maximum budget is **330 minutes**.
+These are capacity ceilings, not expected durations or guarantees of completion.
+Vehicle collection still attempts every mobile ranking entry at the same pace.
+Build and deployment run separately after all selected collection jobs finish.
 
 Validated last-good snapshots live on the dedicated `snapshots` branch. It has
 one latest root commit and an ownership marker; collection updates replace that

@@ -7,6 +7,9 @@ Europe/Paris in summer** and **05:17 in winter**. The first attempt of a schedul
 run contacts the game servers. To collect manually, open **Actions → Refresh
 rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
 from the game servers before publishing** (`fetch_rankings`), and start a new run.
+The `collection_scope` input defaults to `all`. Choose `affected-mobile` to check
+only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`). Scheduled runs
+always select all ten canonical backends.
 Each backend is attempted at most once per collection run; a failure retains its
 previous snapshot until the next scheduled or opted-in manual attempt.
 Manual runs leave this checkbox unchecked by default and publish stored data.
@@ -79,23 +82,29 @@ a snapshot.
 Nickname fallback remains groups of 10, fully drained before a 250 ms pause and
 the next group. Heartbeat acknowledgements remain immediate.
 
-The workflow passes `--max-duration-seconds 18000`, also the collector default:
-one **five-hour collection budget** shared across all requested backends, starting
-before snapshot loading. Steam sessions have a **10,800-second (three-hour) ceiling**;
-mobile sessions retain their **3,600-second (one-hour) ceiling**. A session also
-obeys the remaining shared budget. These are capacity ceilings, not expected
-running times or guarantees that every backend will complete. A measured
-5,000-row Steam interval took more than 6.5 minutes, making the old one-hour
-session ceiling insufficient for the estimated 98,516-row Asia ranking at that
-pace. The completed Asia scan took 6956.570784 seconds, within the three-hour
-Steam ceiling. All three Steam backends have completed and passed validation;
-their measured durations are observations, not promises for later refreshes.
+Offline checks run once before any game login. Each selected backend then has its
+own collection job. The matrix uses `max-parallel: 1` and `fail-fast: false`, so
+sessions never overlap and a failed server does not cancel the remaining jobs.
+Each job restores the latest durable index, collects exactly one backend with
+`--max-duration-seconds 19800`, validates and saves the result, then reports any
+collection failure. Matrix execution order is not guaranteed.
 
-After the shared budget expires, the current and remaining unvisited backends
-receive `collection_deadline` failure status without further logins. Completed
-refreshes and previous good snapshots are retained, and the manifest is written
-before the collector exits with failure. Connection and reply waits check the
-same deadline, subject to a short socket polling allowance.
+Session ceilings are **19,800 seconds (5½ hours) for Bonn**, **10,800 seconds
+(three hours) for BANGKOK and Steam**, **5,400 seconds (90 minutes) for KOREA**,
+and **3,600 seconds (one hour) for the other mobile backends**. A session also
+obeys its job's remaining collector budget, which starts before snapshot loading.
+These are capacity ceilings, not expected running times or completion guarantees.
+Some observed zero-field vehicle batches took about five seconds for the initial
+response and another five seconds for bounded recovery; longer jobs permit a
+full scan without increasing request frequency or skipping profiles.
+
+The local CLI still defaults to a five-hour shared budget when multiple servers
+are selected. On budget expiry, the current and unvisited local backends receive
+`collection_deadline` without further logins. Completed refreshes and previous
+good snapshots are retained, and the manifest is written before failure exit.
+Hosted jobs select one backend, so its deadline cannot consume another server's
+budget. Connection and reply waits check the same deadline, subject to a short
+socket polling allowance.
 Required replies allow up to 30 seconds; the initial social-name lookup keeps its
 12-second wait before the reviewed nickname fallback. No read is automatically
 replayed after a timeout. Failed collection logs include a fixed `readPhase` label
@@ -113,13 +122,14 @@ credential files are published. Do not enable shell tracing or add packet dumps
 to a workflow. Never commit an `.env`, DPAPI store or game capture.
 
 Pull requests run offline tests and seeded site validation without game secrets.
-Publication runs only on `main` in `AlexValliere/MetalWaltzRanking`. The build job
-can write the data branch; the separate deployment job has `pages: write` and
+Publication runs only on `main` in `AlexValliere/MetalWaltzRanking`. Collection and
+build jobs can write the data branch; the separate deployment job has `pages: write` and
 `id-token: write` in the `github-pages` environment. Official GitHub actions are
 pinned to full commit hashes. Dependabot proposes weekly dependency updates.
 
 All collector and deployment runs share one concurrency group with cancellation
-disabled for the active run. The collector itself processes servers sequentially.
+disabled for the active run. The collection matrix allows only one active child;
+the local collector also processes servers sequentially.
 Use another account for other game clients; concurrent logins can disrupt a scan.
 
 The same dedicated credentials cover mobile and Steam. Steam uses its own native
@@ -151,9 +161,13 @@ Every deployment first restores this data branch. If it does not exist, the
 validated seed is used. A successful server refresh replaces that server's
 complete snapshot. A failed refresh preserves its previous file, count, hash and
 successful timestamp while recording the attempt and a sanitized error code.
-The combined data is validated again before storage and publication. Collection
-failures are reported after the site deployment so that available last-good data
-remains accessible. Invalid data or failed storage blocks the new deployment.
+The combined data is validated again before storage and publication. Each server
+job saves its result before reporting collection failure. After every child has
+finished, the build restores the latest durable data and can deploy it even if a
+child failed. Failed validation or storage in a child leaves the durable branch
+unchanged for that child; its job remains failed. A failure in the final build's
+restore, validation or storage blocks deployment. The run reports collection
+failures separately from successful publication of available data.
 
 The first Steam deployment can restore the exact legacy seven-backend data
 branch. It validates that entire branch, retains every mobile snapshot and its
@@ -199,12 +213,13 @@ claiming the scheduled service is live.
 
 GitHub's current Pages site limit is 1 GB, comfortably above this seed. Hosted
 Actions have execution and account usage limits; inspect billing/usage if the
-repository's plan or visibility changes. The build job's timeout is **330 minutes**,
+repository's plan or visibility changes. Each collection job's timeout is **350 minutes**,
 below the current six-hour GitHub-hosted job limit. [Actions limits](https://docs.github.com/en/actions/reference/limits).
-The collector's five-hour budget leaves approximately 30 minutes for setup,
-validation, durable storage and upload. Setup time is part of that reserve, so
-this is not a guaranteed 30-minute allowance after collection finishes. Pages
-deployment runs separately with a 10-minute timeout. Publication artifacts expire
+The collector's maximum 330-minute budget leaves approximately 20 minutes for
+setup, validation and durable storage. Setup time is part of that reserve, so
+this is not a guaranteed allowance after collection finishes. Build/upload runs
+separately with a 30-minute timeout and Pages deployment with a 10-minute timeout.
+Publication artifacts expire
 after one day; durable public data is the `snapshots` branch, not the temporary
 artifact.
 [Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),

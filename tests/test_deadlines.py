@@ -12,7 +12,7 @@ from collector.__main__ import main
 from collector.cipher import GameDes
 from collector.collect import error_code, open_socket, run_collection
 from collector.configuration import load_masks, load_servers
-from collector.connection import CollectorConnection
+from collector.connection import CollectorConnection, LIMITS
 from collector.snapshots import SNAPSHOT_SCHEMA, SCOPE, atomic_json
 from collector.timing import CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_duration
 from test_connection import Clock, SyntheticSocket, ScriptedConnection, primary_failure, fallback_name
@@ -84,8 +84,44 @@ class DeadlineTests(unittest.TestCase):
             connection.send(65531)
         self.assertFalse(connection.socket.writes)
 
+    def test_extended_mobile_sessions_stop_at_their_reviewed_backend_ceiling(self):
+        servers = {s["key"]: s for s in load_servers()}
+        for key, duration in (("Bonn", 19800), ("KOREA", 5400), ("BANGKOK", 10800)):
+            with self.subTest(key=key):
+                connection, clock = self.connection(session_seconds=servers[key]["sessionSeconds"])
+                clock.value = connection.started + 3600
+                connection.send(65531)
+                clock.value = connection.started + duration - 0.1
+                connection.send(65531)
+                clock.value = connection.started + duration
+                with self.assertRaises(TimeoutError):
+                    connection.receive(362)
+                with self.assertRaises(TimeoutError):
+                    connection.send(65531)
+                self.assertEqual(connection.sent, {65531: 2})
+                self.assertEqual(len(connection.socket.writes), 2)
+
+    def test_heartbeat_ceiling_scales_only_acks_and_enforces_the_exact_boundary(self):
+        for duration, quota in ((1, 1000), (3600, 1000), (3600.1, 1001),
+                                (5400, 1500), (10800, 3000), (19800, 5500)):
+            with self.subTest(session_seconds=duration):
+                connection, _ = self.connection(session_seconds=duration)
+                self.assertEqual(connection.request_limits,
+                                 {**LIMITS, 65531: quota})
+                connection.sent[65531] = quota - 1
+                connection.messages.extend(((65532, b"ignored"), (65530, b""), (131, b"target")))
+                self.assertEqual(connection.receive(131), b"target")
+                self.assertEqual(connection.sent, {65531: quota})
+                self.assertEqual(len(connection.socket.writes), 1)
+                connection.messages.append((65530, b""))
+                with self.assertRaises(ValueError):
+                    connection.receive(131)
+                self.assertEqual(connection.sent, {65531: quota})
+                self.assertEqual(len(connection.socket.writes), 1)
+        self.assertEqual(LIMITS[65531], 1000)
+
     def test_shared_deadline_preempts_mobile_and_steam_sessions(self):
-        for duration in (3600, 10800):
+        for duration in (3600, 5400, 10800, 19800):
             with self.subTest(session_seconds=duration):
                 connection, clock = self.connection(session_seconds=duration, deadline=2)
                 clock.value = 2

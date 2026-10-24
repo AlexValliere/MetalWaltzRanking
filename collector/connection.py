@@ -6,6 +6,7 @@ Unkeyed ranking/17 replies are drained before a new transaction is started.
 """
 
 from collections import Counter, deque
+import math
 import socket
 import struct
 import time
@@ -47,6 +48,11 @@ class CollectorConnection:
         self.socket, self.clock, self.sleeper = sock, clock, sleeper
         self.batch_request_gap_seconds = positive_duration(batch_request_gap_seconds)
         self.session_seconds = positive_duration(session_seconds)
+        self.request_limits = dict(LIMITS)
+        # Longer sessions retain the existing bounded ACK allowance per hour.
+        # Dispatch still sends an ACK only in response to an actual 65530.
+        self.request_limits[65531] = max(LIMITS[65531],
+                                        math.ceil(self.session_seconds / SESSION_SECONDS * LIMITS[65531]))
         self.encoder = TransportEncoder(masks["c2g"], cipher.encrypt)
         self.decoder = TransportDecoder(masks["g2c"], cipher.decrypt)
         self.messages = deque()
@@ -75,7 +81,7 @@ class CollectorConnection:
             raise TimeoutError("Collector session deadline")
 
     def send(self, opcode, payload=b""):
-        if opcode not in LIMITS or self.sent[opcode] >= LIMITS[opcode]:
+        if opcode not in self.request_limits or self.sent[opcode] >= self.request_limits[opcode]:
             raise ValueError("Request outside read-only collector allowlist")
         validate_outgoing(opcode, payload, expected_login=self.expected_login,
                           selected_player=self.selected_player, requested_names=self.name_masks,
