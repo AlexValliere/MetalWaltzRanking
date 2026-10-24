@@ -45,6 +45,7 @@ class CollectorConnection:
         self.fallback_status_counts = Counter()
         self.primary_name_timeouts = 0
         self.vehicle_masks, self.vehicles, self.vehicle_failures = {}, {}, set()
+        self.vehicle_failed_masks = {}
         self.vehicle_pending = set()
         self.achievements = None
         self.incoming_bytes = 0
@@ -62,7 +63,9 @@ class CollectorConnection:
             raise ValueError("Request outside read-only collector allowlist")
         validate_outgoing(opcode, payload, expected_login=self.expected_login,
                           selected_player=self.selected_player, requested_names=self.name_masks,
-                          fallback_sent=self.fallback_sent, requested_vehicles=self.vehicle_pending)
+                          fallback_sent=self.fallback_sent,
+                          requested_vehicles={p: 0x0c & ~self.vehicle_masks.get(p, 0)
+                                              for p in self.vehicle_pending})
         self.check_deadlines()
         if opcode == 16:
             self.fallback_sent.add(struct.unpack("<I", payload)[0])
@@ -105,9 +108,10 @@ class CollectorConnection:
                     # Native19 can carry a descriptor with no field updates.
                     # Correlation is still required; it does not complete a read.
                     continue
-                if player in self.vehicle_failures or self.vehicle_masks[player] & mask:
+                if self.vehicle_masks[player] & mask:
                     raise ValueError("Repeated public vehicle reply")
                 self.vehicle_masks[player] |= mask
+                self.vehicle_failed_masks[player] = self.vehicle_failed_masks.get(player, 0) & ~mask
                 if mask & 4:
                     self.vehicles[player] = vehicles
         elif opcode == 18:
@@ -115,9 +119,11 @@ class CollectorConnection:
             failed = r.vector()
             r.finish()
             if (len(set(failed)) != len(failed) or any(p not in self.vehicle_pending
-                    or p in self.vehicle_failures or self.vehicle_masks[p] for p in failed)):
+                    or self.vehicle_failed_masks.get(p, 0) or self.vehicle_masks[p] == 0x0c
+                    for p in failed)):
                 raise ValueError("Uncorrelated public vehicle failure")
-            self.vehicle_failures.update(failed)
+            for player in failed:
+                self.vehicle_failed_masks[player] = 0x0c & ~self.vehicle_masks[player]
 
     def receive(self, target=None, until=None, timeout=REPLY_SECONDS):
         self.check_deadlines()
@@ -251,23 +257,30 @@ class CollectorConnection:
         for offset in range(0, len(players), 50):
             batch = players[offset:offset + 50]
             self.vehicle_masks.update((p, 0) for p in batch)
+            self.vehicle_failed_masks.update((p, 0) for p in batch)
             self._query_vehicles(batch)
             # Native18 invokes16. A successful17 calls clearIDQueryTransaction
             # (0x007f8a98), which reissues still-pending public detail masks.
             # Name lookup already performed that same warm-up for many players;
             # never repeat16 for an identity or retry a timeout/malformed reply.
-            warm = [p for p in batch if p in self.vehicle_failures and p not in self.fallback_sent]
+            warm = [p for p in batch if self.vehicle_failed_masks[p] and p not in self.fallback_sent]
             if warm:
                 self.fetch_nickname_fallback(warm)
-                retry = [p for p in warm if p not in self.fallback_failures]
+                retry = [p for p in warm if p not in self.fallback_failures and self.vehicle_masks[p] != 0x0c]
                 if retry:
                     self.read_phase = "public_vehicles"
-                    self.vehicle_failures.difference_update(retry)
                     self._query_vehicles(retry)
+            # A terminal tactics miss does not erase actual capsule observations.
+            # The public projection reports only capsule-field availability.
+            self.vehicle_failures.update(p for p in batch if not self.vehicle_masks[p] & 4)
+            self.vehicle_pending.clear()
 
     def _query_vehicles(self, players):
         self.vehicle_pending = set(players)
-        self.send(20, bytes([len(players)]) + b"".join(struct.pack("<IB", p, 0x0c) for p in players))
-        self.receive(until=lambda: all(self.vehicle_masks[p] == 0x0c or p in self.vehicle_failures
+        missing = {p: 0x0c & ~self.vehicle_masks[p] for p in players}
+        for player, mask in missing.items():
+            self.vehicle_failed_masks[player] &= ~mask
+        self.send(20, bytes([len(players)]) + b"".join(struct.pack("<IB", p, missing[p]) for p in players))
+        self.receive(until=lambda: all(self.vehicle_masks[p] | self.vehicle_failed_masks[p] == 0x0c
                                       for p in players))
-        self.vehicle_pending.clear()
+        # Keep correlation while native16/17 warm-up can deliver late fields.

@@ -1,0 +1,137 @@
+{
+  "schema": "metal-waltz.steam-public-vehicles-static-evidence.v1",
+  "recordedClientDate": "2026-10-24",
+  "recordedClientTimezone": "Europe/Paris",
+  "scope": "Read-only analysis of the installed public Steam binary and Lua sources through local Ghidra. No live game login or game-server request was performed for this note. It does not establish current Steam server interoperability, a completed vehicle collection, or the cause of earlier collection timeouts.",
+  "nativeProgram": {
+    "name": "Sherman.exe",
+    "ghidraProgram": "/Sherman.exe",
+    "language": "x86:LE:32:default",
+    "imageBase": "0x00400000",
+    "sha256": "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd958e9c4724"
+  },
+  "request20": {
+    "sender": "0x005b0700",
+    "batcher": "0x005acc70 -> 0x005ac460 -> 0x005b1060",
+    "maximumNativeBatch": 50,
+    "serializer": "0x005aa370",
+    "wire": "u8 count; count * (u32 player correlation ID, u8 requested-field mask).",
+    "capsuleMask": 4,
+    "tacticsMask": 8,
+    "normalCapsuleListUiMask": 12,
+    "maskSelection": "0x005b1370 -> 0x005af350 visits each selected field strategy independently. 0x005b0700 sends only bits whose field loader reports that a new request is needed, rather than blindly reusing the caller mask.",
+    "cachePolicy": "Capsule and tactics loaders 0x005af400 and 0x005af910 keep separate per-ID timestamps and pending requirement vectors. The capsule-list UI supplies a 30-second cache-age parameter; a fresh field with no pending requirements needs no new request."
+  },
+  "reply19": {
+    "opcodeRegistration": "0x0071e140 registers opcode 19 with handler 0x005ac8f0.",
+    "handler": "0x005ac8f0 -> vector reader 0x005aa1e0 -> descriptor reader 0x005ad840; application loop 0x005ae160 dispatches each descriptor through 0x005b0c00.",
+    "wire": "u8 descriptor count; each descriptor starts u32 ID and u8 field mask. The native reader supports field bits 1, 2, 4, 8 and 16; each present bit has its own payload.",
+    "capsulePayload": "Bit 4: u8 count; each capsule has u32 type, u8 generation and a u8-counted faculty vector of u8 category, u16 trend, i32 level.",
+    "tacticsPayload": "Bit 8: u8 count; each record is two u32 values. Formation or slot meaning is not established here.",
+    "zeroMask": "A zero-mask descriptor has no field payload and dispatches no field completion.",
+    "packetBoundary": "Descriptors are processed in received order. No packet-level uniqueness check or whole-request completion marker is present in these native vector/dispatch functions."
+  },
+  "perFieldCompletionAndReplacement": {
+    "strategyRegistration": "0x005acfa0 registers capsule field index 2 (mask 4) and tactics field index 3 (mask 8). Their vtables at 0x00749e08 and 0x00749e18 share receive method 0x005b14f0 and pending lookup 0x005b03a0.",
+    "receive": "For an existing per-ID field record, 0x005b14f0 refreshes its timestamp, copies that one field through its registered copier, and completes and clears that field pending requirement vector via 0x005b0f60(success=1).",
+    "capsuleCopy": "0x005b1250 -> 0x005ad500 replaces the capsule vector. An empty supplied capsule vector clears the cached vector and still completes the field.",
+    "tacticsCopy": "0x005b12d0 -> 0x0057a3c0 separately replaces the tactics vector and completes that field, including an empty vector.",
+    "partialSuccess": "A mask-4 update completes capsules without completing pending mask 8, and vice versa. Split fields may arrive in separate descriptors or packets.",
+    "repeatedField": "A later descriptor for the same existing ID and field repeats the cache replacement and then completes an already empty pending vector. The native method does not reject it as a duplicate.",
+    "lateField": "The receive method tests whether the per-ID field record exists; it does not require a nonempty pending vector. Thus a later valid field can refresh an existing cache after its earlier transaction has completed."
+  },
+  "failure18AndWarmupReplay": {
+    "opcodeRegistration": "0x0071e180 registers opcode 18 with handler 0x005ac860.",
+    "failureDispatch": "0x005ac860 reads the ID vector and calls 0x005ae360. That loop invokes nickname request 16 through 0x005adeb0 for every ID; it does not reject an ID because a different detail field already completed.",
+    "request16Throttle": "Send condition is last_request_seconds + 10 < current_seconds, independently per ID.",
+    "assemblyReturnDetail": "In 0x005adeb0, JGE at 0x005adf5f skips sending through the common epilogue, and MOV AL,1 at 0x005ae02b executes on both the send and throttle-skip paths. Ordinary throttling therefore does not take the caller false-return failure branch.",
+    "reply17Success": "Handler 0x005ac7e0 dispatches to 0x005ae040. Only status 0 stores the returned nickname and invokes 0x005afd00(ID,1); this path does not run for a nonzero status.",
+    "remainingMask": "0x005afd00 asks 0x005afc60 to OR bits only for field strategies whose per-ID pending requirement vector remains nonempty, then emits a one-ID request 20 carrying that remaining mask through 0x005acc70.",
+    "partialExample": "If capsules (4) completed before the miss and tactics (8) remain pending, successful warm-up reissues mask 8. If tactics completed and capsules remain pending, it reissues mask 4. Already completed fields are not automatically included.",
+    "otherReplayTrigger": "Reply-380 mask-4 nickname completion also calls 0x005afd00. A successful nickname-field update can therefore reissue still-pending detail fields without waiting for a separate reply 17.",
+    "noTimeoutReplayProof": "This inspected path provides no automatic timeout retry or promise of a new reply after a throttled request-16 invocation."
+  },
+  "capsuleOnlyMask4Assessment": {
+    "nativeCapability": "Capsule-only mask 4 is supported by the native field-selection and serialization path. It is not merely an arbitrary unrecognized mask accepted by a raw serializer.",
+    "realUiDerivedPath": "The real capsule-list caller 0x00432670 requests mask 12, but per-field cache filtering in 0x005af350/0x005b0700 can emit mask 4 when only capsules need a new read. Pending-field replay after nickname completion can likewise emit mask 4 alone.",
+    "fixedCallerInventory": "Direct callers inspected for 0x005b0700 include 0x0042caf0, 0x00433600 and 0x00435af0 using mask 2, 0x00432670 using mask 12, 0x00432800 selecting from 2/12/1, and the general custom-event API 0x0046ad80. No separate direct fixed-literal mask-4 caller was found in this inventory.",
+    "generalApi": "0x0046ad80 maps field selector 2 to detail mask 4 through table 0x007e9764. Assembly shows its detail-call branch is gated by BL as well; including selector 0 plus 2 reaches a detail-mask-4 call. No shipped Lua call to this general API was found during the targeted source search.",
+    "projectionDependency": "The UI GetLoadedPlayerCardList binding 0x0053ba1d -> 0x00504880 reads only the capsule vector via 0x005b00a0. It does not read the tactics vector. Generation and faculty values are also carried by the capsule data.",
+    "possibleCollectorBenefit": "A validated capsule-only read could remove tactics-bit-8 completion from the dependency for exporting these capsule fields. This is a testable consequence of requesting fewer fields, not evidence that tactics caused an earlier Steam timeout.",
+    "liveInteroperabilityVerifiedByThisNote": false
+  },
+  "nativeUiRequestAndTiming": {
+    "call": "Installed ScrambleChallenge.lua line 846 calls LoadPlayerCapsuleList for the selected single player. 0x00432670 requests masks 4 and 8 and attaches their separate new requirement objects to a PlayerCapsuleListCall task.",
+    "cacheAgeSeconds": 30,
+    "uiDelayFormulaSeconds": "new_requirement_count * 10 / 50.0 + 5.0, or 0 if no new requirements exist.",
+    "examples": "50 cold IDs with two new field requirements each give a 25-second task delay; 200 such IDs give 85 seconds. These are native UI task calculations, not measured server latencies or service guarantees.",
+    "completionCallback": "PlayerCapsuleListCall vtable 0x00731280 invokes 0x00432380, emitting EvLoadPlayerCapsuleMsg 0x428. The generic transaction timer can release the UI even when fields remain pending; the UI event alone is not proof of a complete batch.",
+    "display": "Installed ui/ScrambleChallengeUI.lua line 1548 enumerates GetLoadedPlayerCardList and displays generation, faculty category 1 level and category 20 Fate from that capsule data."
+  },
+  "collectorComparisonAtReview": {
+    "connectionSourceSha256": "2ff13a40330296cf993be837351fa2af204f851f7f8942a64e29cd240381d44c",
+    "comparison": "The reviewed collector requests mask 12 and waits until both bits complete for every batch ID. It rejects an 18 failure following any earlier field success, and rejects a repeated field or any field following a recorded failure. These checks are stricter than the native field-cache behavior described above.",
+    "requeryDifference": "The reviewed collector warm-up requery sends mask 12 rather than reconstructing only fields still pending.",
+    "implementationChangedByThisNote": false,
+    "causalLimit": "No raw live trace or fresh game request was analyzed here. The native differences identify cases to test; they do not establish the failure mode of the earlier Steam collection."
+  },
+  "sources": [
+    {
+      "path": "RunningResources/RanaScripts/ScrambleChallenge.lua",
+      "sha256": "991abc18b9a7ca026480fab9304cd7eafbbedc288cbe992d6ca05cd777ff28e2",
+      "lines": [
+        846
+      ]
+    },
+    {
+      "path": "RunningResources/RanaScripts/ui/ScrambleChallengeUI.lua",
+      "sha256": "7d9e22f4fb10d1b1b249e4df5a4cc1b6f48eaf43fcd82dd746ab395d5acc610c",
+      "lines": [
+        1548,
+        1553,
+        1556,
+        1601
+      ]
+    }
+  ],
+  "decompilationHashEncoding": "SHA256 of exact UTF-8 pseudocode strings from cached Ghidra JSON responses, preserving returned line endings; no decompilation text is published.",
+  "functionSha256": {
+    "0x005acfa0": "62ab38073e1b6814f07cafc44b6397b537ef1146829fbb40536d718df1afcd99",
+    "0x005ad840": "c6fd3a21b3716656c127efa22da80d447ae521de4a2d2cace225280b2096faea",
+    "0x005aa1e0": "40276823d96c2d3f663184ab164fb9b74243ba1f913212815755078347195b26",
+    "0x005ac8f0": "cbe8665ef6e890d87fc132f5f6550e8caf3e5439ff70085575ae1a5f856ac913",
+    "0x005ae160": "07ad4e9f6e22eaa380d136d794bd9648ced9360b59daa6d1495371263facf342",
+    "0x005b0c00": "9537c1ee8eb60f03fa951658566c6b7822e94767f041fb0a71474b455f5a9639",
+    "0x005b14f0": "914a1637dec8ae0620a6eeafaac678944ec80d6da40784428c739e935fe664ff",
+    "0x005b03a0": "b2f01c73093e09912c98487229b3dcd34053c1f98360c841324ea2ce42b7f195",
+    "0x005b1250": "24c01ada8aa2615eabdfd925a083af781afbf8e48179af6bc59f58c443f91cce",
+    "0x005b12d0": "a75e031b46eeb8f656b74df0fe397296bcc3ec18abec9d9f98bb873c63bcde2c",
+    "0x005ad500": "aa7e053370ebd54fefac00e3dfafadde894bf4b4952424347829d40cbff212e0",
+    "0x0057a3c0": "aa25533587d2d01e7d2be5a6d21dcaa99798cd26f269ba5a98fd463c7f203c68",
+    "0x005b0f60": "756d173e6601456c4e06971ecee3e628b20308b0970924e3ba1411fa0bdd045d",
+    "0x005ae360": "b36878524175be6a3a86ecf2aec69cdc9182b9c0d796ee08e083d9d2b9f84c96",
+    "0x005adeb0": "fe188902d6262e4462996b59631df2f1284fa6a91f3a5a624919e3294d157c18",
+    "0x005ae040": "e31739df9370d0d6dd17581c50fec969a129615c4e429d2ba43b6675f149c52c",
+    "0x005afd00": "515912c67833f81f8211a754e061fb67eef6cfe4841c03804daad8e9e01d3011",
+    "0x005afc60": "5c98638ae39d6e44456fc08dda613bcd379534a76a2097265b8350765e7cc134",
+    "0x005b0700": "c21a9a4394c8895b5d97a11bf9bb153ce47f5b19b71388876b8de6a0bc26604b",
+    "0x005b1370": "06b9dbbeee17e7242c53e080465321abcfb6f468eb1c64d5155c4ba4acc5a248",
+    "0x005af350": "e8e1ffb60e6e6daf890d37a3b6d063636f2d28fe7afdd9e6590a78be4fa9e799",
+    "0x005af400": "bacdb62f398041be3b0abafe8a9730ee9a1f2034a12bfbf90fe6c832c0be3694",
+    "0x005af910": "f8521901db2f0d09e8f8d0ceb3356e875981833ddbf1e123de302f460a276f0d",
+    "0x005acc70": "ff72141eb5936e311fa09693b3acd7f1784b5c4c0e51972891c2d143195be050",
+    "0x005ac460": "2f4968e843b5ea49dcf1173bbf20827519af79fd3092e9b8a837034af053a22e",
+    "0x00432670": "f5198cb6e5a9d28d97fb86222c23da77b83ddbdd1b8304fe31ef0a6c24d6b457",
+    "0x00432380": "1cb6c8067e01c802f3ea48520bcbea6cd7c37b9a269b7acadc08dbb2c98c5faa",
+    "0x00504880": "a3a14a97fae68a931e84fa4dc6ec1caf02a458ff70af1e79332eba5b430b2604",
+    "0x005b00a0": "ee3cb30bdb5212b16b4daf895948f122c8a8648ad5562ce555ab29e9985d5390",
+    "0x005b0040": "2143e030be567ff6cb4f1c76467f4a30860cbbaa6f891662757da762c8c64893",
+    "0x0053ba1d": "60a5a6b49edb53ee246c6e6d53142e0c450dfcd7e5c77cf2791029de9fac0514",
+    "0x0046ad80": "c4cc89a5b055193b5775d2675e809cf3234705466acb5642dd89c066e39b1851"
+  },
+  "assemblyEvidenceSha256": {
+    "request16ThrottleAndReturn": "23f6abd2cdf3be2ae433c6d1c5e9a469a059a782f94a38eadff85e604f17260b",
+    "failure18Dispatch": "d185af7f26790a83e8ed725239fde84a632afd6e5c6e4531971de185fefdaf96",
+    "customEventFieldSelection": "f9ab8a93573896031aac9c9a1137427c44a8742e181e899d604edca9418f4215"
+  }
+}

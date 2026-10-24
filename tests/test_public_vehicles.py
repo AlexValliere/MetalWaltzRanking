@@ -1,7 +1,9 @@
 import socket
 import struct
 import unittest
+from unittest.mock import patch
 
+from collector.collect import scan_server
 from collector.records import detail_records
 from collector.snapshots import validate_snapshot
 from test_collection import snapshot
@@ -9,6 +11,7 @@ from test_connection import Clock, SyntheticSocket
 from collector.configuration import load_masks, load_servers
 from collector.connection import CollectorConnection
 from collector.cipher import GameDes
+from test_session import InventedGameSocket
 
 
 def descriptor(player, mask=0x0c, vehicles=(), tactics=()):
@@ -59,6 +62,12 @@ class PublicVehicleTests(unittest.TestCase):
     def test_missing_level_and_zero_are_distinct(self):
         records = detail_records(reply(descriptor(99, vehicles=[(1, 0, []), (2, 1, [(1, 1, 0)])]))[1])
         self.assertEqual([v["level"] for v in records[0][2]], [None, 0])
+
+    def test_capsule_vector_preserves_every_returned_vehicle_up_to_native_byte_count(self):
+        for count in (7, 255):
+            vehicles = [(i + 1, i % 4, []) for i in range(count)]
+            parsed = detail_records(reply(descriptor(99, vehicles=vehicles))[1])[0][2]
+            self.assertEqual([v["capsuleTypeId"] for v in parsed], list(range(1, count + 1)))
 
     def test_malformed_unknown_duplicate_or_trailing_data_rejected(self):
         good = reply(descriptor(99))[1]
@@ -178,6 +187,127 @@ class PublicVehicleTests(unittest.TestCase):
         self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
         self.assertEqual([body[0] for body in connection.vehicle_requests], [2, 1])
 
+    def test_partial_detail_miss_requeries_only_each_players_missing_field(self):
+        connection = VehicleConnection([
+            (reply(descriptor(1, 4, vehicles=[(8311, 3, [])]), descriptor(2, 8)),
+             (18, struct.pack("<BII", 2, 1, 2))),
+            (reply(descriptor(1, 8), descriptor(2, 4, vehicles=[])),),
+        ], fallback_names={1: "Invented one", 2: "Invented two"})
+        connection.fetch_vehicles([1, 2])
+        self.assertEqual(connection.vehicle_requests, [
+            struct.pack("<BIBIB", 2, 1, 12, 2, 12),
+            struct.pack("<BIBIB", 2, 1, 8, 2, 4),
+        ])
+        self.assertEqual(connection.sent, {20: 2, 16: 2})
+        self.assertEqual(connection.vehicle_masks, {1: 12, 2: 12})
+        self.assertEqual(connection.vehicle_failed_masks, {1: 0, 2: 0})
+        self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+        self.assertEqual(connection.vehicles[2], [])
+        self.assertFalse(connection.vehicle_failures)
+        self.assertFalse(connection.vehicle_pending)
+
+    def test_failed_or_prior_nickname_leaves_only_missing_capsules_unavailable(self):
+        for observed in (4, 8):
+            for already_queried in (False, True):
+                connection = VehicleConnection([(
+                    reply(descriptor(1, observed, vehicles=[(8311, 3, [])])),
+                    (18, struct.pack("<BI", 1, 1)),
+                )])
+                if already_queried:
+                    connection.fallback_sent.add(1)
+                with self.subTest(observed=observed, prior_nickname=already_queried):
+                    connection.fetch_vehicles([1])
+                    self.assertEqual(connection.vehicle_masks, {1: observed})
+                    self.assertEqual(connection.vehicle_failed_masks, {1: 12 & ~observed})
+                    self.assertEqual(connection.vehicle_failures, set() if observed == 4 else {1})
+                    self.assertEqual(connection.sent, {20: 1} if already_queried else {20: 1, 16: 1})
+                    if observed == 4:
+                        self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+                    else:
+                        self.assertNotIn(1, connection.vehicles)
+                    self.assertFalse(connection.vehicle_pending)
+
+    def test_public_export_keeps_actual_capsules_when_tactics_and_warmup_fail(self):
+        class PartialVehicleSocket(InventedGameSocket):
+            def reply(self, opcode, payload=b""):
+                if opcode == 19 and struct.unpack_from("<I", payload, 1)[0] == 101:
+                    super().reply(*reply(descriptor(101, 4, vehicles=[
+                        (8311, 3, [(1, 1, 99), (20, 1, 1)]),
+                    ])))
+                    super().reply(18, struct.pack("<BI", 1, 101))
+                else:
+                    super().reply(opcode, payload)
+
+        peer = PartialVehicleSocket(load_masks())
+        with patch("collector.collect.open_socket", return_value=peer):
+            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), load_masks())
+        self.assertTrue(result["rankingEnumerationComplete"])
+        self.assertEqual(result["rows"][0]["vehiclesStatus"], "resolved")
+        self.assertEqual(result["rows"][0]["vehicles"], [
+            {"capsuleTypeId": 8311, "phase": 3, "level": 99, "fate": True},
+        ])
+        self.assertEqual(result["rows"][1]["vehiclesStatus"], "resolved")
+        self.assertEqual(result["rows"][1]["vehicles"], [])
+        self.assertEqual(result["rows"][2]["vehiclesStatus"], "unavailable")
+        self.assertIsNone(result["rows"][2]["vehicles"])
+        self.assertEqual(peer.sent[20], 1)
+        self.assertEqual(peer.sent[16], 3)
+
+    def test_second_partial_detail_miss_is_terminal_without_erasing_capsules(self):
+        miss = (18, struct.pack("<BI", 1, 1))
+        for observed in (4, 8):
+            connection = VehicleConnection([
+                (reply(descriptor(1, observed, vehicles=[(8311, 3, [])])), miss),
+                (miss,),
+            ], fallback_names={1: "Invented"})
+            with self.subTest(observed=observed):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIB", 1, 1, 12 & ~observed))
+                self.assertEqual(connection.vehicle_masks, {1: observed})
+                self.assertEqual(connection.vehicle_failed_masks, {1: 12 & ~observed})
+                self.assertEqual(connection.vehicle_failures, set() if observed == 4 else {1})
+                self.assertEqual(connection.sent, {20: 2, 16: 1})
+
+    def test_late_nonoverlapping_fields_during_warmup_reduce_or_remove_requery(self):
+        for late_mask in (4, 12):
+            connection = VehicleConnection([
+                ((18, struct.pack("<BI", 1, 1)),
+                 reply(descriptor(1, late_mask, vehicles=[(8311, 3, [])]))),
+                (reply(descriptor(1, 8)),),
+            ], fallback_names={1: "Invented"})
+            with self.subTest(late_mask=late_mask):
+                connection.fetch_vehicles([1])
+                self.assertEqual(connection.sent, {20: 2 if late_mask == 4 else 1, 16: 1})
+                if late_mask == 4:
+                    self.assertEqual(connection.vehicle_requests[-1], struct.pack("<BIB", 1, 1, 8))
+                self.assertEqual(connection.vehicle_masks, {1: 12})
+                self.assertEqual(connection.vehicle_failed_masks, {1: 0})
+                self.assertFalse(connection.vehicle_failures)
+
+    def test_requery_timeout_or_repeated_observed_field_stops_without_another_retry(self):
+        for retry_replies in ((), (reply(descriptor(1, 12)),)):
+            connection = VehicleConnection([
+                (reply(descriptor(1, 4, vehicles=[(8311, 3, [])])),
+                 (18, struct.pack("<BI", 1, 1))),
+                retry_replies,
+            ], fallback_names={1: "Invented"})
+            with self.subTest(replies=len(retry_replies)), self.assertRaises((TimeoutError, ValueError)):
+                connection.fetch_vehicles([1])
+            self.assertEqual(connection.sent, {20: 2, 16: 1})
+            self.assertEqual(connection.vehicle_masks, {1: 4})
+            self.assertEqual(connection.vehicles[1][0]["capsuleTypeId"], 8311)
+
+    def test_outgoing_recovery_mask_must_match_the_actual_missing_field(self):
+        connection = VehicleConnection()
+        connection.vehicle_pending = {1}
+        connection.vehicle_masks = {1: 4}
+        for mask in (0, 2, 4, 12):
+            with self.subTest(mask=mask), self.assertRaises(ValueError):
+                connection.send(20, struct.pack("<BIB", 1, 1, mask))
+        self.assertFalse(connection.socket.writes)
+        connection.send(20, struct.pack("<BIB", 1, 1, 8))
+        self.assertEqual(connection.sent, {20: 1})
+
     def test_second_detail_miss_is_final_and_prior_nickname_is_not_repeated(self):
         miss = (18, struct.pack("<BI", 1, 1))
         connection = VehicleConnection([(miss,), (miss,)], fallback_names={1: "Invented"})
@@ -214,8 +344,7 @@ class PublicVehicleTests(unittest.TestCase):
     def test_timeout_duplicate_or_uncorrelated_reply_stops_without_retry(self):
         cases = [(), (reply(descriptor(1, 4)),), (reply(descriptor(9)),),
                  (reply(descriptor(1, 4)), reply(descriptor(1, 4))),
-                 ((18, struct.pack("<BI", 1, 9)),),
-                 (reply(descriptor(1, 4)), (18, struct.pack("<BI", 1, 1)))]
+                 ((18, struct.pack("<BI", 1, 9)),)]
         for messages in cases:
             connection = VehicleConnection([messages])
             with self.subTest(messages=len(messages)), self.assertRaises((TimeoutError, ValueError)):

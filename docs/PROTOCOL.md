@@ -258,7 +258,7 @@ The complete list is retained even when the row shows only its first six images.
 No combat slot, private inventory, equipment or equipped costume is inferred.
 
 Request 20 uses at most 50 `(u32 playerID, u8 mask)` records per transaction,
-with mask 12. Keyed response 19 may split masks across records. Bit 4 carries
+with initial mask 12. Keyed response 19 may split masks across records. Bit 4 carries
 capsule type, phase and a faculty vector; bit 8 carries tactics pairs, consumed
 without converting them into a guessed formation. Unknown masks, conflicting
 duplicates and incomplete transactions stop the backend rather than publishing
@@ -273,13 +273,26 @@ A correlated mask-zero record updates no fields and does not complete the
 transaction or establish an empty/unavailable profile. The original deadline
 still applies while actual fields or an explicit failure remain outstanding.
 
-Response 18 is a keyed primary-detail miss. Native handling requests identity
-lookup 16, and successful 17 clears the pending identity transaction and reissues
-the queued detail mask through 20. The collector follows that bounded recovery:
-one 16 per identity across the session, then one 20 requery only after successful
-17. A repeated 18 or explicit failed 17 leaves the profile unavailable. A prior
-name-fallback 16 is never repeated. Timeouts and malformed replies are not retried;
-the backend stops and retains its previous complete snapshot.
+Response 18 is a keyed primary-detail miss and may follow a partial response 19.
+The native client tracks capsule and tactics requirements independently. Identity
+completion can reissue only the still-pending fields through 20, with mask 4, 8
+or 12. The public vehicle view reads the capsule list; tactics are separate data.
+
+The collector keeps one bounded recovery after a primary-detail miss: one 16 per
+identity across the session, then one 20 requery of only the still-missing fields
+after a successful 17. Previously observed fields remain intact. An explicit
+capsule failure stays unavailable; an actually returned capsule list remains
+resolved when only tactics are explicitly unavailable. A prior name-fallback 16
+is never repeated. Timeouts and malformed replies are not retried; the backend
+stops and retains its previous complete snapshot.
+
+This bounded collector policy is narrower than the native client. Native 18 can
+leave requirements pending when an identity lookup is throttled, and both a
+successful 17 and a nickname field in 380 can release those requirements. The
+native throttle is not an automatic retry timer. Static evidence for the
+per-field lifecycle is recorded in [the Steam vehicle investigation](research/steam-vehicles-2026-10-24.json);
+it does not establish reliable full Steam vehicle collection. Steam vehicle
+collection remains disabled pending bounded live verification.
 
 The separate `assets/vehicles/catalog.json` maps public types/phases to names and
 default presentation models, then to hash-addressed PNG portraits. Live2D entries

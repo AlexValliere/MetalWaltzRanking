@@ -184,7 +184,8 @@ def validate_outgoing(opcode, payload, *, expected_login, selected_player, reque
             raise ValueError("Invalid public vehicle batch")
         for _ in range(count):
             player, mask = r.u32(), r.u8()
-            if player not in requested_vehicles or player in seen or mask != 0x0c:
+            if (player not in requested_vehicles or player in seen or mask not in (4, 8, 0x0c)
+                    or mask != requested_vehicles[player]):
                 raise ValueError("Unexpected public vehicle lookup")
             seen.add(player)
         r.finish()
