@@ -7,10 +7,9 @@ Europe/Paris in summer** and **05:17 in winter**. The first attempt of a schedul
 run contacts the game servers. To collect manually, open **Actions → Refresh
 rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
 from the game servers before publishing** (`fetch_rankings`), and start a new run.
-The `collection_scope` input defaults to `all`. Choose `affected-mobile` to check
-only Europe №1 (`Bonn`), Korea (`KOREA`) and Thailand (`BANGKOK`), `bonn` for
-Europe №1 alone, or `europe-thailand` for exactly Bonn and BANGKOK. Scheduled runs
-always select all ten canonical backends.
+The `collection_scope` input defaults to `all` active backends. Choose
+`affected-mobile` to check Korea (`KOREA`) while the temporary pause below is in
+effect. Scheduled runs and manual `all` requests select the eight active backends.
 Each backend is attempted at most once per collection run; a failure retains its
 previous snapshot until the next scheduled or opted-in manual attempt.
 Manual runs leave this checkbox unchecked by default and publish stored data.
@@ -130,6 +129,25 @@ replayed after a timeout. Failed collection logs include a fixed `readPhase` lab
 to help distinguish connection, login and ranking/name failures.
 The capacity extension adds no retries, registrations or commander creation, and
 does not change Steam's 200-row batches or one-second gap.
+
+## Temporary mobile collection pause
+
+As of **26 October 2026**, fresh collection for mobile Europe №1 (`Bonn`) and
+Thailand (`BANGKOK`) is paused as a precaution following repeated outages during
+scans. The observed disconnects and player reports do not establish that the
+collector caused the server outages.
+
+The shared `PAUSED_BACKENDS` policy in `collector/configuration.py` excludes both
+from every scheduled and manual collection plan and from local CLI `all` requests.
+Explicit local CLI requests for a paused key or alias fail before credentials are
+read or a network connection is opened. There is no command-line override.
+The paused-only Actions choices are removed; legacy `bonn` and `europe-thailand`
+planner inputs skip fresh collection with a clear notice.
+
+All ten backends remain in the public directory. Publication continues to validate
+and serve their last-good snapshots, keeping the original successful timestamps
+and attempt metadata. The other eight backends, including Steam Europe, remain
+enabled. Resumption requires a reviewed policy change; there is no automatic expiry.
 
 ## Credentials and permissions
 

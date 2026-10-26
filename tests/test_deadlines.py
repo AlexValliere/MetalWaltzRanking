@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 from collector.__main__ import main
 from collector.cipher import GameDes
 from collector.collect import error_code, open_socket, run_collection
-from collector.configuration import load_masks, load_servers
+from collector.configuration import PAUSED_BACKENDS, load_masks, load_servers
 from collector.connection import CollectorConnection, LIMITS
 from collector.snapshots import SNAPSHOT_SCHEMA, SCOPE, atomic_json
 from collector.timing import CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_duration
@@ -55,11 +55,11 @@ class DeadlineTests(unittest.TestCase):
             self.assertEqual(main(["collect", "--max-duration-seconds", "12.5"]), 0)
         self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 12.5)
 
-    def test_cli_default_passes_five_hour_budget_for_all_backends(self):
+    def test_cli_default_passes_five_hour_budget_for_active_backends(self):
         with patch("collector.__main__.run_collection", return_value=0) as runner:
             self.assertEqual(main(["collect"]), 0)
         self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 18000)
-        self.assertEqual(runner.call_args.args[2], {server["key"] for server in load_servers()})
+        self.assertEqual(runner.call_args.args[2], {server["key"] for server in load_servers()} - PAUSED_BACKENDS)
 
     def test_steam_session_survives_one_hour_but_stops_at_three_hours(self):
         connection, clock = self.connection(session_seconds=10800)

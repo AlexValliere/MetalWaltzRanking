@@ -9,7 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from collector.configuration import EXPECTED_BACKENDS, load_servers
+from collector.configuration import EXPECTED_BACKENDS, PAUSED_BACKENDS, load_servers
 
 AFFECTED_MOBILE = ("Bonn", "KOREA", "BANGKOK")
 MANUAL_SCOPES = {
@@ -25,10 +25,12 @@ def collection_plan(event: str, attempt: int, fetch: bool, scope: str = "all") -
     keys = [server["key"] for server in load_servers()]
     if len(keys) != len(EXPECTED_BACKENDS) or set(keys) != EXPECTED_BACKENDS:
         raise ValueError("Invalid workflow backend directory")
+    available = [key for key in keys if key not in PAUSED_BACKENDS]
     selected = list(MANUAL_SCOPES[scope]) if event == "workflow_dispatch" and scope in MANUAL_SCOPES else keys
+    selected = [key for key in selected if key not in PAUSED_BACKENDS]
     fresh = attempt == 1 and (event == "schedule" or event == "workflow_dispatch" and fetch)
-    # Keep a nonempty matrix even when the collection job is skipped.
-    return {"collect": fresh, "matrix": {"server": selected}}
+    # Paused-only scopes skip collection; GitHub still requires a nonempty matrix.
+    return {"collect": fresh and bool(selected), "matrix": {"server": selected or available}}
 
 
 def main() -> int:
@@ -41,6 +43,14 @@ def main() -> int:
     except (KeyError, ValueError):
         print("Invalid workflow collection selection.", file=sys.stderr)
         return 2
+    scope = os.environ.get("WORKFLOW_SCOPE", "all")
+    if os.environ["WORKFLOW_EVENT"] == "workflow_dispatch" and scope in MANUAL_SCOPES:
+        if set(MANUAL_SCOPES[scope]) <= PAUSED_BACKENDS:
+            print("Requested collection scope is temporarily paused; no fresh collection will run. "
+                  "Validated last-good snapshots remain available for publication.", file=sys.stderr)
+        elif set(MANUAL_SCOPES[scope]) & PAUSED_BACKENDS:
+            print("Temporarily paused mobile Europe1/Bonn and Thailand/BANGKOK are excluded "
+                  "from the requested collection scope.", file=sys.stderr)
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
         with Path(output).open("a", encoding="utf-8") as stream:

@@ -12,6 +12,9 @@ EXPECTED_STEAM_BINARY = "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd9
 STEAM_BACKENDS = frozenset(("SteamJP", "SteamBonn", "SteamUSAVA"))
 STEAM_ALIASES = {key: key for key in STEAM_BACKENDS} | {"SteamTEST": "SteamJP"}
 EXPECTED_BACKENDS = frozenset(("Bonn", "YaleAndroid", "YaleIOS", "JP", "KOREA", "JKMIX", "BANGKOK")) | STEAM_BACKENDS
+# Temporarily pause these mobile collectors after repeated outages during scans.
+# Keep their directory entries so publication can retain their last-good data.
+PAUSED_BACKENDS = frozenset(("Bonn", "BANGKOK"))
 MOBILE_SESSION_SECONDS = {"Bonn": 19800, "KOREA": 5400, "BANGKOK": 10800}
 
 

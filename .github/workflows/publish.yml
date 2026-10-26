@@ -12,14 +12,12 @@ on:
         type: boolean
         default: false
       collection_scope:
-        description: Servers to refresh when fresh collection is enabled
+        description: Servers to refresh; mobile Europe1/Bonn and Thailand/BANGKOK are temporarily paused
         type: choice
         default: all
         options:
           - all
           - affected-mobile
-          - bonn
-          - europe-thailand
 
 permissions:
   contents: read
@@ -55,7 +53,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_*.py'
           python -m unittest discover -s scripts -p 'test_*.py'
           node --test tests/site.test.mjs tests/vehicle-art.test.mjs
-      - name: Select the reviewed collection scope
+      - name: Select the reviewed collection scope excluding paused backends
         id: plan
         env:
           WORKFLOW_EVENT: ${{ github.event_name }}

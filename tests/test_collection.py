@@ -272,15 +272,17 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(entry["lastAttemptAtUtc"], "2026-10-22T10:02:00Z")
 
     def test_missing_credentials_updates_status_without_network(self):
-        path = self.seed()
+        server = next(server for server in self.servers if server["key"] == "YaleAndroid")
+        path = self.seed(server)
         before = path.read_bytes()
         with patch.dict("os.environ", {}, clear=True), patch("collector.collect.open_socket") as opener:
             with redirect_stdout(StringIO()):
-                code = main(["collect", "--output", str(self.directory), "--server", "Bonn"])
+                code = main(["collect", "--output", str(self.directory), "--server", server["key"]])
         self.assertEqual(code, 1)
         opener.assert_not_called()
         self.assertEqual(path.read_bytes(), before)
-        entry = json.loads((self.directory / "index.json").read_text(encoding="utf-8"))["servers"][0]
+        entry = next(entry for entry in json.loads((self.directory / "index.json").read_text(encoding="utf-8"))["servers"]
+                     if entry["key"] == server["key"])
         self.assertEqual(entry["errorCode"], "credentials_missing")
 
     def test_atomic_write_leaves_no_temporary_files(self):

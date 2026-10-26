@@ -13,10 +13,15 @@ The collector runs on a GitHub-hosted Linux runner **daily at 04:17 UTC**
 (06:17 in Paris during summer time, 05:17 during winter time). Your laptop does
 not need to be running. Each server gets at most one collection attempt per run;
 failed servers retain their previous data until the next attempt.
+Fresh collection for mobile **Europe №1 (`Bonn`) and Thailand (`BANGKOK`) is
+temporarily paused as of 26 October 2026** following repeated outages during
+collection. Their last-good snapshots remain available. The other eight backends,
+including Steam Europe, continue to refresh.
 To refresh manually, open **Actions → Refresh rankings and publish → Run workflow**,
 select `main`, check **Fetch fresh rankings from the game servers before publishing**,
-and start a new run. The scope defaults to `all`; `affected-mobile` checks only
-Europe №1, Korea and Thailand, and `bonn` checks only Europe №1. Leave the checkbox unchecked to publish stored data. Pushes to `main`
+and start a new run. The scope defaults to `all` active backends;
+`affected-mobile` currently checks only Korea. Leave the checkbox unchecked to
+publish stored data. Pushes to `main`
 and reruns of current workflows also
 publish stored data without a game login; use a new dispatch for a fresh attempt.
 
@@ -153,9 +158,11 @@ python -m collector collect --output site/data --max-duration-seconds 18000
 python scripts/build_site.py
 ```
 
-`--server Bonn` (or another backend key) limits a refresh to one server;
+`--server YaleAndroid` (or another active backend key) limits a refresh to one server;
 `--server steam` selects only the three Steam backends, and `--server SteamTEST`
-selects the shared Steam Asia backend. The
+selects the shared Steam Asia backend. The default `all` selection excludes the
+two paused backends; an explicit `Bonn` or `BANGKOK` request is rejected before
+credentials or network access. The
 collector uses the reviewed game protocol directly; it needs no Android emulator,
 Windows DLL, game installation, Ghidra session or laptop hosting.
 
