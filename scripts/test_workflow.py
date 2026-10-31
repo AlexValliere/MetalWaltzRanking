@@ -27,49 +27,49 @@ def job(name):
 
 
 class WorkflowPlanTests(unittest.TestCase):
-    def test_directory_keeps_all_ten_backends_while_schedule_selects_eight(self):
-        self.assertEqual(workflow_plan.PAUSED_BACKENDS, frozenset(("Bonn", "BANGKOK")))
+    def test_directory_keeps_all_ten_backends_while_schedule_skips_collection(self):
+        self.assertEqual(workflow_plan.PAUSED_BACKENDS, workflow_plan.EXPECTED_BACKENDS)
         directory = workflow_plan.load_servers()
         self.assertEqual(len(directory), 10)
         self.assertEqual({server["key"] for server in directory}, workflow_plan.EXPECTED_BACKENDS)
         plan = workflow_plan.collection_plan("schedule", 1, False)
-        keys = plan["matrix"]["server"]
-        self.assertTrue(plan["collect"])
-        self.assertEqual(len(keys), 8)
-        self.assertEqual(set(keys), workflow_plan.EXPECTED_BACKENDS - {"Bonn", "BANGKOK"})
-        self.assertNotIn("SteamTEST", keys)
+        self.assertEqual(plan, {"collect": False, "matrix": {"server": ["collection-paused"]}})
 
     def test_manual_affected_mobile_scope_only_collects_korea(self):
-        plan = workflow_plan.collection_plan("workflow_dispatch", 1, True, "affected-mobile")
+        with patch("workflow_plan.PAUSED_BACKENDS", frozenset(("Bonn", "BANGKOK"))):
+            plan = workflow_plan.collection_plan("workflow_dispatch", 1, True, "affected-mobile")
         self.assertEqual(plan, {"collect": True,
                                 "matrix": {"server": ["KOREA"]}})
 
     def test_paused_only_manual_scopes_skip_with_a_safe_nonempty_matrix(self):
         available = workflow_plan.EXPECTED_BACKENDS - {"Bonn", "BANGKOK"}
         for scope in ("bonn", "europe-thailand"):
-            with self.subTest(scope=scope):
+            with self.subTest(scope=scope), \
+                    patch("workflow_plan.PAUSED_BACKENDS", frozenset(("Bonn", "BANGKOK"))):
                 plan = workflow_plan.collection_plan("workflow_dispatch", 1, True, scope)
                 self.assertFalse(plan["collect"])
                 self.assertEqual(len(plan["matrix"]["server"]), 8)
                 self.assertEqual(set(plan["matrix"]["server"]), available)
 
     def test_every_event_scope_fetch_and_attempt_excludes_paused_backends(self):
-        available = workflow_plan.EXPECTED_BACKENDS - {"Bonn", "BANGKOK"}
-        manual_selections = {"all": available, "affected-mobile": {"KOREA"},
-                             "bonn": set(), "europe-thailand": set()}
-        for scope in ("all", *workflow_plan.MANUAL_SCOPES):
-            for event in ("schedule", "workflow_dispatch", "push"):
-                for attempt in (1, 2, 3):
-                    for fetch in (False, True):
-                        with self.subTest(event=event, attempt=attempt, fetch=fetch, scope=scope):
-                            plan = workflow_plan.collection_plan(event, attempt, fetch, scope)
-                            selected = manual_selections[scope] if event == "workflow_dispatch" else available
-                            fresh = attempt == 1 and (event == "schedule" or event == "workflow_dispatch" and fetch)
-                            self.assertIs(plan["collect"], fresh and bool(selected))
-                            self.assertTrue(plan["matrix"]["server"])
-                            self.assertEqual(set(plan["matrix"]["server"]), selected or available)
-                            self.assertEqual(len(plan["matrix"]["server"]), len(selected or available))
-                            self.assertTrue(set(plan["matrix"]["server"]).isdisjoint({"Bonn", "BANGKOK"}))
+        for paused in (workflow_plan.EXPECTED_BACKENDS, frozenset(("Bonn", "BANGKOK")), frozenset()):
+            available = workflow_plan.EXPECTED_BACKENDS - paused
+            for scope in ("all", *workflow_plan.MANUAL_SCOPES):
+                for event in ("schedule", "workflow_dispatch", "push"):
+                    for attempt in (1, 2, 3):
+                        for fetch in (False, True):
+                            with self.subTest(paused=paused, event=event, attempt=attempt, fetch=fetch, scope=scope), \
+                                    patch("workflow_plan.PAUSED_BACKENDS", paused):
+                                plan = workflow_plan.collection_plan(event, attempt, fetch, scope)
+                                selected = ((set(workflow_plan.MANUAL_SCOPES[scope]) - paused)
+                                            if event == "workflow_dispatch" and scope != "all" else available)
+                                fresh = attempt == 1 and (event == "schedule" or event == "workflow_dispatch" and fetch)
+                                expected = selected or available or {"collection-paused"}
+                                self.assertIs(plan["collect"], fresh and bool(selected))
+                                self.assertTrue(plan["matrix"]["server"])
+                                self.assertEqual(set(plan["matrix"]["server"]), expected)
+                                self.assertEqual(len(plan["matrix"]["server"]), len(expected))
+                                self.assertTrue(set(plan["matrix"]["server"]).isdisjoint(paused))
 
     def test_invalid_scope_attempt_or_fetch_is_rejected(self):
         for kwargs in ({"attempt": 0}, {"attempt": True}, {"attempt": "1"},
@@ -90,10 +90,7 @@ class WorkflowPlanTests(unittest.TestCase):
                 workflow_plan.collection_plan("workflow_dispatch", 1, True, "bonn")
 
     def test_main_writes_parseable_fixed_outputs(self):
-        available = [server["key"] for server in workflow_plan.load_servers()
-                     if server["key"] not in {"Bonn", "BANGKOK"}]
-        for scope, collect, expected in (("all", True, available), ("affected-mobile", True, ["KOREA"]),
-                                         ("bonn", False, available), ("europe-thailand", False, available)):
+        for scope in ("all", *workflow_plan.MANUAL_SCOPES):
             with self.subTest(scope=scope), tempfile.TemporaryDirectory() as directory:
                 output = Path(directory) / "outputs"
                 env = {"WORKFLOW_EVENT": "workflow_dispatch", "WORKFLOW_ATTEMPT": "1",
@@ -104,12 +101,9 @@ class WorkflowPlanTests(unittest.TestCase):
                     self.assertEqual(workflow_plan.main(), 0)
                 values = dict(line.split("=", 1) for line in output.read_text().splitlines())
             self.assertEqual(set(values), {"collect", "matrix"})
-            self.assertEqual(values["collect"], str(collect).lower())
-            self.assertEqual(json.loads(values["matrix"]), {"server": expected})
-            if scope in ("bonn", "europe-thailand"):
-                self.assertIn("temporarily paused; no fresh collection will run", notice.getvalue())
-            elif scope == "affected-mobile":
-                self.assertIn("Europe1/Bonn and Thailand/BANGKOK are excluded", notice.getvalue())
+            self.assertEqual(values["collect"], "false")
+            self.assertEqual(json.loads(values["matrix"]), {"server": ["collection-paused"]})
+            self.assertIn("All fresh collection is temporarily paused; no game login will run", notice.getvalue())
 
     def test_invalid_environment_emits_no_workflow_output(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -199,7 +193,7 @@ class WorkflowSafetyTests(unittest.TestCase):
         self.assertIn("        default: all\n", choices)
         self.assertEqual(re.findall(r"^          - (.+)$", choices, re.MULTILINE),
                          ["all", "affected-mobile"])
-        self.assertIn("mobile Europe1/Bonn and Thailand/BANGKOK are temporarily paused", choices)
+        self.assertIn("All fresh collection is temporarily paused", choices)
         self.assertNotIn("${{ inputs.collection_scope }}", job("collect"))
 
 

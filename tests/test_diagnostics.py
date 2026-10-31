@@ -4,6 +4,7 @@ import errno
 import json
 from pathlib import Path
 import socket
+import struct
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,7 +12,7 @@ from unittest.mock import patch
 from collector.cipher import GameDes
 from collector.collect import enumerate_rankings, error_code, run_collection, scan_server
 from collector.configuration import load_masks, load_servers
-from collector.connection import CollectorConnection
+from collector.connection import CollectorConnection, LIMITS
 from collector.snapshots import atomic_json
 from collector.timing import CollectionDeadline
 from collector.transport import TransportEncoder
@@ -128,12 +129,19 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual(connection.receive(131), b"target")
         clock.value += 1
         diagnostics = connection.failure_diagnostics(TimeoutError("SECRET timeout text"))
+        request_counts = dict.fromkeys((str(opcode) for opcode in LIMITS), 0)
+        request_counts["65531"] = 1
         self.assertEqual(diagnostics, {
             "sessionElapsedSeconds": 10.0, "lastReceiveAgeSeconds": 1.0,
             "lastSuccessfulSendAgeSeconds": 8.0, "heartbeatsReceived": 1, "heartbeatAcksSent": 1,
             "lastHeartbeatReceiveAgeSeconds": 8.0, "lastHeartbeatAckAgeSeconds": 8.0,
             "idlePingsSent": 0, "lastIdlePingAgeSeconds": None,
-            "attemptRowsFetched": 0, "attemptRowsCompleted": 0})
+            "attemptRowsFetched": 0, "attemptRowsCompleted": 0,
+            "requestAttempts": request_counts, "requestsSent": request_counts,
+            "lookupIdentitiesAttempted": {"15": 0, "16": 0, "20": 0},
+            "lookupIdentitiesSent": {"15": 0, "16": 0, "20": 0},
+            "primaryNameTimeouts": 0, "vehicleRecoveryBatches": 0,
+            "vehicleRecoveryIdentities": 0})
         self.assertEqual(len(peer.writes), 1)
 
     def test_failed_ack_write_is_not_reported_as_a_successful_ack(self):
@@ -143,6 +151,8 @@ class DiagnosticTests(unittest.TestCase):
             connection.receive(131)
         diagnostics = connection.failure_diagnostics(caught.exception)
         self.assertEqual(connection.sent[65531], 1)  # Existing reservation/attempt counter stays unchanged.
+        self.assertEqual(diagnostics["requestAttempts"]["65531"], 1)
+        self.assertEqual(diagnostics["requestsSent"]["65531"], 0)
         self.assertEqual(diagnostics["heartbeatsReceived"], 1)
         self.assertEqual(diagnostics["heartbeatAcksSent"], 0)
         self.assertIsNone(diagnostics["lastSuccessfulSendAgeSeconds"])
@@ -210,7 +220,7 @@ class DiagnosticTests(unittest.TestCase):
         masks = load_masks()
         peer = ResetDuringVehicles(masks)
         with patch("collector.collect.open_socket", return_value=peer), self.assertRaises(ConnectionResetError) as caught:
-            scan_server(load_servers()[0], ("invented", "invented"), masks)
+            scan_server(load_servers()[0] | {"collectVehicles": True}, ("invented", "invented"), masks)
         diagnostics = caught.exception.collector_diagnostics
         self.assertEqual(caught.exception.collector_read_phase, "public_vehicles")
         self.assertEqual(diagnostics["transportFailure"], "socket_reset")
@@ -246,6 +256,12 @@ class DiagnosticTests(unittest.TestCase):
         supplied = {"transportFailure": "socket_reset", "transportOperation": "receive",
                     "attemptRowsFetched": 400, "attemptRowsCompleted": 200,
                     "heartbeatsReceived": 3, "heartbeatAcksSent": 2,
+                    "requestAttempts": {"15": 3, "16": 2, "SECRET_ID": 987654321},
+                    "requestsSent": {"15": 3, "16": 1},
+                    "lookupIdentitiesAttempted": {"15": 400, "16": 2},
+                    "lookupIdentitiesSent": {"15": 400, "16": 1},
+                    "primaryNameTimeouts": 1, "vehicleRecoveryBatches": 0,
+                    "vehicleRecoveryIdentities": 0,
                     "sessionElapsedSeconds": 642.0, "lastReceiveAgeSeconds": 1.5,
                     "lastSuccessfulSendAgeSeconds": None,
                     "lastHeartbeatReceiveAgeSeconds": float("nan"),
@@ -270,6 +286,10 @@ class DiagnosticTests(unittest.TestCase):
             self.assertEqual(finished["transportFailure"], "socket_reset")
             self.assertEqual(finished["errorCode"], "connection_failed")
             self.assertEqual(finished["heartbeatAcksSent"], 2)
+            self.assertEqual(finished["requestAttempts"], {"15": 3, "16": 2})
+            self.assertEqual(finished["requestsSent"], {"15": 3, "16": 1})
+            self.assertEqual(finished["lookupIdentitiesSent"], {"15": 400, "16": 1})
+            self.assertEqual(finished["primaryNameTimeouts"], 1)
             self.assertNotIn("lastHeartbeatReceiveAgeSeconds", finished)
             self.assertNotIn("lastHeartbeatAckAgeSeconds", finished)
             manifest = json.loads((Path(folder) / "index.json").read_text(encoding="utf-8"))
@@ -285,6 +305,115 @@ class DiagnosticTests(unittest.TestCase):
                                        "heartbeatsReceived": -1, "heartbeatAcksSent": [],
                                        "sessionElapsedSeconds": float("inf"), "lastReceiveAgeSeconds": -1}
         self.assertEqual(failure_diagnostics(error), {})
+
+    def test_lookup_counts_distinguish_failed_writes_without_exposing_identities(self):
+        player = 987654321
+        for failed in (False, True):
+            connection, _, _ = self.connection(
+                send_error=BrokenPipeError(errno.EPIPE, "SECRET payload") if failed else None)
+            connection.name_masks[player] = 0
+            payload = struct.pack("<BIB", 1, player, 5)
+            with self.subTest(failed=failed):
+                if failed:
+                    with self.assertRaises(BrokenPipeError):
+                        connection.send(15, payload)
+                else:
+                    connection.send(15, payload)
+                diagnostics = connection.failure_diagnostics()
+                self.assertEqual(diagnostics["requestAttempts"]["15"], 1)
+                self.assertEqual(diagnostics["requestsSent"]["15"], 0 if failed else 1)
+                self.assertEqual(diagnostics["lookupIdentitiesAttempted"]["15"], 1)
+                self.assertEqual(diagnostics["lookupIdentitiesSent"]["15"], 0 if failed else 1)
+                self.assertNotIn(str(player), json.dumps(diagnostics))
+                self.assertNotIn("SECRET", json.dumps(diagnostics))
+
+    def test_vehicle_recovery_work_is_counted_separately_from_initial_queries(self):
+        from test_public_vehicles import VehicleConnection, descriptor, reply
+        connection = VehicleConnection([
+            (reply(descriptor(1, 0)),), (reply(descriptor(1, 0)),),
+        ], fallback_names={1: "Invented"}, vehicle_zero_recovery=True,
+            vehicle_partial_results=True)
+        connection.fetch_vehicles([1])
+        diagnostics = connection.failure_diagnostics()
+        self.assertEqual(diagnostics["requestAttempts"]["20"], 2)
+        self.assertEqual(diagnostics["requestsSent"]["20"], 2)
+        self.assertEqual(diagnostics["lookupIdentitiesSent"], {"15": 0, "16": 1, "20": 2})
+        self.assertEqual(diagnostics["vehicleRecoveryBatches"], 1)
+        self.assertEqual(diagnostics["vehicleRecoveryIdentities"], 1)
+
+    def test_primary_name_timeout_is_exposed_with_the_fallback_request_count(self):
+        connection = ScriptedConnection(fallback=((17, struct.pack("<HI", 0, 1)
+                                                   + b"Invented\0\0"),), fallback_count=1)
+        connection.fetch_names([1])
+        diagnostics = connection.failure_diagnostics()
+        self.assertEqual(diagnostics["primaryNameTimeouts"], 1)
+        self.assertEqual(diagnostics["requestsSent"]["15"], 1)
+        self.assertEqual(diagnostics["requestsSent"]["16"], 1)
+
+    def test_request_maps_allow_only_fixed_opcodes_and_integer_counts(self):
+        from collector.collect import failure_diagnostics
+        error = OSError("SECRET")
+        error.collector_diagnostics = {
+            "requestAttempts": {"15": 2, "16": True, "20": -1, "SECRET_ID": 4, 137: 3},
+            "requestsSent": {"15": 1, "16": "SECRET payload", "20": []},
+            "lookupIdentitiesAttempted": {"15": 50, "16": 1, "137": 200},
+            "lookupIdentitiesSent": {"15": 50, "16": False, "20": float("inf")},
+            "primaryNameTimeouts": 1, "vehicleRecoveryBatches": True,
+            "vehicleRecoveryIdentities": -1,
+        }
+        self.assertEqual(failure_diagnostics(error), {
+            "requestAttempts": {"15": 2}, "requestsSent": {"15": 1},
+            "lookupIdentitiesAttempted": {"15": 50, "16": 1},
+            "lookupIdentitiesSent": {"15": 50}, "primaryNameTimeouts": 1,
+        })
+
+    def test_success_logs_include_request_counts_without_changing_public_data(self):
+        clock, masks = Clock(), load_masks()
+        peer = InventedGameSocket(masks)
+        server = load_servers()[0] | {"collectVehicles": False}
+        logs = []
+
+        class FastConnection(CollectorConnection):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs, sleeper=clock.sleep)
+
+        with tempfile.TemporaryDirectory() as folder, \
+                patch("collector.collect.open_socket", return_value=peer), \
+                patch("collector.collect.CollectorConnection", FastConnection):
+            self.assertEqual(run_collection(folder, [server], {server["key"]},
+                ("invented", "invented"), masks, emit=lambda **item: logs.append(item),
+                clock=clock.monotonic), 0)
+            finished = next(item for item in logs if item["phase"] == "finished")
+            self.assertEqual(finished["requestsSent"]["324"], 1)
+            self.assertEqual(finished["requestsSent"]["137"], 2)
+            self.assertEqual(finished["requestsSent"]["15"], 1)
+            self.assertEqual(finished["requestsSent"]["16"], 2)
+            self.assertEqual(finished["requestsSent"]["20"], 0)
+            self.assertEqual(finished["requestAttempts"], finished["requestsSent"])
+            self.assertEqual(finished["lookupIdentitiesSent"], {"15": 3, "16": 2, "20": 0})
+            public = json.loads((Path(folder) / (server["key"] + ".rankings.json")).read_text(encoding="utf-8"))
+            manifest = json.loads((Path(folder) / "index.json").read_text(encoding="utf-8"))
+            fields = {"requestAttempts", "requestsSent", "lookupIdentitiesAttempted",
+                      "lookupIdentitiesSent", "primaryNameTimeouts", "vehicleRecoveryBatches",
+                      "vehicleRecoveryIdentities"}
+            self.assertTrue(fields.isdisjoint(public))
+            self.assertTrue(fields.isdisjoint(manifest["servers"][0]))
+
+    def test_success_diagnostics_sink_is_sanitized_at_the_log_boundary(self):
+        server = load_servers()[0]
+        def scanner(*args, diagnostics, **kwargs):
+            diagnostics.update({"requestAttempts": {"15": 1, "SECRET_ID": 987654321},
+                                "requestsSent": {"15": 1}, "unreviewed": "SECRET payload"})
+            return snapshot(server)
+        with tempfile.TemporaryDirectory() as folder:
+            logs = []
+            self.assertEqual(run_collection(folder, [server], {server["key"]},
+                ("invented", "invented"), {}, scanner=scanner,
+                emit=lambda **item: logs.append(item)), 0)
+            finished = next(item for item in logs if item["phase"] == "finished")
+            self.assertEqual(finished["requestAttempts"], {"15": 1})
+            self.assertEqual(finished["requestsSent"], {"15": 1})
+            self.assertNotIn("SECRET", repr(logs))
 
 
 if __name__ == "__main__":

@@ -30,7 +30,8 @@ def collection_plan(event: str, attempt: int, fetch: bool, scope: str = "all") -
     selected = [key for key in selected if key not in PAUSED_BACKENDS]
     fresh = attempt == 1 and (event == "schedule" or event == "workflow_dispatch" and fetch)
     # Paused-only scopes skip collection; GitHub still requires a nonempty matrix.
-    return {"collect": fresh and bool(selected), "matrix": {"server": selected or available}}
+    return {"collect": fresh and bool(selected),
+            "matrix": {"server": selected or available or ["collection-paused"]}}
 
 
 def main() -> int:
@@ -44,7 +45,10 @@ def main() -> int:
         print("Invalid workflow collection selection.", file=sys.stderr)
         return 2
     scope = os.environ.get("WORKFLOW_SCOPE", "all")
-    if os.environ["WORKFLOW_EVENT"] == "workflow_dispatch" and scope in MANUAL_SCOPES:
+    if PAUSED_BACKENDS == EXPECTED_BACKENDS:
+        print("All fresh collection is temporarily paused; no game login will run. "
+              "Validated last-good snapshots remain available for publication.", file=sys.stderr)
+    elif os.environ["WORKFLOW_EVENT"] == "workflow_dispatch" and scope in MANUAL_SCOPES:
         if set(MANUAL_SCOPES[scope]) <= PAUSED_BACKENDS:
             print("Requested collection scope is temporarily paused; no fresh collection will run. "
                   "Validated last-good snapshots remain available for publication.", file=sys.stderr)

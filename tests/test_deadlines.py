@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 from collector.__main__ import main
 from collector.cipher import GameDes
 from collector.collect import error_code, open_socket, run_collection
-from collector.configuration import PAUSED_BACKENDS, load_masks, load_servers
+from collector.configuration import load_masks, load_servers
 from collector.connection import CollectorConnection, LIMITS
 from collector.snapshots import SNAPSHOT_SCHEMA, SCOPE, atomic_json
 from collector.timing import CollectionDeadline, DEFAULT_MAX_DURATION_SECONDS, positive_duration
@@ -51,15 +51,17 @@ class DeadlineTests(unittest.TestCase):
             runner.assert_not_called()
 
     def test_cli_passes_custom_whole_run_budget(self):
-        with patch("collector.__main__.run_collection", return_value=0) as runner:
+        with patch("collector.__main__.PAUSED_BACKENDS", frozenset()), \
+                patch("collector.__main__.run_collection", return_value=0) as runner:
             self.assertEqual(main(["collect", "--max-duration-seconds", "12.5"]), 0)
         self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 12.5)
 
     def test_cli_default_passes_five_hour_budget_for_active_backends(self):
-        with patch("collector.__main__.run_collection", return_value=0) as runner:
+        with patch("collector.__main__.PAUSED_BACKENDS", frozenset()), \
+                patch("collector.__main__.run_collection", return_value=0) as runner:
             self.assertEqual(main(["collect"]), 0)
         self.assertEqual(runner.call_args.kwargs["max_duration_seconds"], 18000)
-        self.assertEqual(runner.call_args.args[2], {server["key"] for server in load_servers()} - PAUSED_BACKENDS)
+        self.assertEqual(runner.call_args.args[2], {server["key"] for server in load_servers()})
 
     def test_steam_session_survives_one_hour_but_stops_at_three_hours(self):
         connection, clock = self.connection(session_seconds=10800)
@@ -149,8 +151,8 @@ class DeadlineTests(unittest.TestCase):
             connection.fetch_nickname_fallback(list(range(1, 12)))
         self.assertAlmostEqual(connection.fake_clock.value, connection.started + connection.session_seconds)
         self.assertAlmostEqual(connection.fake_clock.sleeps[0], 0.1)
-        self.assertEqual(connection.sent, {16: 10})
-        self.assertEqual(connection.received[17], 10)
+        self.assertEqual(connection.sent, {16: 1})
+        self.assertEqual(connection.received[17], 1)
 
     def test_shared_deadline_preempts_steam_nickname_pause(self):
         connection = PacedConnection(deadline=1.1)
@@ -158,8 +160,8 @@ class DeadlineTests(unittest.TestCase):
         with self.assertRaises(CollectionDeadline):
             connection.fetch_nickname_fallback(list(range(1, 12)))
         self.assertAlmostEqual(connection.fake_clock.value, 1.1)
-        self.assertEqual(connection.sent, {16: 10})
-        self.assertEqual(connection.received[17], 10)
+        self.assertEqual(connection.sent, {16: 1})
+        self.assertEqual(connection.received[17], 1)
 
     def test_expired_budget_never_connects(self):
         with patch("collector.collect.socket.create_connection") as connector:
@@ -228,10 +230,10 @@ class DeadlineTests(unittest.TestCase):
     def test_whole_run_deadline_interrupts_incomplete_fallback(self):
         connection = ScriptedConnection(primary=(primary_failure(1, 2),),
                                         fallback=(fallback_name(1, "Invented A"),), fallback_count=2)
-        connection.collection_deadline = connection.fake_clock.value + 1
+        connection.collection_deadline = connection.fake_clock.value + 1.1
         with self.assertRaises(CollectionDeadline):
             connection.fetch_names([1, 2])
-        self.assertEqual(connection.sent, {15: 1, 16: 2})
+        self.assertEqual(connection.sent, {15: 1, 16: 1})
         self.assertEqual(connection.received[17], 1)
         self.assertEqual(error_code(CollectionDeadline()), "collection_deadline")
 
@@ -245,7 +247,7 @@ class DeadlineTests(unittest.TestCase):
                 atomic_json(path, snapshot(server))
                 prior[server["key"]] = path.read_bytes()
             current, visited, deadlines = [1.0], [], []
-            def scanner(server, credentials, masks, *, progress, deadline, clock):
+            def scanner(server, credentials, masks, *, progress, deadline, clock, diagnostics):
                 visited.append(server["key"])
                 deadlines.append(deadline)
                 if len(visited) == 1:

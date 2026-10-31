@@ -94,6 +94,12 @@ commander lists.
 
 ## Connection and requests
 
+All configured backends are paused as of 31 October 2026. The planner skips fresh
+collection, and the local CLI rejects every selection before reading credentials
+or connecting. The maintainer also disabled the GitHub workflow. The request paths
+below describe the offline-tested implementation, not authorization to resume it.
+Stored-snapshot validation and publication remain independent of game access.
+
 The portable implementation reproduces the verified DES compatibility transform
 and stateful framing in Python. It keeps independent send/receive cursors,
 preserves frame boundaries, and closes the connection after malformed data or an
@@ -130,14 +136,15 @@ rewards are implemented. Names, account IDs and session IDs are not taken from
 local saved game logins. Request limits, row limits, time limits and a strict
 outgoing-message allowlist bound the session.
 
-On mobile backends, ranking (137), primary-name (15) and public-vehicle (20) batch
-requests share a minimum 250 ms start-to-start gap. Mobile ranking batches allow
-200 rows; primary-name and public-vehicle batch ceilings remain 200 and 50.
-Steam ranking batches request at most 200 new rows, and Steam batch requests
-137, 15 and 20 share a minimum one-second start-to-start gap. Steam public-vehicle
-collection is currently disabled, so the 20 pacing rule applies only if those
-reads are enabled in a separately verified change. Keepalive replies are not
-delayed by batch pacing.
+Mobile and Steam requests 137, 15, 16 and 20 share a minimum one-second
+start-to-start gap, with one timer retained across calls and transaction types.
+Ranking batches allow 200 rows. The primary-name sender splits cohorts into
+batches of at most 50 identities, below the native 200-record ceiling. Nickname
+fallback has one outstanding request at a time. Public-vehicle collection and its
+zero-field/partial-result recovery flags are disabled in every configured backend.
+Heartbeat acknowledgements bypass the workload timer and do not reset it. These
+precautionary limits reduce traffic; neither valid native request shapes nor
+offline tests establish a safe backend throughput or prove a crash remedy.
 
 The Steam Lua interface displays six ranking rows and checks one extra row to
 enable its next-page button. It passes ranges 1–7, 7–13, 13–19 and so on to the
@@ -151,21 +158,23 @@ that is not a proven network interval or server rate limit. The collector's
 200-row batches and one-second gap are the selected policy. Source paths, lines
 and hashes are recorded in the [Steam client evidence](research/steam-client-2026-10-23.json).
 
-Production collection runs at most once per backend in the first attempt of each
-daily schedule or manual dispatch with `fetch_rankings` enabled. Other manual
-runs, pushes and reruns publish stored data. Failed backends retain their last-good
-snapshot until the next scheduled or opted-in manual attempt. All three Steam
-backends have complete verified snapshots under this policy.
+The normal production gate permits at most one collection attempt per backend in
+the first attempt of each daily schedule or manual dispatch with `fetch_rankings`
+enabled. The all-backend pause currently skips those attempts too. Once publication
+is separately enabled, current-main runs can publish stored data without a game
+login. All three Steam backends have complete verified historical snapshots.
 
-Steam sessions have a 10,800-second capacity ceiling; mobile sessions retain
-3,600 seconds. The collector default and workflow allow 18,000 seconds across all
-requested backends, so the remaining shared budget can stop a session earlier.
+Steam sessions have a 10,800-second capacity ceiling. Mobile ceilings are 19,800
+seconds for Bonn, 10,800 for BANGKOK, 5,400 for KOREA and 3,600 for the other
+backends. The local CLI defaults to an 18,000-second shared budget; each hosted
+single-backend job supplies a 19,800-second collector budget. A session also obeys
+the remaining whole-run budget.
 These are capacity ceilings, not completion promises or expected running times.
 A measured 5,000-row Steam interval exceeding 6.5 minutes showed that the old
 one-hour session ceiling was insufficient for the estimated Asia ranking at that
-pace. The extension changes time allowances only: 200-row Steam batches,
-one-second batch gaps, bounded reply waits and the outgoing allowlist remain in
-force. It adds no retries or account-setup actions. After shared-budget expiry,
+pace. The subsequent workload reduction retains these budgets; slower scans may
+expire and retain last-good data. It adds no automatic catch-up, budget extension,
+session retry or account-setup action. After shared-budget expiry,
 unfinished and unvisited backends retain last-good data and receive failure
 status; only completed enumerations can replace snapshots.
 
@@ -194,7 +203,8 @@ recorded in `research/connection-pagination-investigation-2026-10-24.json`.
 
 ## Name fallback
 
-Public name request 15 contains up to 200 `u32 playerID, u8 mask` records. Reply
+Native public name request 15 supports up to 200 `u32 playerID, u8 mask` records;
+the collector now sends at most 50 at a time. Reply
 380 can split requested masks across records. A nonempty UTF-8 name from mask
 bit 4 establishes resolution. Online-state bit 1 is not required for publication.
 Nonempty means the literal returned string has content; it is never trimmed or
@@ -211,19 +221,19 @@ field still waits for the original bounded primary deadline.
 The native 14 handler at `0x007f8090` calls the nickname lookup path. Its sender at
 `0x007fa2f0` sends request 16 with one `u32 playerID`. Reply 17 begins with
 `u16 status`; success adds `u32 playerID`, a name C string bounded to 48 bytes,
-and one uninterpreted byte. Failure has no player ID. The collector sends a
-bounded group of at most 10 and drains exactly the same number of 17 replies
-before another nickname group or ranking phase. Success identifiers must be
-expected and unique. Unkeyed failures can be assigned to remaining requests only
-after the group completes. Late 380
+and one uninterpreted byte. Failure has no player ID. The collector sends one
+request 16 and drains its reply 17 before starting the next nickname request.
+Success identifiers must match that outstanding request. An unkeyed failure is
+assigned only to that single outstanding identity. Late 380
 responses can still resolve a name. An incomplete/malformed fallback closes the
 connection and cannot produce a new partial snapshot.
 
-After draining a nickname group, the collector waits 250 milliseconds before
-the next group. Session and whole-run deadlines are checked before and after the
-wait, which cannot extend either budget. This reduces bursts of public database
-reads. It does not establish a server rate limit or prove a fix for observed
-timeouts and disconnects.
+Each nickname request uses the same one-second start-to-start timer as ranking,
+primary-name and detail requests. The timer persists across separate fallback
+calls. Session and whole-run deadlines are checked before and after any wait,
+which cannot extend either budget. This removes the prior ten-request bursts and
+the missing pause at call boundaries. It does not establish a server rate limit
+or prove a fix for observed timeouts and disconnects.
 
 One bounded recovery is allowed after a primary social-name timeout: identity-
 bearing late 380/14 responses remain observable while request 16 is sent at most
@@ -283,6 +293,12 @@ nonnegative value or null, and Fate Pin follows the observed category-20 flag.
 The complete list is retained even when the row shows only its first six images.
 No combat slot, private inventory, equipment or equipped costume is inferred.
 
+Public vehicle collection is currently disabled on both mobile and Steam. A future
+rankings/name snapshot under this policy would use `vehiclesStatus: "not_collected"`
+and `vehicles: null`; retained observations keep their original values. The
+following describes the retained protocol parser and historical recovery evidence,
+not the enabled collection policy.
+
 Request 20 uses at most 50 `(u32 playerID, u8 mask)` records per transaction,
 with initial mask 12. Keyed response 19 may split masks across records. Bit 4 carries
 capsule type, phase and a faculty vector; bit 8 carries tactics pairs, consumed
@@ -298,8 +314,8 @@ packet, as well as in separate packets. The Steam native handler dispatches each
 record's fields independently. The collector accepts that grouping while rejecting
 any repeated field, invalid identity or unsupported mask.
 A correlated mask-zero record updates no fields and does not establish an
-empty/unavailable profile. Mobile collection uses it as an explicit keyed hint
-for the bounded recovery policy below. Requests without a correlated response
+empty/unavailable profile. The historical mobile policy used it as an explicit
+keyed hint for the bounded recovery policy below. Requests without a correlated response
 still time out.
 
 Response 18 is a keyed primary-detail miss and may follow a partial response 19.
@@ -307,14 +323,14 @@ The native client tracks capsule and tactics requirements independently. Identit
 completion can reissue only the still-pending fields through 20, with mask 4, 8
 or 12. The public vehicle view reads the capsule list; tactics are separate data.
 
-The collector keeps one bounded recovery after a primary-detail miss: one 16 per
+The disabled recovery implementation keeps one bounded recovery after a primary-detail miss: one 16 per
 identity across the session, then one 20 requery of only the still-missing fields
 after a successful 17. Previously observed fields remain intact. An explicit
 capsule failure stays unavailable; an actually returned capsule list remains
 resolved when only tactics are explicitly unavailable. A prior name-fallback 16
 is never repeated.
 
-Mobile collection also allows one follow-up 20 after a correlated zero-field
+The former mobile policy also allowed one follow-up 20 after a correlated zero-field
 reply. The initial batch must first receive actual requested fields, an explicit
 18 failure, or a zero hint for every requested identity. Already-decoded queued
 messages are consumed through normal validation before deciding whether any
@@ -336,8 +352,8 @@ unavailable and unresolved vehicle observations. It does not permit publishing
 an incomplete ranking, treating a silent request as a keyed zero, or suppressing
 malformed/uncorrelated replies, transport failures or deadlines. Those failures
 still stop the backend and retain its previous complete snapshot. No timeout
-or malformed response is retried. Steam collection does not enable this policy
-or collect public vehicle lists.
+or malformed response is retried. Neither mobile nor Steam configuration now
+enables this policy or collects public vehicle lists.
 
 The zero-field follow-up is a collector policy supported by
 [bounded live observations](research/vehicle-field-probes-2026-10-24.json);
@@ -352,8 +368,8 @@ leave requirements pending when an identity lookup is throttled, and both a
 successful 17 and a nickname field in 380 can release those requirements. The
 native throttle is not an automatic retry timer. Static evidence for the
 per-field lifecycle is recorded in [the Steam vehicle investigation](research/steam-vehicles-2026-10-24.json);
-it does not establish reliable full Steam vehicle collection. Steam vehicle
-collection remains disabled pending bounded live verification.
+it does not establish reliable full Steam vehicle collection. Vehicle collection
+for every backend remains disabled pending a separately reviewed decision.
 
 The separate `assets/vehicles/catalog.json` maps public types/phases to names and
 default presentation models, then to hash-addressed PNG portraits. Live2D entries

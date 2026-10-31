@@ -9,21 +9,19 @@ the fallback. Use the header toggle to switch modes and remember your choice.
 [Open the rankings](https://alexvalliere.github.io/MetalWaltzRanking/) ·
 [Refresh / deployment runs](https://github.com/AlexValliere/MetalWaltzRanking/actions/workflows/publish.yml)
 
-The collector runs on a GitHub-hosted Linux runner **daily at 04:17 UTC**
-(06:17 in Paris during summer time, 05:17 during winter time). Your laptop does
-not need to be running. Each server gets at most one collection attempt per run;
-failed servers retain their previous data until the next attempt.
-Fresh collection for mobile **Europe №1 (`Bonn`) and Thailand (`BANGKOK`) is
-temporarily paused as of 26 October 2026** following repeated outages during
-collection. Their last-good snapshots remain available. The other eight backends,
-including Steam Europe, continue to refresh.
-To refresh manually, open **Actions → Refresh rankings and publish → Run workflow**,
-select `main`, check **Fetch fresh rankings from the game servers before publishing**,
-and start a new run. The scope defaults to `all` active backends;
-`affected-mobile` currently checks only Korea. Leave the checkbox unchecked to
-publish stored data. Pushes to `main`
-and reruns of current workflows also
-publish stored data without a game login; use a new dispatch for a fresh attempt.
+**All fresh collection is paused as of 31 October 2026** while disconnects and
+collector workload are investigated. The GitHub workflow was also disabled by the
+maintainer. Existing rankings and vehicle observations remain available on the
+site. The observed failures do not establish that the collector crashed a game
+backend.
+
+The repository's shared pause policy blocks every scheduled/manual collection
+scope and local CLI selection before credentials or a game connection are used.
+It has no automatic expiry or command-line override. Resuming collection needs a
+reviewed policy change and an explicit decision to enable it. The configured daily
+schedule remains **04:17 UTC** (06:17 Paris in summer, 05:17 in winter), but is
+inactive while the workflow is disabled. Publication code still supports building
+and serving validated stored snapshots without a game login.
 
 ## Data coverage
 
@@ -55,21 +53,26 @@ fingerprinted native transport profile and the same dedicated collector
 credentials. A Steam backend with no complete snapshot shows **Not collected**;
 it does not appear as an empty leaderboard. Steam Asia's Hong Kong route is a
 connection alternative, so its shared ranking is collected once.
-Steam public vehicle lists are currently **not collected**. Bounded native
-profile probes reached incomplete responses. A Steam refresh can publish only a
-complete ranking with completed public-name lookups; vehicle lists remain marked
-`not_collected`. All three Steam backends have complete snapshots with all
+Fresh public vehicle collection is disabled for **all backends**. A future
+reviewed rankings/name refresh would mark vehicle lists `not_collected`; it would
+not invent empty vehicle lists. Existing mobile vehicle observations remain in
+their retained snapshots. Bounded Steam profile probes reached incomplete
+responses. All three Steam backends have complete snapshots with all
 146,483 names resolved, passing independent publication and browser validation. See the
 [Steam verification record](docs/research/steam-client-2026-10-23.json)
 for its timestamps, file hash and checks.
 
-Steam collection requests **up to 200 new ranking rows at a time**, with at least
-**one second between batch requests**. The game interface shows six rows plus one
+Ranking collection requests **up to 200 new rows at a time**, with at least
+**one second between ranking, name and detail requests** on both mobile and Steam.
+Nickname fallback has one outstanding request at a time and uses that same timer
+across calls. Primary-name batches contain at most 50 identities. Heartbeat
+acknowledgements remain immediate. These are precautionary
+load controls, not an established safe server rate or a proven crash remedy.
+The Steam game interface shows six rows plus one
 lookahead and requests growing prefixes of 7, 13, 19 and so on. The collector
 uses the native 200-record batch ceiling and advances its offset, so a full scan
 needs fewer requests than seven-row pages or repeated prefixes. The one-second
 gap is the selected collector policy, not an established server rate limit.
-Mobile scans retain their 200-row ranking batches and 250 ms batch gap.
 
 The mobile totals cover all rows exposed during each original sequential scan.
 They are not an atomic snapshot or a census of every registered commander. The
@@ -81,8 +84,8 @@ game client's 460-win interface unlock was not required for the verified reads.
 
 Vehicle portraits appear beside commanders on desktop and beneath their names
 on mobile. Hover, focus or select a portrait for its vehicle and Maiden names;
-selecting it also shows the returned level and Fate Pin. The mobile collector
-requests the actual public vehicle list for every ranked commander. Actual empty
+selecting it also shows the returned level and Fate Pin. Earlier mobile collections
+requested actual public vehicle lists. Actual empty
 lists, explicit unavailable results, unresolved field replies and not-yet-collected
 data remain distinct, and longer lists remain accessible. A bounded keyed-zero
 reply can leave vehicle data **unresolved** while a complete ranking and its actual
@@ -106,11 +109,11 @@ source pins and portrait hashes are checked before publication.
    `MW_COLLECTOR_PASSWORD` to the dedicated collector credentials. The same
    credentials must already work on each regional authentication group, with
    exactly one existing commander per backend. [Creating repository secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
-3. Run **Refresh rankings and publish** from `main` to publish the seed / last
-   stored data, or check **Fetch fresh rankings from the game servers before publishing**
-   (`fetch_rankings`) to collect fresh data first. Fresh collection also runs on
-   the daily schedule. Review the run and each server's
-   collection time on the site.
+3. Keep the workflow disabled during the collection pause. Once publication is
+   separately enabled, **Refresh rankings and publish** from current `main` can
+   publish the seed / last stored data without a game login. The current pause
+   policy skips fresh collection even if `fetch_rankings` is checked. Review each
+   server's successful collection time rather than treating publication as a refresh.
 
 The workflow has a single concurrency group. Do not run another collector with
 these credentials at the same time. It serializes the ten backend sessions and
@@ -123,7 +126,7 @@ session ceiling, Thailand and Steam **three hours**, Korea **90 minutes**, and
 the other mobile servers **one hour**. Every job has a **350-minute** limit,
 including setup and storage; the collector's maximum budget is **330 minutes**.
 These are capacity ceilings, not expected durations or guarantees of completion.
-Vehicle collection still attempts every mobile ranking entry at the same pace.
+These ceilings do not authorize collection while the pause is in effect.
 Build and deployment run separately after all selected collection jobs finish.
 
 Validated last-good snapshots live on the dedicated `snapshots` branch. It has
@@ -148,21 +151,19 @@ python -m http.server 8000 --directory _site
 ```
 
 Open `http://localhost:8000/` to view the seed. No login is needed for these checks.
-The local CLI is available for separately authorized development diagnostics;
-production refreshes use scheduled or opted-in manual workflow runs. For such
-diagnostics, set the two collector environment variables in your shell without
-writing them into tracked files, then run:
+The local collection CLI is blocked by the same all-backend pause. The following
+invocation documents its normal form for a future reviewed resumption; it currently
+fails before reading credentials or opening a game connection:
 
 ```sh
 python -m collector collect --output site/data --max-duration-seconds 18000
 python scripts/build_site.py
 ```
 
-`--server YaleAndroid` (or another active backend key) limits a refresh to one server;
-`--server steam` selects only the three Steam backends, and `--server SteamTEST`
-selects the shared Steam Asia backend. The default `all` selection excludes the
-two paused backends; an explicit `Bonn` or `BANGKOK` request is rejected before
-credentials or network access. The
+`--server YaleAndroid` normally selects one backend; `--server steam` selects the
+three Steam backends, and `--server SteamTEST` selects the shared Steam Asia
+backend. All of these choices, explicit keys/aliases, and default `all` currently
+fail under the pause policy. The
 collector uses the reviewed game protocol directly; it needs no Android emulator,
 Windows DLL, game installation, Ghidra session or laptop hosting.
 

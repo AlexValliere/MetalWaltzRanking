@@ -5,7 +5,7 @@ import unittest
 
 from collector.cipher import GameDes
 from collector.configuration import load_masks
-from collector.connection import CollectorConnection
+from collector.connection import CollectorConnection, PRIMARY_NAME_BATCH_SIZE
 from collector.timing import CollectionDeadline
 
 
@@ -37,6 +37,39 @@ class BatchPacingTests(unittest.TestCase):
                                          deadline=deadline, clock=clock.monotonic, sleeper=clock.sleep,
                                          batch_request_gap_seconds=gap, session_seconds=session_seconds)
         return connection, clock, sock
+
+    def test_primary_names_split_into_fifty_identity_requests_before_enrichment(self):
+        connection, clock, sock = self.connection(gap=1.0)
+        original_send = connection.send
+        requests = []
+        def send(opcode, payload=b""):
+            original_send(opcode, payload)
+            if opcode == 15:
+                players = [player for player, _ in struct.iter_unpack("<IB", payload[1:])]
+                requests.append((clock.value, payload[0], players))
+                for player in players:
+                    connection.messages.append((380, struct.pack("<BIB", 1, player, 4)
+                                                + b"Invented name\0\0"))
+        connection.send = send
+        connection.fetch_names(list(range(1, 122)))
+        self.assertEqual(PRIMARY_NAME_BATCH_SIZE, 50)
+        self.assertEqual([(at, count) for at, count, _ in requests], [(1.0, 50), (2.0, 50), (3.0, 21)])
+        self.assertEqual([p for _, _, players in requests for p in players], list(range(1, 122)))
+        self.assertTrue(all(connection.name_resolved(p) for p in range(1, 122)))
+        self.assertEqual(connection.sent, {15: 3})
+
+    def test_duplicate_in_later_name_chunk_is_rejected_before_first_send(self):
+        connection, _, sock = self.connection()
+        with self.assertRaises(ValueError):
+            connection.fetch_names(list(range(1, 52)) + [1])
+        self.assertFalse(sock.writes)
+
+    def test_invalid_identity_in_later_name_chunk_is_rejected_before_first_send(self):
+        connection, _, sock = self.connection()
+        for invalid in (0, -1, 2**32, True, "secret"):
+            with self.subTest(identity=invalid), self.assertRaises(ValueError):
+                connection.fetch_names(list(range(1, 52)) + [invalid])
+        self.assertFalse(sock.writes)
 
     def test_mixed_ranking_name_and_vehicle_batches_share_250ms_gap(self):
         connection, clock, sock = self.connection()

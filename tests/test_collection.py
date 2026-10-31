@@ -275,7 +275,9 @@ class SnapshotTests(unittest.TestCase):
         server = next(server for server in self.servers if server["key"] == "YaleAndroid")
         path = self.seed(server)
         before = path.read_bytes()
-        with patch.dict("os.environ", {}, clear=True), patch("collector.collect.open_socket") as opener:
+        with patch.dict("os.environ", {}, clear=True), \
+                patch("collector.__main__.PAUSED_BACKENDS", frozenset()), \
+                patch("collector.collect.open_socket") as opener:
             with redirect_stdout(StringIO()):
                 code = main(["collect", "--output", str(self.directory), "--server", server["key"]])
         self.assertEqual(code, 1)

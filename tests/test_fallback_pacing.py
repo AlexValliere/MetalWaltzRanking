@@ -1,4 +1,4 @@
-"""Bounded outstanding nickname reads and unkeyed failures under batching."""
+"""Sequential nickname reads share pacing across calls and other requests."""
 import socket
 import struct
 import unittest
@@ -49,6 +49,8 @@ class PacedConnection(CollectorConnection):
         if opcode != 16:
             return
         player, = struct.unpack("<I", payload)
+        if self.outstanding:
+            raise AssertionError("Next nickname started before its predecessor drained")
         if player in (11, 21):
             if self.outstanding:
                 raise AssertionError("Next nickname burst started before prior replies drained")
@@ -74,19 +76,44 @@ class PacedConnection(CollectorConnection):
 
 
 class NicknamePacingTests(unittest.TestCase):
-    def test_bursts_fully_drain_at_most_ten_and_wait_after_the_drain(self):
+    def test_nicknames_are_serial_and_share_one_second_start_spacing(self):
         connection = PacedConnection()
         connection.fetch_nickname_fallback(list(range(1, 26)))
-        self.assertEqual(NICKNAME_BATCH_SIZE, 10)
-        self.assertEqual(connection.maximum_outstanding, 10)
+        self.assertEqual(NICKNAME_BATCH_SIZE, 1)
+        self.assertEqual(connection.maximum_outstanding, 1)
         self.assertEqual(connection.outstanding, 0)
         self.assertEqual(connection.received[17], 25)
-        self.assertEqual(connection.fake_clock.sleeps, [0.25, 0.25])
-        for player in (11, 21):
+        self.assertEqual(connection.fake_clock.sleeps, [1.0] * 24)
+        for player in range(2, 26):
             at = next(i for i, e in enumerate(connection.events) if e[:2] == ("send", player))
             prior = connection.events[at - 1]
             self.assertEqual(prior[0], "receive")
-            self.assertGreaterEqual(connection.events[at][2] - prior[2], 0.25)
+            self.assertGreaterEqual(connection.events[at][2] - prior[2], 1.0)
+
+    def test_separate_calls_cannot_reset_the_pacing_clock(self):
+        connection = PacedConnection()
+        connection.fetch_nickname_fallback(list(range(1, 11)))
+        connection.fetch_nickname_fallback(list(range(11, 21)))
+        starts = [at for action, _, at in connection.events if action == "send"]
+        self.assertEqual(starts, list(range(1, 21)))
+        self.assertEqual(connection.maximum_outstanding, 1)
+        self.assertEqual(connection.fake_clock.sleeps, [1.0] * 19)
+
+    def test_nickname_and_ranking_requests_use_the_same_clock(self):
+        connection = PacedConnection()
+        connection.send(137, struct.pack("<HIB", 5, 0, 200))
+        connection.fetch_nickname_fallback([1])
+        connection.send(137, struct.pack("<HIB", 5, 200, 200))
+        self.assertEqual(connection.events[0], ("send", 1, 2.0))
+        self.assertEqual(connection.fake_clock.value, 3.0)
+        self.assertEqual(connection.fake_clock.sleeps, [1.0, 1.0])
+
+    def test_elapsed_response_time_counts_toward_the_next_call_gap(self):
+        connection = PacedConnection()
+        connection.fetch_nickname_fallback([1])
+        connection.fake_clock.value += 0.75
+        connection.fetch_nickname_fallback([2])
+        self.assertEqual(connection.fake_clock.sleeps, [0.25])
 
     def test_failure_elimination_is_committed_per_complete_group(self):
         connection = PacedConnection(failures=(3, 13, 24))
@@ -103,21 +130,21 @@ class NicknamePacingTests(unittest.TestCase):
         self.assertEqual(connection.sent[16], 10)
         self.assertEqual(connection.received[17], 9)
         self.assertEqual(connection.fallback_failures, set())
-        self.assertEqual(connection.fake_clock.sleeps, [])
+        self.assertEqual(connection.fake_clock.sleeps, [1.0] * 9)
 
     def test_identity_from_later_group_is_rejected_without_advancing(self):
         connection = PacedConnection(wrong_identity=20)
         with self.assertRaises(ValueError):
             connection.fetch_nickname_fallback(list(range(1, 26)))
-        self.assertEqual(connection.sent[16], 10)
+        self.assertEqual(connection.sent[16], 1)
         self.assertEqual(connection.fake_clock.sleeps, [])
 
     def test_shared_deadline_interrupts_gap_before_another_burst(self):
         connection = PacedConnection(deadline=1.1)
         with self.assertRaises(CollectionDeadline):
             connection.fetch_nickname_fallback(list(range(1, 26)))
-        self.assertEqual(connection.sent[16], 10)
-        self.assertEqual(connection.received[17], 10)
+        self.assertEqual(connection.sent[16], 1)
+        self.assertEqual(connection.received[17], 1)
         self.assertEqual(connection.fake_clock.value, 1.1)
         self.assertAlmostEqual(connection.fake_clock.sleeps[0], 0.1)
 
@@ -126,9 +153,9 @@ class NicknamePacingTests(unittest.TestCase):
         connection.fake_clock.value = connection.started + SESSION_SECONDS - 0.1
         with self.assertRaises(TimeoutError):
             connection.fetch_nickname_fallback(list(range(1, 26)))
-        self.assertEqual(connection.sent[16], 10)
-        self.assertEqual(connection.received[17], 10)
-        self.assertLessEqual(connection.fake_clock.sleeps[0], 0.25)
+        self.assertEqual(connection.sent[16], 1)
+        self.assertEqual(connection.received[17], 1)
+        self.assertAlmostEqual(connection.fake_clock.sleeps[0], 0.1)
 
     def test_once_only_guard_rejects_whole_repeated_input_before_new_reads(self):
         connection = PacedConnection()
@@ -144,13 +171,13 @@ class NicknamePacingTests(unittest.TestCase):
 
         def expire_after_check():
             original_check()
-            if connection.received[17] == 10:
+            if connection.received[17] == 1:
                 connection.fake_clock.value = connection.started + SESSION_SECONDS + 0.001
 
         connection.check_deadlines = expire_after_check
         with self.assertRaises(TimeoutError):
             connection.fetch_nickname_fallback(list(range(1, 26)))
-        self.assertEqual(connection.sent[16], 10)
+        self.assertEqual(connection.sent[16], 1)
         self.assertTrue(all(duration >= 0 for duration in connection.fake_clock.sleeps))
 
 

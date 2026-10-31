@@ -25,8 +25,8 @@ def main(argv=None):
             parser.error("Unknown reviewed server key/alias")
         selected = ({item["key"] for item in servers} - PAUSED_BACKENDS if args.server == "all" else
                     STEAM_BACKENDS if args.server == "steam" else {aliases[args.server]})
-        if selected & PAUSED_BACKENDS:
-            parser.error("Collection is temporarily paused for this server after repeated outages")
+        if not selected or selected & PAUSED_BACKENDS:
+            parser.error("Collection is temporarily paused while backend disconnects are investigated")
         masks = load_masks()
         username = os.environ.get("MW_COLLECTOR_USERNAME")
         password = os.environ.get("MW_COLLECTOR_PASSWORD")

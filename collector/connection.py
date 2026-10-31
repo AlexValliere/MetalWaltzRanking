@@ -23,9 +23,9 @@ LIMITS = {324: 1, 396: 1, 316: 1, 357: 1, 374: 1, 436: 1,
 REPLY_SECONDS = 30
 PRIMARY_NAME_SECONDS = 12
 SESSION_SECONDS = 3600
-BATCH_REQUEST_GAP_SECONDS = 0.25
-NICKNAME_BATCH_SIZE = 10
-NICKNAME_BATCH_GAP_SECONDS = 0.25
+BATCH_REQUEST_GAP_SECONDS = 1.0
+PRIMARY_NAME_BATCH_SIZE = 50
+NICKNAME_BATCH_SIZE = 1
 NATIVE_IDLE_SECONDS = (30, 40, 50, 60)
 CONNECTION_FAILURE_REASONS = frozenset(("server_session_ended", "socket_eof", "socket_reset",
                                         "socket_broken_pipe", "socket_other", "native_idle_timeout"))
@@ -84,6 +84,9 @@ class CollectorConnection:
         self.decoder = TransportDecoder(masks["g2c"], cipher.decrypt)
         self.messages = deque()
         self.sent, self.received = Counter(), Counter()
+        self.successfully_sent = Counter()
+        self.lookup_identities_attempted, self.lookup_identities_sent = Counter(), Counter()
+        self.vehicle_recovery_batches = self.vehicle_recovery_identities = 0
         self.expected_login, self.selected_player = expected_login, None
         self.base_notification = None
         self.name_masks, self.names, self.name_failures = {}, {}, set()
@@ -98,7 +101,7 @@ class CollectorConnection:
         self.vehicle_unresolved, self.vehicle_retired_pending = set(), set()
         self.achievements = None
         self.incoming_bytes = 0
-        self.started, self.last_request_at = clock(), 0.0
+        self.started, self.last_request_at = clock(), None
         self.last_receive_at = self.last_successful_send_at = None
         self.last_heartbeat_receive_at = self.last_heartbeat_ack_at = None
         self.heartbeat_acks_sent = 0
@@ -107,8 +110,8 @@ class CollectorConnection:
         self.collection_deadline = deadline
         self.read_phase = "connect"
 
-    def failure_diagnostics(self, error):
-        """Only aggregate counts, fixed categories and monotonic ages leave the session."""
+    def failure_diagnostics(self, error=None):
+        """Aggregate session diagnostics; error categories are added only on failure."""
         current = self.clock()
         def age(previous):
             return None if previous is None else round(max(0.0, current - previous), 3)
@@ -122,7 +125,16 @@ class CollectorConnection:
                   "idlePingsSent": self.idle_pings_sent,
                   "lastIdlePingAgeSeconds": age(self.last_idle_ping_at),
                   "attemptRowsFetched": self.ranking_rows_fetched,
-                  "attemptRowsCompleted": self.ranking_rows_completed}
+                  "attemptRowsCompleted": self.ranking_rows_completed,
+                  "requestAttempts": {str(opcode): self.sent[opcode] for opcode in LIMITS},
+                  "requestsSent": {str(opcode): self.successfully_sent[opcode] for opcode in LIMITS},
+                  "lookupIdentitiesAttempted": {str(opcode): self.lookup_identities_attempted[opcode]
+                                                for opcode in (15, 16, 20)},
+                  "lookupIdentitiesSent": {str(opcode): self.lookup_identities_sent[opcode]
+                                           for opcode in (15, 16, 20)},
+                  "primaryNameTimeouts": self.primary_name_timeouts,
+                  "vehicleRecoveryBatches": self.vehicle_recovery_batches,
+                  "vehicleRecoveryIdentities": self.vehicle_recovery_identities}
         reason = getattr(error, "collector_connection_reason", None)
         if isinstance(reason, str) and reason in CONNECTION_FAILURE_REASONS:
             result["transportFailure"] = reason
@@ -170,22 +182,31 @@ class CollectorConnection:
         self.check_deadlines()
         if opcode == 16:
             self.fallback_sent.add(struct.unpack("<I", payload)[0])
-        if opcode in (137, 15, 20):
-            delay = self.batch_request_gap_seconds - (self.clock() - self.last_request_at)
+        if opcode in (137, 15, 16, 20):
+            # One shared clock covers all data reads, including the first
+            # nickname of a later call. Heartbeat traffic remains immediate.
+            delay = (0.0 if self.last_request_at is None else
+                     self.batch_request_gap_seconds - (self.clock() - self.last_request_at))
             if delay > 0:
                 session_remaining = self.session_seconds - (self.clock() - self.started)
                 delay = max(0.0, min(delay, session_remaining))
                 remaining = remaining_seconds(self.collection_deadline, self.clock)
                 self.sleeper(min(delay, remaining) if remaining is not None else delay)
-                self.check_deadlines()
+            self.check_deadlines()
             self.last_request_at = self.clock()
         self.sent[opcode] += 1
+        lookup_count = 1 if opcode == 16 else payload[0] if opcode in (15, 20) else 0
+        if lookup_count:
+            self.lookup_identities_attempted[opcode] += lookup_count
         wire = self.encoder.encode(opcode, payload)
         try:
             self.socket.sendall(wire)
         except OSError as error:
             raise transport_failure(error, socket_failure_reason(error), "send")
         self.last_successful_send_at = self.clock()
+        self.successfully_sent[opcode] += 1
+        if lookup_count:
+            self.lookup_identities_sent[opcode] += lookup_count
         if opcode == 65531:
             self.heartbeat_acks_sent += 1
             self.last_heartbeat_ack_at = self.last_successful_send_at
@@ -349,6 +370,16 @@ class CollectorConnection:
         return bool(self.name_masks.get(player, 0) & 4) and bool(self.names.get(player))
 
     def fetch_names(self, players):
+        if (not 1 <= len(players) <= 200
+                or any(type(player) is not int or not 0 < player < 2**32 for player in players)
+                or len(set(players)) != len(players)):
+            raise ValueError("Invalid primary name cohort")
+        # The native wire ceiling is 200, not a demonstrated safe workload.
+        # Limit each request to 50 identities without changing rank cohorts.
+        for offset in range(0, len(players), PRIMARY_NAME_BATCH_SIZE):
+            self._fetch_name_batch(players[offset:offset + PRIMARY_NAME_BATCH_SIZE])
+
+    def _fetch_name_batch(self, players):
         self.read_phase = "primary_names"
         for player in players:
             self.name_masks.setdefault(player, 0)
@@ -370,26 +401,28 @@ class CollectorConnection:
                 raise
         missing = [p for p in players if not self.name_resolved(p) and p not in self.fallback_sent]
         if missing:
-            self.fetch_nickname_fallback(missing)
+            self.fetch_nickname_fallback(missing, skip_resolved=True)
 
-    def fetch_nickname_fallback(self, players):
+    def fetch_nickname_fallback(self, players, *, skip_resolved=False):
         self.read_phase = "nickname_fallback"
         if (not 1 <= len(players) <= 200 or len(set(players)) != len(players)
                 or any(player in self.fallback_sent for player in players)):
             raise ValueError("Invalid nickname fallback batch")
         for offset in range(0, len(players), NICKNAME_BATCH_SIZE):
-            if offset:
-                # Reduce the burst of public database lookups. Each prior
-                # unkeyed17 group must be fully drained before another is sent.
-                self.check_deadlines()
-                session_remaining = self.session_seconds - (self.clock() - self.started)
-                delay = max(0.0, min(NICKNAME_BATCH_GAP_SECONDS, session_remaining))
-                remaining = remaining_seconds(self.collection_deadline, self.clock)
-                self.sleeper(min(delay, remaining) if remaining is not None else delay)
-                self.check_deadlines()
+            if skip_resolved:
+                # A late keyed primary reply may resolve a later name while
+                # earlier sequential fallbacks are being drained. Vehicle
+                # warm-up retains its separate explicit lookup semantics.
+                self._drain_queued_messages()
+                if self.name_resolved(players[offset]):
+                    continue
+            # Exactly one lookup is outstanding. send() enforces the same
+            # start-to-start gap across batches, callers and other read types.
             self._fetch_nickname_batch(players[offset:offset + NICKNAME_BATCH_SIZE])
 
     def _fetch_nickname_batch(self, players):
+        if len(players) != NICKNAME_BATCH_SIZE:
+            raise ValueError("Nickname lookups must be sequential")
         expected, successful, failures = set(players), set(), 0
         for player in players:
             self.send(16, struct.pack("<I", player))
@@ -451,6 +484,8 @@ class CollectorConnection:
             if retry:
                 # Each identity gets at most one extra20, shared by18/zero
                 # recovery. A zero on this requery cannot trigger a third20.
+                self.vehicle_recovery_batches += 1
+                self.vehicle_recovery_identities += len(retry)
                 self._query_vehicles(retry, allow_zero_hints=self.vehicle_partial_results)
             if self.vehicle_zero_recovery:
                 # Failed/missing warm-up does not turn a zero hint into a miss.

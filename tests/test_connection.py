@@ -1,7 +1,7 @@
 import socket
 import struct
 import unittest
-from collections import Counter
+from collections import Counter, deque
 
 from collector.cipher import GameDes
 from collector.configuration import load_masks
@@ -49,7 +49,7 @@ class ScriptedConnection(CollectorConnection):
         super().__init__(SyntheticSocket(self.fake_clock), load_masks(), GameDes(),
                          login_payload("invented-account", "invented-password"),
                          clock=self.fake_clock.monotonic, sleeper=self.fake_clock.sleep)
-        self.primary, self.fallback, self.fallback_count = primary, fallback, fallback_count
+        self.primary, self.fallback = primary, deque(fallback)
         self.expire = expire
 
     def send(self, opcode, payload=b""):
@@ -58,8 +58,14 @@ class ScriptedConnection(CollectorConnection):
             self.messages.extend(self.primary)
             if self.expire:
                 self.fake_clock.value += SESSION_SECONDS
-        elif opcode == 16 and self.sent[16] == self.fallback_count:
-            self.messages.extend(self.fallback)
+        elif opcode == 16:
+            # A sequential peer can reply to the current nickname before the
+            # next request exists. Keep late keyed primary notifications too.
+            while self.fallback:
+                message = self.fallback.popleft()
+                self.messages.append(message)
+                if message[0] == 17:
+                    break
 
 
 class ConnectionTests(unittest.TestCase):
@@ -92,7 +98,7 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(connection.fake_clock.value, started)
         self.assertTrue(all(connection.name_resolved(p) for p in (1, 2)))
 
-    def test_empty_primary_name_field_enters_fallback_immediately(self):
+    def test_empty_primary_name_field_uses_paced_fallback_without_primary_timeout(self):
         for fallback, resolved in ((fallback_name(1, "Recovered"), True),
                                    ((17, struct.pack("<H", 48)), False)):
             connection = ScriptedConnection(
@@ -101,7 +107,7 @@ class ConnectionTests(unittest.TestCase):
             started = connection.fake_clock.value
             with self.subTest(resolved=resolved):
                 connection.fetch_names([1, 2])
-                self.assertEqual(connection.fake_clock.value, started)
+                self.assertEqual(connection.fake_clock.value, started + 1.0)
                 self.assertEqual(connection.primary_name_timeouts, 0)
                 self.assertEqual(connection.sent, {15: 1, 16: 1})
                 self.assertEqual(connection.fallback_sent, {1})
@@ -131,10 +137,10 @@ class ConnectionTests(unittest.TestCase):
         self.assertEqual(connection.name_masks, {1: 5, 2: 0})
         self.assertEqual(connection.name_failures, {2})
 
-    def test_fallback_mixed_out_of_order_success_and_failure(self):
+    def test_sequential_fallback_mixed_success_and_failure(self):
         connection = ScriptedConnection(primary=(primary_failure(1, 2, 3),),
-            fallback=(fallback_name(3, "Invented C"), (17, struct.pack("<H", 48)),
-                      fallback_name(1, "Invented A")), fallback_count=3)
+            fallback=(fallback_name(1, "Invented A"), (17, struct.pack("<H", 48)),
+                      fallback_name(3, "Invented C")), fallback_count=3)
         connection.fetch_names([1, 2, 3])
         self.assertEqual(connection.fallback_failures, {2})
         self.assertEqual(connection.fallback_status_counts, {48: 1})
@@ -144,7 +150,7 @@ class ConnectionTests(unittest.TestCase):
     def test_primary_timeout_recovers_once_observing_late_name(self):
         connection = ScriptedConnection(primary=(primary_name(1, "Invented A"), primary_failure(2)),
             fallback=(primary_name(2, "Late primary"), primary_failure(3),
-                      fallback_name(3, "Invented C"), (17, struct.pack("<H", 48))), fallback_count=2)
+                      (17, struct.pack("<H", 48)), fallback_name(3, "Invented C")), fallback_count=2)
         connection.fetch_names([1, 2, 3])
         connection.send(137, struct.pack("<HIB", 5, 200, 200))
         self.assertEqual(connection.primary_name_timeouts, 1)
@@ -161,17 +167,31 @@ class ConnectionTests(unittest.TestCase):
         connection.fetch_names([1, 2])
         self.assertEqual(connection.sent, {15: 1, 16: 1})
 
+    def test_late_queued_primary_name_prevents_an_unnecessary_later_fallback(self):
+        class LatePrimaryConnection(ScriptedConnection):
+            def send(self, opcode, payload=b""):
+                super().send(opcode, payload)
+                if opcode == 16:
+                    self.messages.extend((fallback_name(1, "Invented A"),
+                                          primary_name(2, "Late primary")))
+        connection = LatePrimaryConnection(primary=(primary_failure(1, 2),))
+        connection.fetch_names([1, 2])
+        self.assertEqual(connection.sent, {15: 1, 16: 1})
+        self.assertEqual(connection.fallback_sent, {1})
+        self.assertEqual(connection.names[2], "Late primary")
+        self.assertFalse(connection.messages)
+
     def test_invalid_or_incomplete_fallback_stops(self):
-        cases = [(fallback_name(1, "Invented A"),),
-                 (fallback_name(1, "Invented A"), fallback_name(1, "Duplicate")),
-                 (fallback_name(9, "Unexpected"), fallback_name(1, "Invented A")),
-                 ((380, b"\1"), fallback_name(1, "Invented A")),
-                 ((131, b""), fallback_name(1, "Invented A"))]
-        for fallback in cases:
+        cases = [((fallback_name(1, "Invented A"),), 2),
+                 ((fallback_name(1, "Invented A"), fallback_name(1, "Duplicate")), 2),
+                 ((fallback_name(9, "Unexpected"), fallback_name(1, "Invented A")), 1),
+                 (((380, b"\1"), fallback_name(1, "Invented A")), 1),
+                 (((131, b""), fallback_name(1, "Invented A")), 1)]
+        for fallback, attempted in cases:
             connection = ScriptedConnection(primary=(primary_failure(1, 2),), fallback=fallback, fallback_count=2)
             with self.assertRaises((TimeoutError, ValueError)):
                 connection.fetch_names([1, 2])
-            self.assertEqual(connection.sent, {15: 1, 16: 2})
+            self.assertEqual(connection.sent, {15: 1, 16: attempted})
 
     def test_primary_layout_failure_never_recovers(self):
         for primary in (((380, b"\1"),), ((131, b""),), ((17, b"\0\0"),)):

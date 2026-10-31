@@ -179,7 +179,7 @@ class KeepaliveTests(unittest.TestCase):
         self.assertEqual(clock.sleeps, [])
         connection.send(137, struct.pack("<HIB", 5, 0, 200))
         self.assertEqual([op for _, op, _ in peer.outgoing], [65530, 137])
-        self.assertAlmostEqual(peer.outgoing[1][0] - peer.outgoing[0][0], 0.20)
+        self.assertAlmostEqual(peer.outgoing[1][0] - peer.outgoing[0][0], 0.95)
 
     def test_finish_drains_queued_ack_without_polling_or_proactive_probe(self):
         connection, clock, peer = self.connection()

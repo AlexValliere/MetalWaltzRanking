@@ -10,7 +10,7 @@ import time
 from .binary import Reader
 from .cipher import GameDes
 from .connection import (CONNECTION_FAILURE_OPERATIONS, CONNECTION_FAILURE_REASONS,
-                         CollectorConnection, MAX_ROWS, SESSION_SECONDS)
+                         CollectorConnection, LIMITS, MAX_ROWS, SESSION_SECONDS)
 from .connection_setup import (ConnectionSetupDiagnostics, open_reviewed_socket,
                                safe_setup_diagnostics)
 from .configuration import load_masks
@@ -81,7 +81,8 @@ def enumerate_rankings(connection, *, progress=None, collect_vehicles=True):
     return rows
 
 
-def scan_server(server, credentials, masks, *, progress=None, deadline=None, clock=time.monotonic):
+def scan_server(server, credentials, masks, *, progress=None, deadline=None, clock=time.monotonic,
+                diagnostics=None):
     connection = None
     setup, setup_operation = ConnectionSetupDiagnostics(), "connect"
     try:
@@ -95,10 +96,10 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             sock.settimeout(0.4)
             setup_operation = "session_initialization"
             connection = CollectorConnection(sock, masks, GameDes(), request, deadline=deadline, clock=clock,
-                                             batch_request_gap_seconds=server.get("batchRequestGapSeconds", 0.25),
+                                             batch_request_gap_seconds=server.get("batchRequestGapSeconds", 1.0),
                                              session_seconds=server.get("sessionSeconds", SESSION_SECONDS),
-                                             vehicle_zero_recovery=server.get("protocolProfile", "mobile") == "mobile",
-                                             vehicle_partial_results=server.get("protocolProfile", "mobile") == "mobile",
+                                             vehicle_zero_recovery=server.get("vehicleZeroRecovery", False),
+                                             vehicle_partial_results=server.get("vehiclePartialResults", False),
                                              native_keepalive=server.get("protocolProfile", "mobile") == "mobile")
             connection.read_phase = "login"
             connection.send(324, request)
@@ -140,7 +141,7 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
             connection.read_phase = "achievements"
             connection.send(436)
             connection.receive(438)
-            collect_vehicles = server.get("collectVehicles", True)
+            collect_vehicles = server.get("collectVehicles", False)
             rows = enumerate_rankings(connection, progress=progress, collect_vehicles=collect_vehicles)
             if collect_vehicles:
                 connection.finish_vehicles()
@@ -163,6 +164,8 @@ def scan_server(server, credentials, masks, *, progress=None, deadline=None, clo
                         "namesComplete": all(row["nameStatus"] == "resolved" for row in public_rows),
                         "scope": SCOPE, "rows": public_rows}
             validate_snapshot(snapshot, server)
+            if diagnostics is not None:
+                diagnostics.update(connection.failure_diagnostics())
             return snapshot
     except Exception as error:
         error.collector_read_phase = connection.read_phase if connection is not None else "connect"
@@ -197,17 +200,27 @@ def log(**fields):
     print(json.dumps(fields, ensure_ascii=True), flush=True)
 
 
-def failure_diagnostics(error):
-    """Whitelist local failure diagnostics again at the log boundary."""
-    supplied = getattr(error, "collector_diagnostics", None)
+def safe_diagnostics(supplied):
+    """Whitelist aggregate session diagnostics again at the log boundary."""
     if not isinstance(supplied, dict):
         return {}
     result = safe_setup_diagnostics(supplied)
     for key in ("heartbeatsReceived", "heartbeatAcksSent", "idlePingsSent",
-                "attemptRowsFetched", "attemptRowsCompleted"):
+                "attemptRowsFetched", "attemptRowsCompleted", "primaryNameTimeouts",
+                "vehicleRecoveryBatches", "vehicleRecoveryIdentities"):
         value = supplied.get(key)
         if type(value) is int and value >= 0:
             result[key] = value
+    for key, allowed in (("requestAttempts", frozenset(str(opcode) for opcode in LIMITS)),
+                         ("requestsSent", frozenset(str(opcode) for opcode in LIMITS)),
+                         ("lookupIdentitiesAttempted", frozenset(("15", "16", "20"))),
+                         ("lookupIdentitiesSent", frozenset(("15", "16", "20")))):
+        values = supplied.get(key)
+        if isinstance(values, dict):
+            counts = {opcode: values[opcode] for opcode in allowed
+                      if type(values.get(opcode)) is int and values[opcode] >= 0}
+            if counts:
+                result[key] = counts
     for key in ("sessionElapsedSeconds", "lastReceiveAgeSeconds", "lastSuccessfulSendAgeSeconds",
                 "lastHeartbeatReceiveAgeSeconds", "lastHeartbeatAckAgeSeconds", "lastIdlePingAgeSeconds"):
         if key not in supplied:
@@ -222,6 +235,10 @@ def failure_diagnostics(error):
         if isinstance(value, str) and value in allowed:
             result[key] = value
     return result
+
+
+def failure_diagnostics(error):
+    return safe_diagnostics(getattr(error, "collector_diagnostics", None))
 
 
 def run_collection(directory, servers, selected, credentials, masks, *, scanner=scan_server, emit=log,
@@ -254,7 +271,8 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
             read_phase = "connect"
             snapshot = scanner(server, credentials, masks,
                                progress=lambda count: emit(serverKey=key, phase="progress", rows=count),
-                               deadline=deadline, clock=clock)
+                               deadline=deadline, clock=clock, diagnostics=diagnostics)
+            diagnostics = safe_diagnostics(diagnostics)
             read_phase = "snapshot"
             validate_snapshot(snapshot, server)
             atomic_json(directory / (key + ".rankings.json"), snapshot)
@@ -276,7 +294,7 @@ def run_collection(directory, servers, selected, credentials, masks, *, scanner=
             entry.update(refreshStatus="failed", errorCode=error_code(error))
             phase = getattr(error, "collector_read_phase", read_phase)
             failed_read_phase = phase if isinstance(phase, str) and phase in READ_PHASES else "unknown"
-            diagnostics = failure_diagnostics(error)
+            diagnostics = safe_diagnostics(diagnostics) | failure_diagnostics(error)
         entry["lastAttemptAtUtc"] = attempted
         entries[position] = entry
         emit(serverKey=key, phase="finished", refreshStatus=entry["refreshStatus"],

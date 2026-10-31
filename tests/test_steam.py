@@ -32,9 +32,10 @@ class SteamTests(unittest.TestCase):
                           "SteamJP": 10800, "SteamBonn": 10800, "SteamUSAVA": 10800})
         for server in servers:
             with self.subTest(key=server["key"]):
-                mobile = server["protocolProfile"] == "mobile"
-                self.assertEqual(server["batchRequestGapSeconds"], 0.25 if mobile else 1.0)
-                self.assertEqual(server["collectVehicles"], mobile)
+                self.assertEqual(server["batchRequestGapSeconds"], 1.0)
+                self.assertFalse(server["collectVehicles"])
+                self.assertFalse(server["vehicleZeroRecovery"])
+                self.assertFalse(server["vehiclePartialResults"])
 
     def test_alternate_route_is_only_tried_before_a_connection_exists(self):
         server = next(s for s in load_servers() if s["key"] == "SteamJP")
@@ -78,7 +79,7 @@ class SteamTests(unittest.TestCase):
         self.assertEqual(peer.rank_requests, [(0, 200), (3, 200)])
         self.assertEqual(connections[0].batch_request_gap_seconds, 1.0)
         self.assertEqual(connections[0].session_seconds, 10800)
-        self.assertEqual(clock.sleeps, [1.0, 1.0])
+        self.assertEqual(clock.sleeps, [1.0] * 4)
         self.assertEqual(peer.sent[20], 0)
 
     def test_unknown_profile_is_rejected_before_network(self):
@@ -91,6 +92,7 @@ class SteamTests(unittest.TestCase):
     def test_steam_cli_group_selects_only_steam_routes_and_reuses_credentials(self):
         with patch.dict("os.environ", {"MW_COLLECTOR_USERNAME": "invented-user",
                                           "MW_COLLECTOR_PASSWORD": "invented-password"}), \
+                patch("collector.__main__.PAUSED_BACKENDS", frozenset()), \
                 patch("collector.__main__.run_collection", return_value=0) as collect:
             self.assertEqual(main(["collect", "--output", "unused-output", "--server", "steam"]), 0)
         self.assertEqual(collect.call_args.args[2], STEAM_BACKENDS)

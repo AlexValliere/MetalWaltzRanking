@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       collection_scope:
-        description: Servers to refresh; mobile Europe1/Bonn and Thailand/BANGKOK are temporarily paused
+        description: All fresh collection is temporarily paused
         type: choice
         default: all
         options:

@@ -11,19 +11,20 @@ from collector.configuration import EXPECTED_BACKENDS, PAUSED_BACKENDS, STEAM_BA
 
 
 class CollectionPauseTests(unittest.TestCase):
-    def test_paused_mobile_backends_remain_in_complete_publication_directory(self):
+    def test_all_paused_backends_remain_in_complete_publication_directory(self):
         servers = load_servers()
-        self.assertEqual(PAUSED_BACKENDS, frozenset(("Bonn", "BANGKOK")))
+        self.assertEqual(PAUSED_BACKENDS, EXPECTED_BACKENDS)
         self.assertEqual(len(servers), 10)
         self.assertEqual({server["key"] for server in servers}, EXPECTED_BACKENDS)
-        self.assertTrue(all(server["protocolProfile"] == "mobile"
-                            for server in servers if server["key"] in PAUSED_BACKENDS))
+        self.assertTrue(all(not server["collectVehicles"] and not server["vehicleZeroRecovery"]
+                            and not server["vehiclePartialResults"] for server in servers))
 
-    def test_default_and_explicit_all_collect_only_eight_active_backends(self):
+    def test_partial_pause_still_selects_only_active_backends(self):
         active = {"YaleAndroid", "YaleIOS", "JP", "KOREA", "JKMIX",
                   "SteamJP", "SteamBonn", "SteamUSAVA"}
         for arguments in (["collect"], ["collect", "--server", "all"]):
             with self.subTest(arguments=arguments), \
+                    patch("collector.__main__.PAUSED_BACKENDS", frozenset(("Bonn", "BANGKOK"))), \
                     patch.dict("os.environ", {}, clear=True), \
                     patch("collector.__main__.run_collection", return_value=0) as runner:
                 self.assertEqual(main(arguments), 0)
@@ -31,12 +32,14 @@ class CollectionPauseTests(unittest.TestCase):
             self.assertEqual(runner.call_args.args[2], active)
             self.assertIsNone(runner.call_args.args[3])
 
-    def test_explicit_paused_keys_and_aliases_fail_before_credentials_or_network(self):
+    def test_all_selections_fail_before_credentials_or_network(self):
         servers = load_servers()
         # Check canonicalization too, so a future alias cannot bypass the pause.
         next(server for server in servers if server["key"] == "Bonn")["aliases"].append("PausedAlias")
         environment_get = os.environ.get
-        for key in ("Bonn", "BANGKOK", "PausedAlias"):
+        selections = [["collect"], ["collect", "--server", "all"], ["collect", "--server", "steam"]]
+        selections += [["collect", "--server", alias] for server in servers for alias in server["aliases"]]
+        for arguments in selections:
             credential_reads = []
 
             def read_environment(name, default=None):
@@ -45,7 +48,7 @@ class CollectionPauseTests(unittest.TestCase):
                     raise AssertionError("Paused collection must not read credentials")
                 return environment_get(name, default)
 
-            with self.subTest(key=key), \
+            with self.subTest(arguments=arguments), \
                     patch("collector.__main__.load_servers", return_value=servers), \
                     patch("collector.__main__.load_masks") as masks, \
                     patch("collector.__main__.os.environ.get", side_effect=read_environment), \
@@ -53,7 +56,7 @@ class CollectionPauseTests(unittest.TestCase):
                     patch("collector.collect.socket.create_connection") as connector, \
                     redirect_stderr(StringIO()) as errors:
                 with self.assertRaises(SystemExit) as caught:
-                    main(["collect", "--server", key])
+                    main(arguments)
             self.assertEqual(caught.exception.code, 2)
             self.assertIn("temporarily paused", errors.getvalue())
             masks.assert_not_called()
@@ -61,11 +64,12 @@ class CollectionPauseTests(unittest.TestCase):
             runner.assert_not_called()
             connector.assert_not_called()
 
-    def test_steam_group_korea_and_active_aliases_still_collect(self):
+    def test_unpaused_groups_and_aliases_keep_their_canonical_selection(self):
         selections = {"steam": STEAM_BACKENDS, "SteamBonn": {"SteamBonn"},
                       "KOREA": {"KOREA"}, "MIXKJ": {"JKMIX"}, "SteamTEST": {"SteamJP"}}
         for alias, expected in selections.items():
             with self.subTest(alias=alias), \
+                    patch("collector.__main__.PAUSED_BACKENDS", frozenset()), \
                     patch.dict("os.environ", {}, clear=True), \
                     patch("collector.__main__.run_collection", return_value=0) as runner:
                 self.assertEqual(main(["collect", "--server", alias]), 0)

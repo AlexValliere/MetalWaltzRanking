@@ -13,7 +13,7 @@ from collector.connection import CollectorConnection
 from collector.cipher import GameDes
 from collector.transport import TransportEncoder
 from collector.timing import CollectionDeadline
-from test_session import InventedGameSocket
+from test_session import InventedGameSocket, vehicle_server
 
 
 def descriptor(player, mask=0x0c, vehicles=(), tactics=()):
@@ -204,7 +204,7 @@ class PublicVehicleTests(unittest.TestCase):
         connection.collection_deadline = connection.clock() + 0.1
         with self.assertRaises(CollectionDeadline):
             connection.fetch_vehicles([1])
-        self.assertEqual(connection.sent, {20: 1, 16: 1})
+        self.assertEqual(connection.sent, {20: 1})
         self.assertFalse(connection.vehicle_unresolved)
 
     def test_finish_drains_late_updates_without_polling_and_allows_retired_unknown_fields(self):
@@ -730,7 +730,7 @@ class PublicVehicleTests(unittest.TestCase):
 
         peer = PartialVehicleSocket(load_masks())
         with patch("collector.collect.open_socket", return_value=peer):
-            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), load_masks())
+            result = scan_server(vehicle_server(), ("invented-account", "invented-password"), load_masks())
         self.assertTrue(result["rankingEnumerationComplete"])
         self.assertEqual(result["rows"][0]["vehiclesStatus"], "resolved")
         self.assertEqual(result["rows"][0]["vehicles"], [

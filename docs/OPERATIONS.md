@@ -2,20 +2,24 @@
 
 ## Scheduled collection
 
-`.github/workflows/publish.yml` runs daily at **04:17 UTC**, which is **06:17
-Europe/Paris in summer** and **05:17 in winter**. The first attempt of a scheduled
-run contacts the game servers. To collect manually, open **Actions → Refresh
-rankings and publish → Run workflow**, select `main`, check **Fetch fresh rankings
-from the game servers before publishing** (`fetch_rankings`), and start a new run.
-The `collection_scope` input defaults to `all` active backends. Choose
-`affected-mobile` to check Korea (`KOREA`) while the temporary pause below is in
-effect. Scheduled runs and manual `all` requests select the eight active backends.
-Each backend is attempted at most once per collection run; a failure retains its
-previous snapshot until the next scheduled or opted-in manual attempt.
-Manual runs leave this checkbox unchecked by default and publish stored data.
-Pushes to `main` and workflow reruns also publish stored data without a game login,
-even when the original run requested collection. Start a new manual run to fetch
-again. The collection step checks GitHub's event, input and attempt
+**All fresh collection is paused as of 31 October 2026.** The maintainer also
+disabled the GitHub workflow. Keep it disabled during this investigation; existing
+Pages content remains available. The repository pause policy additionally blocks
+all scheduled/manual collection scopes and local CLI selections before credentials
+are read or game connections are opened. It has no expiry or command-line override.
+
+The configured schedule in `.github/workflows/publish.yml` is **04:17 UTC**,
+which is **06:17 Europe/Paris in summer** and **05:17 in winter**. It is inactive
+while the workflow is disabled. When publication is separately enabled, current
+`main` can build/deploy validated stored snapshots while skipping collection,
+including scheduled runs and manual runs with `fetch_rankings` checked. All ten
+backends remain in the directory. Resumption of fresh collection requires a
+reviewed policy change and an explicit decision to enable it.
+
+The normal collection gate permits only the first attempt of a scheduled run or a
+new manual dispatch with `fetch_rankings` enabled. Each backend is attempted at
+most once per collection run. Pushes and reruns publish stored data without a game
+login. The collection step checks GitHub's event, input and attempt
 contexts ([GitHub context reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context)).
 Use **Run workflow** on current `main` for manual refresh or publication: rerunning a
 historical run from before this policy can execute that older collection logic.
@@ -23,7 +27,8 @@ historical run from before this policy can execute that older collection logic.
 GitHub runs this on its own Linux machines. Schedules use the default branch;
 they may be delayed or dropped during high load. Public repositories can have
 scheduled workflows disabled after 60 days without repository activity. Check
-the Actions tab when data looks stale, and re-enable the workflow if needed.
+the Actions tab when data looks stale. The current intentional pause must not be
+treated as an automatic reason to re-enable the workflow.
 [GitHub schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
 The site displays each backend's successful collection time and refresh status.
@@ -31,18 +36,15 @@ A fresh manifest time does not make a retained snapshot fresh. An unavailable
 name is also distinct from a failed scan: a complete ranking may have explicit
 nickname failures from the game server.
 
-Each fresh mobile backend scan also requests public vehicle profiles for every
-ranking entry. Complete rankings can publish with `unresolved` vehicle profiles
-when the server returns keyed zero-field descriptors after bounded recovery.
-Those profiles have a null list and display “Vehicle data unresolved”; actual
-empty lists and explicit unavailable responses remain distinct. Late observed
-fields can still resolve a profile before publication. Silent timeouts, malformed
-responses and incomplete rankings stop that backend and retain its last complete
-snapshot. JSON exports preserve each observation, and successful collection logs
-report separate counts for empty, nonempty, unavailable, unresolved and uncollected
-vehicle profiles.
-Steam collection is configured for rankings and names with vehicle lists explicitly
-marked `not_collected`: native profile probes reached incomplete transactions.
+Fresh public vehicle collection is disabled for every backend. The reviewed
+directory sets `collectVehicles`, `vehicleZeroRecovery` and `vehiclePartialResults`
+to false. A future authorized rankings/name refresh under this reduced-workload
+policy would mark vehicle lists `not_collected`; retained snapshots keep their
+actual prior observations. The historical bounded recovery implementation and its
+`unresolved` output remain documented as evidence, but are not enabled in this
+policy. Actual empty lists, unavailable, unresolved and uncollected data remain
+distinct. Silent timeouts, malformed replies and incomplete rankings still stop
+the backend and retain its last complete snapshot.
 Steam USA's first complete snapshot is verified: 10,054 ranking rows, 10,054
 resolved names and no missing names. It was collected from 21:57:07.588015 to
 22:05:57.924638 UTC on 23 October 2026, taking 530.336623 seconds.
@@ -62,12 +64,16 @@ and committed with their catalog and hashes. Daily GitHub collection uses those
 static assets and needs no desktop renderer or Live2D SDK. Regenerate and review
 the assets separately when updating game data or presentation sources.
 
-Mobile ranking, primary-name and vehicle batch requests share a minimum **250 ms**
-start-to-start gap. Mobile ranking batches contain up to 200 entries; primary-name
-and vehicle batches allow up to 200 names and 50 profiles respectively.
+Mobile and Steam ranking (137), primary-name (15), nickname fallback (16), and
+detail (20) requests share a minimum **one-second start-to-start gap**. The timer
+persists across calls and transaction types. Ranking batches contain up to 200
+entries; primary-name batches contain at most 50. Detail requests remain disabled
+in every configured backend. These limits reduce load; they do not establish a
+safe server capacity or prove a remedy for observed outages.
 
 The collector first enumerates and validates every ranking page, then retrieves
-names and vehicles in cohorts of at most 200 identities. Slow profile responses
+names in cohorts of at most 200 identities, split into name batches of at most 50.
+Slow profile responses
 therefore do not leave minutes between ranking offsets. It keeps the observed
 ranking order and scores; it does not silently remove duplicates or sort a moving
 ranking into apparent consistency. A rank change during the shorter enumeration
@@ -88,8 +94,10 @@ gap is a chosen pacing policy, and no server rate limit is established.
 This paging policy retains bounded reply waits; an incomplete scan cannot replace
 a snapshot.
 
-Nickname fallback remains groups of 10, fully drained before a 250 ms pause and
-the next group. Heartbeat acknowledgements remain immediate.
+Nickname fallback has **one outstanding request at a time**. Its next request
+uses the same one-second timer as the batch requests, including across separate
+fallback calls. Heartbeat acknowledgements remain immediate and do not consume
+or reset the workload timer.
 
 Mobile collection also follows the native receive-idle keep-alive sequence:
 empty probes at the 30-, 40- and 50-second thresholds, followed by the 60-second
@@ -112,9 +120,10 @@ Session ceilings are **19,800 seconds (5½ hours) for Bonn**, **10,800 seconds
 and **3,600 seconds (one hour) for the other mobile backends**. A session also
 obeys its job's remaining collector budget, which starts before snapshot loading.
 These are capacity ceilings, not expected running times or completion guarantees.
-Some observed zero-field vehicle batches took about five seconds for the initial
-response and another five seconds for bounded recovery; longer jobs permit a
-full scan without increasing request frequency or skipping profiles.
+The slower policy may reach those existing budgets before a full scan finishes.
+That failure retains last-good data; there is no automatic catch-up, retry, or
+budget extension. Historical zero-field vehicle timings are not a reason to
+re-enable the currently disabled profile path.
 
 The local CLI still defaults to a five-hour shared budget when multiple servers
 are selected. On budget expiry, the current and unvisited local backends receive
@@ -130,24 +139,27 @@ to help distinguish connection, login and ranking/name failures.
 The capacity extension adds no retries, registrations or commander creation, and
 does not change Steam's 200-row batches or one-second gap.
 
-## Temporary mobile collection pause
+## Temporary collection pause
 
-As of **26 October 2026**, fresh collection for mobile Europe №1 (`Bonn`) and
-Thailand (`BANGKOK`) is paused as a precaution following repeated outages during
-scans. The observed disconnects and player reports do not establish that the
-collector caused the server outages.
+Mobile Europe №1 (`Bonn`) and Thailand (`BANGKOK`) were paused on **26 October
+2026**. On **31 October 2026**, the pause was extended to **all ten backends**
+after further disconnects and an offline workload review. The observed
+disconnects and player reports do not establish that the collector caused the
+server outages.
 
-The shared `PAUSED_BACKENDS` policy in `collector/configuration.py` excludes both
-from every scheduled and manual collection plan and from local CLI `all` requests.
-Explicit local CLI requests for a paused key or alias fail before credentials are
-read or a network connection is opened. There is no command-line override.
-The paused-only Actions choices are removed; legacy `bonn` and `europe-thailand`
-planner inputs skip fresh collection with a clear notice.
+The shared `PAUSED_BACKENDS` policy in `collector/configuration.py` includes every
+reviewed backend. Every scheduled and manual collection plan skips collection,
+using an inert nonempty matrix for workflow validation. All local CLI selections,
+including default `all`, `steam`, explicit keys and aliases, fail before credentials
+are read or a network connection is opened. There is no command-line override.
+Legacy `bonn` and `europe-thailand` planner inputs also skip fresh collection.
 
-All ten backends remain in the public directory. Publication continues to validate
-and serve their last-good snapshots, keeping the original successful timestamps
-and attempt metadata. The other eight backends, including Steam Europe, remain
-enabled. Resumption requires a reviewed policy change; there is no automatic expiry.
+All ten backends remain in the public directory. The existing deployed site serves
+their last-good snapshots, keeping successful timestamps and attempt metadata.
+Publication code can still validate/build those snapshots without a game login;
+the maintainer-disabled GitHub workflow will not run until separately enabled.
+Resumption of collection requires a reviewed policy change; there is no automatic
+expiry.
 
 ## Credentials and permissions
 
@@ -174,7 +186,7 @@ transport profile and three logical backends: `SteamJP` (also the `SteamTEST`
 Hong Kong route), `SteamBonn` and `SteamUSAVA`. Each needs exactly one existing
 commander. Account registration and initial commander setup are separate,
 explicitly authorized operations; the scheduled collector contains neither.
-For a separately authorized local Steam-only refresh, use `--server steam`.
+The usual `--server steam` group remains blocked by the current pause.
 
 ## Last-good storage
 
@@ -230,7 +242,7 @@ the public JSON separately; this repository does not promise a historical archiv
 | Some names are unavailable                               | These are explicit completed nickname failures. Rank and Grandeur remain valid; a later refresh may resolve them.                                    |
 | Snapshot storage refuses the branch                      | Check its marker/tree and whether another writer changed it. Preserve unexpected contents before any repair.                                         |
 | Pages setup/deployment fails                             | Select GitHub Actions as the Pages publishing source and check plan eligibility and the `github-pages` environment.                                  |
-| Schedule stops or becomes late                           | Check GitHub Actions status, repository workflow state and the schedule notes above. Start a new manual run with **Fetch fresh rankings from the game servers before publishing** checked to collect now. |
+| Schedule stops or becomes late                           | Check GitHub Actions status and the intentional pause above. Keep collection disabled until the reviewed pause policy is changed and resumption is explicitly authorized. |
 
 Logs intentionally contain aggregate progress and fixed error codes. They do not
 identify players or include server packet bodies. Never paste collector secrets
@@ -245,6 +257,18 @@ receive. These values alone do not measure time spent waiting in the decoded que
 `attemptRowsFetched` and `attemptRowsCompleted` describe the failed attempt;
 the existing `rows` field describes the retained public snapshot. Diagnostic
 fields stay in logs and do not alter public snapshot or manifest schemas.
+
+Successful and failed session logs also report `requestAttempts` and
+`requestsSent`, maps keyed only by the fixed allowed opcode numbers. Attempts
+count validated requests reserved before encoding/sending; sent counts mean
+`sendall` completed, not that the backend processed the request.
+`lookupIdentitiesAttempted` and `lookupIdentitiesSent` count how many identities
+were carried by requests 15, 16 and 20, without logging their values.
+`primaryNameTimeouts`, `vehicleRecoveryBatches` and `vehicleRecoveryIdentities`
+record primary waits and scheduled recovery work. Vehicle recovery counts remain
+zero under the disabled profile policy. These counters exclude raw bodies,
+player/account identifiers, credentials and arbitrary exception text, and are
+filtered again at the logging boundary.
 
 Failures before a protocol session exists also report `connectAttempts`, fixed
 counts for refused, unreachable, timed-out, name-resolution, reset and other

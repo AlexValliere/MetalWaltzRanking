@@ -15,6 +15,12 @@ from collector.records import ServerRejection
 from collector.transport import TransportDecoder, TransportEncoder
 
 
+def vehicle_server():
+    """Explicitly opt an invented peer into the legacy vehicle/recovery path."""
+    return {**load_servers()[0], "collectVehicles": True,
+            "vehicleZeroRecovery": True, "vehiclePartialResults": True}
+
+
 class InventedGameSocket:
     def __init__(self, masks, *, login_status=0, commanders=1):
         cipher = GameDes()
@@ -123,7 +129,7 @@ class SessionTests(unittest.TestCase):
         masks = load_masks()
         peer = PersistentZeroSocket(masks)
         with patch("collector.collect.open_socket", return_value=peer):
-            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+            result = scan_server(vehicle_server(), ("invented-account", "invented-password"), masks)
         self.assertTrue(peer.closed)
         self.assertTrue(result["rankingEnumerationComplete"])
         self.assertEqual(peer.rank_requests, [(0, 200), (3, 200)])
@@ -160,13 +166,13 @@ class SessionTests(unittest.TestCase):
         masks = load_masks()
         peer = LateVehicleSocket(masks, 102)
         with patch("collector.collect.open_socket", return_value=peer):
-            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+            result = scan_server(vehicle_server(), ("invented-account", "invented-password"), masks)
         self.assertEqual(result["rows"][1]["vehiclesStatus"], "resolved")
         self.assertEqual(result["rows"][1]["vehicles"], [])
         self.assertEqual(peer.sent[20], 2)
         peer = LateVehicleSocket(masks, 999999)
         with patch("collector.collect.open_socket", return_value=peer), self.assertRaises(ValueError):
-            scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+            scan_server(vehicle_server(), ("invented-account", "invented-password"), masks)
         self.assertTrue(peer.closed)
 
     def test_mobile_zero_detail_reply_recovers_only_missing_identity_after_prior_successful17(self):
@@ -190,7 +196,7 @@ class SessionTests(unittest.TestCase):
         masks = load_masks()
         peer = ZeroThenVehicleSocket(masks)
         with patch("collector.collect.open_socket", return_value=peer):
-            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+            result = scan_server(vehicle_server(), ("invented-account", "invented-password"), masks)
         self.assertTrue(peer.closed)
         self.assertTrue(result["rankingEnumerationComplete"])
         self.assertEqual(peer.sent[20], 2)
@@ -215,11 +221,25 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(all(row["vehiclesStatus"] == "not_collected" and row["vehicles"] is None
                             for row in result["rows"]))
 
+    def test_production_mobile_connection_keeps_zero_recovery_and_vehicle_collection_disabled(self):
+        server = load_servers()[0]
+        peer = InventedGameSocket(load_masks())
+        with patch("collector.collect.open_socket", return_value=peer), \
+                patch("collector.collect.CollectorConnection", wraps=CollectorConnection) as constructor:
+            result = scan_server(server, ("invented-account", "invented-password"), load_masks())
+        self.assertIs(constructor.call_args.kwargs["vehicle_zero_recovery"], False)
+        self.assertIs(constructor.call_args.kwargs["vehicle_partial_results"], False)
+        self.assertEqual(peer.sent[20], 0)
+        self.assertTrue(all(row["vehiclesStatus"] == "not_collected" and row["vehicles"] is None
+                            for row in result["rows"]))
+        self.assertTrue(result["rankingEnumerationComplete"])
+        self.assertTrue(peer.closed)
+
     def test_complete_read_only_workflow_with_names_and_unavailable_name(self):
         masks = load_masks()
         peer = InventedGameSocket(masks)
         with patch("collector.collect.open_socket", return_value=peer):
-            result = scan_server(load_servers()[0], ("invented-account", "invented-password"), masks)
+            result = scan_server(vehicle_server(), ("invented-account", "invented-password"), masks)
         self.assertTrue(peer.closed)
         self.assertTrue(result["rankingEnumerationComplete"])
         self.assertFalse(result["namesComplete"])

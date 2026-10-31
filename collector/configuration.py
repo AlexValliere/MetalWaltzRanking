@@ -12,9 +12,9 @@ EXPECTED_STEAM_BINARY = "15e063b555565cd35e3b465cdd0a8dc005e26b552b2317c8cd56cd9
 STEAM_BACKENDS = frozenset(("SteamJP", "SteamBonn", "SteamUSAVA"))
 STEAM_ALIASES = {key: key for key in STEAM_BACKENDS} | {"SteamTEST": "SteamJP"}
 EXPECTED_BACKENDS = frozenset(("Bonn", "YaleAndroid", "YaleIOS", "JP", "KOREA", "JKMIX", "BANGKOK")) | STEAM_BACKENDS
-# Temporarily pause these mobile collectors after repeated outages during scans.
+# Pause all fresh collection while the backend-disconnect investigation continues.
 # Keep their directory entries so publication can retain their last-good data.
-PAUSED_BACKENDS = frozenset(("Bonn", "BANGKOK"))
+PAUSED_BACKENDS = EXPECTED_BACKENDS
 MOBILE_SESSION_SECONDS = {"Bonn": 19800, "KOREA": 5400, "BANGKOK": 10800}
 
 
@@ -49,10 +49,11 @@ def load_servers():
         if endpoint not in groups:
             groups[endpoint] = {"key": canonical, "address": item["address"], "ports": item["ports"],
                                 "aliases": [], "serverNames": [], "protocolProfile": platform,
-                                "collectVehicles": platform == "mobile",
+                                "collectVehicles": False,
+                                "vehicleZeroRecovery": False, "vehiclePartialResults": False,
                                 "sessionSeconds": (10800 if platform == "steam" else
                                                    MOBILE_SESSION_SECONDS.get(canonical, 3600)),
-                                "batchRequestGapSeconds": 1.0 if platform == "steam" else 0.25}
+                                "batchRequestGapSeconds": 1.0}
         elif platform == "steam":
             groups[endpoint].setdefault("alternateRoutes", []).append(
                 {"address": item["address"], "ports": item["ports"]})
